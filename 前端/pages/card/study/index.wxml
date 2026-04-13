@@ -1,0 +1,130 @@
+<view class="study-container">
+  <!-- 模块一：题目展示区（顶部核心区域） -->
+  <view class="question-section">
+    <view class="card-header">
+      <view class="card-meta">
+        <text class="card-number">卡片 {{currentIndex + 1}} / {{totalCards}}</text>
+        <view class="card-tags">
+          <t-tag wx:for="{{currentCard.tags}}" wx:key="*this" theme="primary" variant="light" size="small">{{item}}</t-tag>
+        </view>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{((currentIndex + 1) / totalCards) * 100}}%;"></view>
+        </view>
+      </view>
+    </view>
+    
+    <view class="question-content">
+      <text class="question-title">{{currentCard.question}}</text>
+    </view>
+  </view>
+
+  <!-- 模块二：答案隐藏与展开机制 -->
+  <view class="answer-section">
+    <!-- 答案隐藏状态 -->
+    <view class="answer-hidden" wx:if="{{!answerRevealed}}">
+      <view class="hint-text">先回忆，再查看答案</view>
+      <view class="reveal-btn" bindtap="onRevealAnswer">
+        <t-icon name="browse" size="40rpx" color="#fff" />
+        <text>查看答案</text>
+      </view>
+    </view>
+
+    <!-- 答案展开状态 -->
+    <view class="answer-revealed {{answerRevealed ? 'show' : ''}}" wx:if="{{answerRevealed}}">
+      <view class="answer-label">
+        <t-icon name="check-circle" size="32rpx" color="#00B578" />
+        <text>参考答案</text>
+      </view>
+      <view class="answer-content">
+        <text class="answer-text">{{currentCard.answer}}</text>
+      </view>
+      
+      <!-- 学习反馈按钮 -->
+      <view class="feedback-section">
+        <text class="feedback-title">掌握程度</text>
+        <view class="feedback-buttons">
+          <view class="feedback-btn difficult {{feedback === 'difficult' ? 'active' : ''}}" bindtap="onFeedback" data-type="difficult">
+            <t-icon name="error-circle" size="32rpx" color="{{feedback === 'difficult' ? '#fff' : '#FF4D4F'}}" />
+            <text>困难</text>
+          </view>
+          <view class="feedback-btn normal {{feedback === 'normal' ? 'active' : ''}}" bindtap="onFeedback" data-type="normal">
+            <t-icon name="help-circle" size="32rpx" color="{{feedback === 'normal' ? '#fff' : '#FAAD14'}}" />
+            <text>一般</text>
+          </view>
+          <view class="feedback-btn easy {{feedback === 'easy' ? 'active' : ''}}" bindtap="onFeedback" data-type="easy">
+            <t-icon name="check-circle" size="32rpx" color="{{feedback === 'easy' ? '#fff' : '#00B578'}}" />
+            <text>简单</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 模块三：评论互动区（答案展开后显示） -->
+  <view class="comment-section {{answerRevealed ? 'show' : ''}}" wx:if="{{answerRevealed}}">
+    <view class="comment-header">
+      <text class="comment-title">学习笔记</text>
+      <text class="comment-count">{{comments.length}} 条笔记</text>
+    </view>
+
+    <!-- 评论列表 -->
+    <scroll-view class="comment-list" scroll-y="true" enhanced="true" show-scrollbar="true">
+      <view class="comment-item" wx:for="{{comments}}" wx:key="id">
+        <view class="comment-avatar">
+          <text>{{item.avatar}}</text>
+        </view>
+        <view class="comment-content">
+          <view class="comment-user">
+            <text class="username">{{item.username}}</text>
+            <text class="time">{{item.time}}</text>
+          </view>
+          <text class="comment-text">{{item.content}}</text>
+        </view>
+      </view>
+      <view class="comment-empty" wx:if="{{comments.length === 0}}">
+        <t-icon name="edit" size="48rpx" color="#ccc" />
+        <text>暂无笔记，写下第一条吧</text>
+      </view>
+    </scroll-view>
+
+    <!-- 评论输入框 -->
+    <view class="comment-input-section">
+      <input 
+        class="comment-input" 
+        placeholder="添加学习笔记..." 
+        value="{{commentText}}"
+        bindinput="onCommentInput"
+        confirm-type="send"
+        bindconfirm="onSubmitComment"
+      />
+      <view class="send-btn {{commentText ? 'active' : ''}}" bindtap="onSubmitComment">
+        <t-icon name="send" size="36rpx" color="{{commentText ? '#fff' : '#ccc'}}" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+</view>
+
+<!-- 模块四：卡片切换学习导航 -->
+<view class="study-nav-bar">
+  <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
+    <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#0052D9'}}" />
+    <text>上一张</text>
+  </view>
+  
+  <view class="nav-center">
+    <view class="learned-toggle {{currentCard.learned ? 'active' : ''}}" bindtap="onToggleLearned">
+      <t-icon name="{{currentCard.learned ? 'check-rectangle-filled' : 'check-rectangle'}}" size="36rpx" color="{{currentCard.learned ? '#00B578' : '#999'}}" />
+      <text>{{currentCard.learned ? '已掌握' : '标记掌握'}}</text>
+    </view>
+  </view>
+  
+  <view class="nav-btn next {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
+    <text>下一张</text>
+    <t-icon name="chevron-right" size="40rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#0052D9'}}" />
+  </view>
+</view>

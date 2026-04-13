@@ -1,0 +1,60 @@
+<view class="container">
+  <!-- 页面标题区 -->
+  <view class="page-header">
+    <view class="header-title">热门卡片</view>
+    <view class="header-desc">精选高频考点，助力高效备考</view>
+  </view>
+
+  <!-- 卡片列表 -->
+  <view class="cards-list">
+    <view 
+      class="card-item {{item.pressed ? 'pressed' : ''}}" 
+      wx:for="{{hotCards}}" 
+      wx:key="id"
+      bindtap="onCardTap"
+      bindtouchstart="onCardTouchStart"
+      bindtouchend="onCardTouchEnd"
+      data-index="{{index}}"
+    >
+      <!-- 卡片头部：编号和标签 -->
+      <view class="card-header">
+        <view class="card-number">NO.{{index + 1}}</view>
+        <view class="card-tags">
+          <t-tag 
+            wx:for="{{item.tags}}" 
+            wx:for-item="tag" 
+            wx:key="*this"
+            theme="primary" 
+            variant="light"
+            size="small"
+          >{{tag}}</t-tag>
+        </view>
+      </view>
+
+      <!-- 卡片内容：问题 -->
+      <view class="card-content">
+        <text class="card-question">{{item.question}}</text>
+      </view>
+
+      <!-- 卡片底部：点赞数和掌握状态 -->
+      <view class="card-footer">
+        <view class="card-stats">
+          <view class="stat-item like-btn {{item.liked ? 'liked' : ''}}" catchtap="onLikeCard" data-index="{{index}}" data-id="{{item.id}}">
+            <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
+            <text>{{item.likes}} 点赞</text>
+          </view>
+          <view class="stat-item" wx:if="{{item.learned}}">
+            <t-icon name="check-circle" size="24rpx" color="#00B578" />
+            <text style="color: #00B578;">已掌握</text>
+          </view>
+        </view>
+        <view class="study-btn">
+          <t-icon name="chevron-right" size="32rpx" color="#0052D9" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+</view>

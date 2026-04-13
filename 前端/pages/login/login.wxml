@@ -1,0 +1,114 @@
+<view class="login-container">
+  <!-- 背景装饰 -->
+  <view class="bg-decoration">
+    <view class="circle circle-1"></view>
+    <view class="circle circle-2"></view>
+    <view class="circle circle-3"></view>
+  </view>
+
+  <!-- Logo区域 -->
+  <view class="logo-section">
+    <view class="logo-wrapper">
+      <t-avatar 
+        class="app-logo"
+        image="/assets/images/logo.png" 
+        size="160rpx"
+        shape="circle"
+      />
+    </view>
+    <text class="app-name">法硕背诵助手</text>
+    <text class="app-slogan">高效记忆 · 轻松备考</text>
+  </view>
+
+  <!-- 登录按钮区域 -->
+  <view class="login-section">
+    <view class="login-card">
+      <text class="login-title">欢迎使用</text>
+      <text class="login-desc">登录后即可使用完整功能</text>
+      
+      <!-- 微信一键登录按钮 -->
+      <button 
+        class="wechat-login-btn primary"
+        bindtap="onWechatLoginNew"
+      >
+        <t-icon name="logo-wechat" size="48rpx" color="#fff" />
+        <text class="btn-text">微信一键登录</text>
+      </button>
+
+      <!-- 游客模式 -->
+      <button 
+        class="guest-btn"
+        bindtap="onGuestLogin"
+      >
+        <text class="btn-text">游客模式浏览</text>
+      </button>
+    </view>
+  </view>
+
+  <!-- 用户协议 -->
+  <view class="agreement-section">
+    <view class="checkbox-wrapper" bindtap="toggleAgreement">
+      <t-icon 
+        name="{{hasAgreed ? 'check-circle-filled' : 'circle'}}" 
+        size="32rpx" 
+        color="{{hasAgreed ? '#0052D9' : '#ccc'}}"
+      />
+    </view>
+    <text class="agreement-text">
+      登录即代表您同意
+      <text class="link" bindtap="showUserAgreement">《用户协议》</text>
+      和
+      <text class="link" bindtap="showPrivacyPolicy">《隐私政策》</text>
+    </text>
+  </view>
+
+  <!-- 底部信息 -->
+  <view class="footer">
+    <text class="version" bind:longpress="showTestEntry">v1.0.0</text>
+  </view>
+
+  <!-- 加载提示 -->
+  <t-toast id="t-toast" />
+  
+  <!-- 协议弹窗 -->
+  <t-dialog
+    visible="{{showAgreementDialog}}"
+    title="{{agreementTitle}}"
+    content="{{agreementContent}}"
+    confirm-btn="我知道了"
+    bind:confirm="closeAgreementDialog"
+  />
+
+  <!-- 测试登录弹窗 -->
+  <t-popup visible="{{showTestLogin}}" placement="center">
+    <view class="test-login-popup">
+      <view class="test-login-header">
+        <text class="test-login-title">测试入口</text>
+        <t-icon name="close" size="40rpx" color="#999" bind:tap="closeTestLogin" />
+      </view>
+      <view class="test-login-form">
+        <view class="form-item">
+          <text class="form-label">账号</text>
+          <input 
+            class="form-input" 
+            type="text" 
+            placeholder="请输入测试账号"
+            value="{{testAccount}}"
+            bind:input="onTestAccountInput"
+          />
+        </view>
+        <view class="form-item">
+          <text class="form-label">密码</text>
+          <input 
+            class="form-input" 
+            type="password" 
+            placeholder="请输入测试密码"
+            value="{{testPassword}}"
+            bind:input="onTestPasswordInput"
+          />
+        </view>
+        <button class="test-login-btn" bind:tap="onTestLogin">进入测试</button>
+      </view>
+    </view>
+  </t-popup>
+</view>

@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-icon": "tdesign-miniprogram/icon/icon"
+  },
+  "navigationBarTitleText": "社区",
+  "enablePullDownRefresh": true
+}

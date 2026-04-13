@@ -1,0 +1,157 @@
+.container {
+  min-height: 100vh;
+  background-color: #f5f6fa;
+  padding-bottom: 240rpx;
+  box-sizing: border-box;
+}
+
+/* 表单区域 */
+.form-section {
+  background-color: #fff;
+  padding: 32rpx;
+}
+
+.form-item {
+  margin-bottom: 40rpx;
+}
+
+.form-item:last-child {
+  margin-bottom: 0;
+}
+
+/* 表单标签 */
+.form-label {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.label-text {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.label-required {
+  font-size: 30rpx;
+  color: #e34d59;
+  margin-left: 8rpx;
+}
+
+.label-optional {
+  font-size: 26rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+/* 选择器样式 */
+.picker-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background-color: #f8f9fa;
+  border-radius: 16rpx;
+  border: 2rpx solid #e8e8e8;
+}
+
+.picker-content {
+  flex: 1;
+  font-size: 30rpx;
+  color: #999;
+}
+
+.picker-content.selected {
+  color: #333;
+}
+
+/* 文本域样式 */
+.textarea-wrapper {
+  position: relative;
+  background-color: #f8f9fa;
+  border-radius: 16rpx;
+  border: 2rpx solid #e8e8e8;
+  padding: 24rpx;
+}
+
+.form-textarea {
+  width: 100%;
+  min-height: 160rpx;
+  font-size: 30rpx;
+  line-height: 1.6;
+  color: #333;
+}
+
+.answer-textarea {
+  min-height: 240rpx;
+}
+
+.placeholder {
+  font-size: 30rpx;
+  color: #bbb;
+}
+
+.char-count {
+  text-align: right;
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 12rpx;
+}
+
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #fff;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
+}
+
+.footer-tips {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 20rpx;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.btn-group {
+  display: flex;
+  gap: 24rpx;
+}
+
+.btn-group t-button {
+  flex: 1;
+}
+
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 32rpx;
+  background-color: #fff;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.picker-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.picker-btn {
+  font-size: 30rpx;
+  padding: 8rpx 16rpx;
+}
+
+.picker-btn.confirm {
+  color: #0052D9;
+  font-weight: 500;
+}
+
+.picker-btn.cancel {
+  color: #999;
+}

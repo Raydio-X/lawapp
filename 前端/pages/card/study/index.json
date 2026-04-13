@@ -1,0 +1,12 @@
+{
+  "navigationBarTitleText": "卡片学习",
+  "navigationBarBackgroundColor": "#0052D9",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#f5f6fa",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-tag": "tdesign-miniprogram/tag/tag",
+    "t-button": "tdesign-miniprogram/button/button",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea"
+  }
+}

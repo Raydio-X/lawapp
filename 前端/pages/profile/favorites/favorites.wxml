@@ -1,0 +1,43 @@
+<view class="container">
+  <view class="header">
+    <view class="tabs">
+      <view class="tab {{type === 'card' ? 'active' : ''}}" bindtap="onTypeChange" data-type="card">卡片</view>
+      <view class="tab {{type === 'library' ? 'active' : ''}}" bindtap="onTypeChange" data-type="library">知识库</view>
+    </view>
+  </view>
+
+  <view class="list" wx:if="{{!loading && favorites.length > 0}}">
+    <view 
+      class="item {{item.pressed ? 'pressed' : ''}}" 
+      wx:for="{{favorites}}" 
+      wx:key="id"
+      bindtap="onItemTap"
+      bindtouchstart="onItemTouchStart"
+      bindtouchend="onItemTouchEnd"
+      data-index="{{index}}"
+    >
+      <view class="item-content">
+        <view class="item-icon">
+          <t-icon name="{{item.type === 'library' ? 'folder' : 'file'}}" size="48rpx" color="#0052D9" />
+        </view>
+        <view class="item-info">
+          <text class="item-name">{{item.name}}</text>
+          <text class="item-time">{{item.time}} 收藏</text>
+        </view>
+      </view>
+      <view class="item-action" catchtap="onRemoveFavorite" data-index="{{index}}">
+        <t-icon name="close" size="36rpx" color="#999" />
+      </view>
+    </view>
+  </view>
+
+  <view class="empty" wx:if="{{!loading && favorites.length === 0}}">
+    <t-icon name="star" size="96rpx" color="#ccc" />
+    <text>暂无收藏</text>
+  </view>
+
+  <view class="loading" wx:if="{{loading}}">
+    <t-loading theme="circular" size="40rpx" />
+    <text>加载中...</text>
+  </view>
+</view>

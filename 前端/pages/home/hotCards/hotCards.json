@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "热门卡片",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-tag": "tdesign-miniprogram/tag/tag"
+  }
+}

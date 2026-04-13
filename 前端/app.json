@@ -1,0 +1,44 @@
+{
+  "pages": [
+    "pages/login/login",
+    "pages/home/home",
+    "pages/home/hotCards/hotCards",
+    "pages/create/create",
+    "pages/create/cardForm/cardForm",
+    "pages/create/libraryForm/libraryForm",
+    "pages/profile/profile",
+    "pages/profile/favorites/favorites",
+    "pages/profile/wrongCards/wrongCards",
+    "pages/library/detail/detail",
+    "pages/card/study/study"
+  ],
+  "tabBar": {
+    "color":"#999999",
+    "selectedColor":"#0052D9",
+    "backgroundColor":"#ffffff",
+    "borderStyle":"black",
+    "list":[
+      {
+        "pagePath":"pages/home/home",
+        "text":"社区"
+      },
+      {
+        "pagePath":"pages/create/create",
+        "text":"创作"
+      },
+      {
+        "pagePath":"pages/profile/profile",
+        "text":"我的"
+      }
+    ]
+  },
+  "lazyCodeLoading": "requiredComponents",
+  "usingComponents": {},
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#fff",
+    "navigationBarTitleText": "法硕背诵",
+    "navigationBarTextStyle": "black"
+  },
+  "sitemapLocation": "sitemap.json"
+}

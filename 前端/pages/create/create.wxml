@@ -1,0 +1,234 @@
+<view class="container">
+  <!-- 页面标题 -->
+  <view class="page-header">
+    <text class="page-title">创建</text>
+    <text class="page-subtitle">开始记录你的知识</text>
+  </view>
+
+  <!-- 创建入口卡片 -->
+  <view class="create-section">
+    <view 
+      class="create-card {{libraryPressed ? 'pressed' : ''}}" 
+      bindtap="onCreateLibrary"
+      bindtouchstart="onLibraryTouchStart"
+      bindtouchend="onLibraryTouchEnd"
+    >
+      <view class="create-card-icon library-icon">
+        <t-icon name="folder" size="56rpx" color="#fff" />
+      </view>
+      <view class="create-card-content">
+        <text class="create-card-title">创建知识库</text>
+        <text class="create-card-desc">搭建你的专属背诵体系</text>
+      </view>
+      <view class="create-card-arrow">
+        <t-icon name="chevron-right" size="40rpx" color="#ccc" />
+      </view>
+    </view>
+
+    <view 
+      class="create-card {{cardPressed ? 'pressed' : ''}}" 
+      bindtap="onCreateCard"
+      bindtouchstart="onCardTouchStart"
+      bindtouchend="onCardTouchEnd"
+    >
+      <view class="create-card-icon card-icon">
+        <t-icon name="edit" size="56rpx" color="#fff" />
+      </view>
+      <view class="create-card-content">
+        <text class="create-card-title">新增背诵卡片</text>
+        <text class="create-card-desc">记录一个知识点</text>
+      </view>
+      <view class="create-card-arrow">
+        <t-icon name="chevron-right" size="40rpx" color="#ccc" />
+      </view>
+    </view>
+  </view>
+
+  <!-- 快速操作区 -->
+  <view class="quick-actions">
+    <view class="quick-action-title">快捷入口</view>
+    <view class="quick-action-grid">
+      <view class="quick-action-item" bindtap="onQuickImport">
+        <view class="quick-action-icon import-icon">
+          <t-icon name="upload" size="40rpx" color="#0052D9" />
+        </view>
+        <text class="quick-action-text">批量导入</text>
+      </view>
+      <view class="quick-action-item" bindtap="onQuickTemplate">
+        <view class="quick-action-icon template-icon">
+          <t-icon name="file-copy" size="40rpx" color="#0052D9" />
+        </view>
+        <text class="quick-action-text">使用模板</text>
+      </view>
+      <view class="quick-action-item" bindtap="onQuickScan">
+        <view class="quick-action-icon scan-icon">
+          <t-icon name="scan" size="40rpx" color="#0052D9" />
+        </view>
+        <text class="quick-action-text">拍照识题</text>
+      </view>
+      <view class="quick-action-item" bindtap="onQuickVoice">
+        <view class="quick-action-icon voice-icon">
+          <t-icon name="microphone" size="40rpx" color="#0052D9" />
+        </view>
+        <text class="quick-action-text">语音输入</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 我的知识库 -->
+  <view class="my-libraries-section">
+    <view class="section-header">
+      <text class="section-title">我的知识库</text>
+      <text class="manage-btn {{isManageMode ? 'active' : ''}}" bindtap="onManageLibraries">{{isManageMode ? '取消' : '管理'}}</text>
+    </view>
+    <view class="library-list" wx:if="{{myLibraries.length > 0}}">
+      <view 
+        class="library-item {{item.pressed ? 'pressed' : ''}} {{isManageMode ? 'manage-mode' : ''}}" 
+        wx:for="{{myLibraries}}" 
+        wx:key="id"
+        bindtap="onLibraryItemTap"
+        bindtouchstart="onLibraryItemTouchStart"
+        bindtouchend="onLibraryItemTouchEnd"
+        data-index="{{index}}"
+      >
+        <view class="library-item-icon">
+          <t-icon name="folder" size="48rpx" color="#0052D9" />
+        </view>
+        <view class="library-item-content">
+          <text class="library-item-name">{{item.name}}</text>
+          <view class="library-item-meta">
+            <text class="meta-item">{{item.subject}}</text>
+            <text class="meta-dot">·</text>
+            <text class="meta-item">{{item.cardCount}}张卡片</text>
+          </view>
+        </view>
+        <view class="library-item-delete" wx:if="{{isDeleteMode}}" catchtap="onDeleteLibrary" data-id="{{item.id}}" data-index="{{index}}">
+          <text class="delete-text">删除</text>
+        </view>
+        <view class="library-item-actions" wx:elif="{{isManageMode}}">
+          <text class="action-text edit" catchtap="onEditOutline" data-id="{{item.id}}" data-index="{{index}}">编辑大纲</text>
+          <text class="action-text delete" catchtap="onDeleteLibrary" data-id="{{item.id}}" data-index="{{index}}">删除</text>
+        </view>
+        <view class="library-item-arrow" wx:else>
+          <t-icon name="chevron-right" size="32rpx" color="#ccc" />
+        </view>
+      </view>
+    </view>
+    <view class="empty-state" wx:else>
+      <t-icon name="folder" size="80rpx" color="#ddd" />
+      <text class="empty-text">还没有创建知识库</text>
+      <text class="empty-subtext">点击上方"创建知识库"开始创建</text>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+</view>
+
+<!-- 编辑大纲弹窗 -->
+<t-popup 
+  visible="{{showOutlinePopup}}" 
+  bind:visible-change="onOutlinePopupChange"
+  placement="bottom"
+  close-on-overlay-click="{{true}}"
+>
+  <view class="outline-popup">
+    <view class="outline-popup-header">
+      <text class="outline-popup-title">编辑大纲 - {{currentLibrary.name}}</text>
+      <view class="outline-popup-done" bindtap="onCloseOutlinePopup">
+        <text>完成</text>
+      </view>
+    </view>
+
+    <view class="outline-container">
+      <view class="outline-list" wx:if="{{outline.length > 0}}">
+        <view 
+          class="outline-item {{item.level > 1 ? 'sub-item' : ''}} {{dragIndex === index ? 'dragging' : ''}}"
+          wx:for="{{outline}}" 
+          wx:key="id"
+          data-index="{{index}}"
+          data-level="{{item.level}}"
+          bindtouchstart="onTouchStart"
+          catchtouchmove="onTouchMove"
+          bindtouchend="onTouchEnd"
+        >
+          <view class="outline-drag-handle">
+            <t-icon name="move" size="32rpx" color="#ccc" />
+          </view>
+          <view class="outline-main outline-level-{{item.level}}">
+            <view class="outline-level-indicator">
+              <text>{{item.level}}级</text>
+            </view>
+            <view class="outline-content">
+              <input 
+                class="outline-input" 
+                value="{{item.title}}" 
+                bindinput="onOutlineInput" 
+                data-index="{{index}}"
+                placeholder="输入标题"
+                maxlength="100"
+              />
+            </view>
+          </view>
+          <view class="outline-actions">
+            <view class="action-btn" catchtap="onDeleteOutline" data-index="{{index}}">
+              <t-icon name="close" size="36rpx" color="#999" />
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="outline-empty" wx:else>
+        <t-icon name="folder" size="64rpx" color="#ddd" />
+        <text>暂无大纲，点击下方按钮添加</text>
+      </view>
+
+      <view class="outline-add-btn" bindtap="onAddOutline">
+        <t-icon name="add" size="36rpx" color="#0052D9" />
+        <text>添加标题</text>
+      </view>
+    </view>
+
+    <view class="outline-tips">
+      <text>提示：长按拖动可排序，左右滑动可改变标题层级</text>
+    </view>
+  </view>
+</t-popup>
+
+<!-- 删除确认弹窗 -->
+<t-popup 
+  visible="{{showDeleteConfirm}}" 
+  bind:visible-change="onDeleteConfirmChange"
+  placement="center"
+  close-on-overlay-click="{{false}}"
+>
+  <view class="delete-confirm-popup">
+    <view class="delete-confirm-title">删除确认</view>
+    <view class="delete-confirm-content">
+      <text>确定要删除"{{deleteItem.title || '此标题'}}"吗？{{deleteItem.childCount > 0 ? '将同时删除其下的 ' + deleteItem.childCount + ' 个子标题，' : ''}}该标题下的卡片也将被删除，此操作不可恢复。</text>
+    </view>
+    <view class="delete-confirm-actions">
+      <view class="delete-btn cancel" bindtap="onCancelDelete">取消</view>
+      <view class="delete-btn confirm" bindtap="onConfirmDelete">删除</view>
+    </view>
+  </view>
+</t-popup>
+
+<!-- 删除知识库确认弹窗 -->
+<t-popup 
+  visible="{{showDeleteLibraryConfirm}}" 
+  bind:visible-change="onDeleteLibraryConfirmChange"
+  placement="center"
+  close-on-overlay-click="{{false}}"
+>
+  <view class="delete-confirm-popup">
+    <view class="delete-confirm-title">删除确认</view>
+    <view class="delete-confirm-content">
+      <text>确定要删除知识库"{{deleteLibraryItem.name}}"吗？该知识库包含的 {{deleteLibraryItem.cardCount}} 张卡片也将被删除，此操作不可恢复。</text>
+    </view>
+    <view class="delete-confirm-actions">
+      <view class="delete-btn cancel" bindtap="onCancelDeleteLibrary">取消</view>
+      <view class="delete-btn confirm" bindtap="onConfirmDeleteLibrary">删除</view>
+    </view>
+  </view>
+</t-popup>

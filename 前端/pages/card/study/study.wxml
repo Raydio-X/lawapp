@@ -1,0 +1,138 @@
+<view class="study-container">
+  <!-- 加载状态 -->
+  <view class="loading-container" wx:if="{{loading}}">
+    <t-icon name="loading" size="80rpx" color="#0052D9" />
+    <text class="loading-text">加载中...</text>
+  </view>
+
+  <!-- 内容区域 -->
+  <block wx:if="{{!loading && currentCard}}">
+  <!-- 模块一：题目展示区（顶部核心区域） -->
+  <view class="question-section">
+    <view class="card-header">
+      <view class="card-meta">
+        <text class="card-number">卡片 {{currentIndex + 1}} / {{totalCards}}</text>
+        <view class="card-tags">
+          <t-tag wx:for="{{currentCard.tags}}" wx:key="*this" theme="primary" variant="light" size="small">{{item}}</t-tag>
+        </view>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{((currentIndex + 1) / totalCards) * 100}}%;"></view>
+        </view>
+      </view>
+    </view>
+    
+    <view class="question-content">
+      <text class="question-title">{{currentCard.question}}</text>
+    </view>
+  </view>
+
+  <!-- 模块二：答案隐藏与展开机制 -->
+  <view class="answer-section">
+    <!-- 答案隐藏状态 -->
+    <view class="answer-hidden" wx:if="{{!answerRevealed}}">
+      <view class="hint-text">先回忆，再查看答案</view>
+      <view class="reveal-btn" bindtap="onRevealAnswer">
+        <t-icon name="browse" size="40rpx" color="#fff" />
+        <text>查看答案</text>
+      </view>
+    </view>
+
+    <!-- 答案展开状态 -->
+    <view class="answer-revealed {{answerRevealed ? 'show' : ''}}" wx:if="{{answerRevealed}}">
+      <view class="answer-label">
+        <t-icon name="check-circle" size="32rpx" color="#00B578" />
+        <text>参考答案</text>
+      </view>
+      <view class="answer-content">
+        <text class="answer-text">{{currentCard.answer}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 模块三：评论互动区（答案展开后显示） -->
+  <view class="comment-section {{answerRevealed ? 'show' : ''}}" wx:if="{{answerRevealed}}">
+    <view class="comment-header">
+      <text class="comment-title">学习笔记</text>
+      <text class="comment-count">{{comments.length}} 条笔记</text>
+    </view>
+
+    <!-- 评论列表 -->
+    <scroll-view class="comment-list" scroll-y="true" enhanced="true" show-scrollbar="true">
+      <view class="comment-item" wx:for="{{comments}}" wx:key="id">
+        <view class="comment-avatar">
+          <text>{{item.avatar}}</text>
+        </view>
+        <view class="comment-content">
+          <view class="comment-user">
+            <text class="username">{{item.username}}</text>
+            <text class="time">{{item.time}}</text>
+          </view>
+          <text class="comment-text">{{item.content}}</text>
+          <view class="comment-actions">
+            <view class="like-btn {{item.liked ? 'liked' : ''}}" bindtap="onLikeComment" data-index="{{index}}" data-id="{{item.id}}">
+              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="28rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
+              <text>{{item.likeCount || 0}}</text>
+            </view>
+            <view class="save-card-btn" bindtap="onSaveCommentAsCard" data-index="{{index}}">
+              <t-icon name="file-add" size="28rpx" color="#999" />
+              <text>存为卡片</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="comment-empty" wx:if="{{comments.length === 0}}">
+        <t-icon name="edit" size="48rpx" color="#ccc" />
+        <text>暂无笔记，写下第一条吧</text>
+      </view>
+    </scroll-view>
+
+    <!-- 评论输入框 -->
+    <view class="comment-input-section">
+      <input 
+        class="comment-input" 
+        placeholder="添加学习笔记..." 
+        value="{{commentText}}"
+        bindinput="onCommentInput"
+        confirm-type="send"
+        bindconfirm="onSubmitComment"
+      />
+      <view class="send-btn {{commentText ? 'active' : ''}}" bindtap="onSubmitComment">
+        <t-icon name="send" size="36rpx" color="{{commentText ? '#fff' : '#ccc'}}" />
+      </view>
+    </view>
+
+    <!-- 收藏按钮 -->
+    <view class="favorite-section">
+      <view class="favorite-btn-inline {{isFavorite ? 'active' : ''}}" bindtap="onToggleFavorite">
+        <t-icon name="{{isFavorite ? 'star-filled' : 'star'}}" size="36rpx" color="{{isFavorite ? '#FAAD14' : '#999'}}" />
+        <text>{{isFavorite ? '已收藏' : '收藏此卡片'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+  </block>
+</view>
+
+<!-- 模块四：卡片切换学习导航 -->
+<view class="study-nav-bar" wx:if="{{!loading && currentCard}}">
+  <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
+    <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#0052D9'}}" />
+    <text class="nav-text">上一张</text>
+  </view>
+  
+  <view class="nav-center">
+    <view class="learned-btn {{currentCard.learned ? 'active' : ''}}" bindtap="onToggleLearned">
+      <t-icon name="{{currentCard.learned ? 'check-circle-filled' : 'check-circle'}}" size="40rpx" color="{{currentCard.learned ? '#00B578' : '#999'}}" />
+      <text class="learned-text">{{currentCard.learned ? '已掌握' : '未掌握'}}</text>
+    </view>
+  </view>
+  
+  <view class="nav-btn next {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
+    <text class="nav-text">下一张</text>
+    <t-icon name="chevron-right" size="40rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#0052D9'}}" />
+  </view>
+</view>

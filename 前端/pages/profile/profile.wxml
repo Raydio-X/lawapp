@@ -1,0 +1,150 @@
+<view class="container">
+  <!-- 用户信息区 -->
+  <view class="user-section">
+    <view class="user-card">
+      <view class="user-info">
+        <t-avatar 
+          class="user-avatar"
+          image="{{userInfo.avatarUrl}}" 
+          size="large"
+          shape="circle"
+        />
+        <view class="user-detail">
+          <text class="user-name">{{userInfo.nickName || '法硕考生'}}</text>
+          <text class="user-bio">{{userInfo.bio || '法硕备考中，每天进步一点点'}}</text>
+        </view>
+      </view>
+      <view class="user-edit" bindtap="onEditProfile">
+        <t-icon name="edit" size="32rpx" color="#999" />
+      </view>
+    </view>
+
+    <!-- 数据统计 -->
+    <view class="stats-section">
+      <view class="stat-item" bindtap="onStatTap" data-type="library">
+        <text class="stat-number">{{stats.libraryCount}}</text>
+        <text class="stat-label">知识库</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item" bindtap="onStatTap" data-type="card">
+        <text class="stat-number">{{stats.cardCount}}</text>
+        <text class="stat-label">卡片</text>
+      </view>
+      <view class="stat-divider"></view>
+      <view class="stat-item" bindtap="onStatTap" data-type="favorite">
+        <text class="stat-number">{{stats.favoriteCount}}</text>
+        <text class="stat-label">收藏</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 学习进度 -->
+  <view class="progress-section">
+    <view class="progress-header">
+      <text class="progress-title">今日学习</text>
+      <text class="progress-more" bindtap="onViewDetail">查看详情</text>
+    </view>
+    <view class="progress-content">
+      <view class="progress-ring">
+        <view class="progress-info">
+          <text class="progress-percent">{{studyProgress.percent}}%</text>
+          <text class="progress-text">完成度</text>
+        </view>
+      </view>
+      <view class="progress-stats">
+        <view class="progress-stat">
+          <text class="progress-value">{{studyProgress.todayCards}}</text>
+          <text class="progress-label">今日背诵</text>
+        </view>
+        <view class="progress-stat">
+          <text class="progress-value">{{studyProgress.streak}}</text>
+          <text class="progress-label">连续天数</text>
+        </view>
+        <view class="progress-stat">
+          <text class="progress-value">{{studyProgress.totalTime}}</text>
+          <text class="progress-label">学习时长</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 功能列表 -->
+  <view class="menu-section">
+    <t-cell-group>
+      <t-cell 
+        title="我的收藏" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="favorite"
+      >
+        <t-icon slot="left-icon" name="star" size="44rpx" color="#FFAD1F" />
+        <t-badge slot="note" count="{{stats.favoriteCount}}" />
+      </t-cell>
+      <t-cell 
+        title="错题本" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="wrong"
+      >
+        <t-icon slot="left-icon" name="error-circle" size="44rpx" color="#E34D59" />
+        <t-badge slot="note" count="{{stats.wrongCount}}" />
+      </t-cell>
+    </t-cell-group>
+  </view>
+
+  <!-- 其他功能 -->
+  <view class="menu-section">
+    <t-cell-group>
+      <t-cell 
+        title="学习统计" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="statistics"
+      >
+        <t-icon slot="left-icon" name="chart" size="44rpx" color="#7B61FF" />
+      </t-cell>
+      <t-cell 
+        title="学习计划" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="plan"
+      >
+        <t-icon slot="left-icon" name="calendar" size="44rpx" color="#00A870" />
+      </t-cell>
+      <t-cell 
+        title="设置" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="settings"
+      >
+        <t-icon slot="left-icon" name="setting" size="44rpx" color="#999" />
+      </t-cell>
+    </t-cell-group>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="menu-section logout-section">
+    <t-cell-group>
+      <t-cell 
+        title="退出登录" 
+        hover
+        bindtap="onLogout"
+      >
+        <t-icon slot="left-icon" name="logout" size="44rpx" color="#E34D59" />
+      </t-cell>
+    </t-cell-group>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info">
+    <text>法硕背诵助手 v1.0.0</text>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+</view>

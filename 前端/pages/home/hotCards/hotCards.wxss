@@ -1,0 +1,139 @@
+.container {
+  min-height: 100vh;
+  background-color: #f5f6fa;
+  padding: 32rpx;
+  box-sizing: border-box;
+}
+
+/* 页面头部 */
+.page-header {
+  margin-bottom: 40rpx;
+  padding: 0 16rpx;
+}
+
+.header-title {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.header-desc {
+  font-size: 28rpx;
+  color: #999;
+}
+
+/* 卡片列表 */
+.cards-list {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+/* 卡片项 */
+.card-item {
+  background-color: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.card-item.pressed {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
+.card-item:active {
+  transform: scale(0.98);
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.card-number {
+  font-size: 24rpx;
+  font-weight: 600;
+  color: #0052D9;
+  background: rgba(0, 82, 217, 0.1);
+  padding: 8rpx 16rpx;
+  border-radius: 8rpx;
+}
+
+.card-tags {
+  display: flex;
+  gap: 12rpx;
+}
+
+/* 卡片内容 */
+.card-content {
+  margin-bottom: 24rpx;
+}
+
+.card-question {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #f0f0f0;
+}
+
+.card-stats {
+  display: flex;
+  gap: 24rpx;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 24rpx;
+  color: #999;
+}
+
+.stat-item.like-btn {
+  padding: 8rpx 16rpx;
+  border-radius: 24rpx;
+  transition: all 0.2s ease;
+}
+
+.stat-item.like-btn.liked {
+  color: #0052D9;
+  background-color: rgba(0, 82, 217, 0.1);
+}
+
+.stat-item.like-btn:not(.liked):active {
+  transform: scale(0.95);
+}
+
+.study-btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 32rpx;
+  background-color: rgba(0, 82, 217, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 底部占位 */
+.bottom-placeholder {
+  height: 48rpx;
+}

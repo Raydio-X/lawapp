@@ -1,0 +1,11 @@
+{
+  "navigationBarTitleText": "登录",
+  "navigationStyle": "custom",
+  "usingComponents": {
+    "t-avatar": "tdesign-miniprogram/avatar/avatar",
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-toast": "tdesign-miniprogram/toast/toast",
+    "t-dialog": "tdesign-miniprogram/dialog/dialog",
+    "t-popup": "tdesign-miniprogram/popup/popup"
+  }
+}

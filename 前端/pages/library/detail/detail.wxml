@@ -1,0 +1,192 @@
+<view class="container">
+  <!-- 区域一：知识库概览卡片 -->
+  <view class="library-overview-card">
+    <view class="library-header">
+      <view class="library-icon-large">
+        <t-icon name="folder" size="64rpx" color="#fff" />
+      </view>
+      <view class="library-info">
+        <text class="library-name">{{libraryInfo.name}}</text>
+        <view class="library-meta">
+          <t-tag theme="primary" variant="light" size="small">{{libraryInfo.subject}}</t-tag>
+          <text class="card-total">共 {{libraryInfo.totalCards}} 张卡片</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 学习进度 -->
+    <view class="progress-section">
+      <view class="progress-header">
+        <text class="progress-label">学习进度</text>
+        <text class="progress-percent">{{libraryInfo.progress}}%</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-track">
+          <view class="progress-fill" style="width: {{libraryInfo.progress}}%;"></view>
+        </view>
+      </view>
+      <view class="progress-stats">
+        <text>已学 {{libraryInfo.learnedCards}} / {{libraryInfo.totalCards}} 张</text>
+        <text class="continue-btn" bindtap="onContinueLearning">继续学习</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 区域二：章节目录（树形结构） -->
+  <view class="catalog-section">
+    <view class="catalog-header">
+      <text class="catalog-title">章节目录</text>
+    </view>
+
+    <!-- 章节树形列表 -->
+    <view class="chapter-tree">
+      <view 
+        class="chapter-tree-item {{item.expanded ? 'expanded' : ''}}" 
+        wx:for="{{chapters}}" 
+        wx:key="id"
+        wx:for-item="chapter"
+        wx:for-index="chapterIndex"
+      >
+        <!-- 一级：章节标题 -->
+        <view 
+          class="chapter-tree-header {{selectedChapterIndex === chapterIndex && selectedChildIndex === -1 && selectedGrandChildIndex === -1 ? 'active' : ''}}"
+          bindtap="onChapterTap"
+          data-index="{{chapterIndex}}"
+        >
+          <view class="chapter-tree-title-wrap">
+            <t-icon 
+              wx:if="{{chapter.children && chapter.children.length > 0}}"
+              name="{{chapter.expanded ? 'caret-up-small' : 'caret-down-small'}}" 
+              size="36rpx" 
+              color="{{selectedChapterIndex === chapterIndex ? '#fff' : '#666'}}" 
+            />
+            <view class="chapter-tree-placeholder" wx:else></view>
+            <text class="chapter-tree-title">{{chapter.title}}</text>
+          </view>
+          <view class="chapter-tree-stats">
+            <text class="chapter-tree-count">{{chapter.cards.length}}张</text>
+            <text class="chapter-tree-progress">{{chapter.learnedCount}}/{{chapter.cards.length}}</text>
+          </view>
+        </view>
+
+        <!-- 二级：子章节列表（展开时显示） -->
+        <view class="section-tree-list" wx:if="{{chapter.expanded && chapter.children && chapter.children.length > 0}}">
+          <view 
+            class="section-tree-item {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === -1 ? 'active' : ''}}"
+            wx:for="{{chapter.children}}" 
+            wx:for-item="childChapter"
+            wx:for-index="childIndex"
+            wx:key="id"
+          >
+            <view 
+              class="section-tree-header"
+              bindtap="onChildChapterTap"
+              data-chapter-index="{{chapterIndex}}"
+              data-child-index="{{childIndex}}"
+            >
+              <view class="section-tree-dot"></view>
+              <text class="section-tree-title-text">{{childChapter.title}}</text>
+              <text class="section-tree-count">{{childChapter.cards.length}}张</text>
+              <t-icon 
+                wx:if="{{childChapter.children && childChapter.children.length > 0}}"
+                name="{{childChapter.expanded ? 'caret-up-small' : 'caret-down-small'}}" 
+                size="28rpx" 
+                color="#666" 
+              />
+            </view>
+            
+            <!-- 三级：孙子章节列表 -->
+            <view class="grandchild-tree-list" wx:if="{{childChapter.expanded && childChapter.children && childChapter.children.length > 0}}">
+              <view 
+                class="grandchild-tree-item {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === grandChildIndex ? 'active' : ''}}"
+                wx:for="{{childChapter.children}}" 
+                wx:for-item="grandChildChapter"
+                wx:for-index="grandChildIndex"
+                wx:key="id"
+                bindtap="onGrandChildChapterTap"
+                data-chapter-index="{{chapterIndex}}"
+                data-child-index="{{childIndex}}"
+                data-grandchild-index="{{grandChildIndex}}"
+              >
+                <view class="grandchild-tree-dot"></view>
+                <text class="grandchild-tree-title-text">{{grandChildChapter.title}}</text>
+                <text class="grandchild-tree-count">{{grandChildChapter.cards.length}}张</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 区域三：选中章节的卡片列表 -->
+  <view class="cards-section" wx:if="{{selectedChapter}}">
+    <view class="cards-header">
+      <text class="cards-title">{{selectedChapter.title}}</text>
+      <text class="cards-subtitle">
+        共 {{selectedChapter.cards.length}} 张卡片
+      </text>
+    </view>
+
+    <!-- 卡片列表 -->
+    <view class="card-list-vertical">
+      <view 
+        class="card-item-large {{card.learned ? 'learned' : ''}}"
+        wx:for="{{selectedChapter.cards}}" 
+        wx:for-item="card"
+        wx:for-index="cardIndex"
+        wx:key="id"
+        bindtap="onCardTap"
+        data-index="{{cardIndex}}"
+      >
+        <view class="card-header">
+          <view class="card-number-large">{{cardIndex + 1}}</view>
+          <view class="card-status-icon">
+            <t-icon 
+              name="{{card.learned ? 'check-circle-filled' : 'circle'}}" 
+              size="44rpx" 
+              color="{{card.learned ? '#00B578' : '#ddd'}}" 
+            />
+          </view>
+        </view>
+        <view class="card-content-large">
+          <text class="card-title-large">{{card.title}}</text>
+          <view class="card-tags-large" wx:if="{{card.tags.length > 0}}">
+            <t-tag 
+              wx:for="{{card.tags}}" 
+              wx:for-item="tag" 
+              wx:key="*this"
+              theme="{{card.learned ? 'success' : 'primary'}}" 
+              variant="light"
+              size="small"
+            >{{tag}}</t-tag>
+          </view>
+        </view>
+        <view class="card-arrow">
+          <t-icon name="chevron-right" size="40rpx" color="#ccc" />
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未选中章节时的提示 -->
+  <view class="empty-tip" wx:if="{{!selectedChapter}}">
+    <t-icon name="tips" size="80rpx" color="#ddd" />
+    <text class="empty-text">请点击上方章节查看卡片</text>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+</view>
+
+<!-- 底部固定操作栏 -->
+<view class="bottom-action-bar">
+  <view class="action-btn primary" bindtap="onStartStudy">
+    <t-icon name="play" size="32rpx" color="#fff" />
+    <text>开始学习</text>
+  </view>
+  <view class="action-btn secondary" bindtap="onRandomStudy">
+    <t-icon name="refresh" size="32rpx" color="#0052D9" />
+    <text>随机抽题</text>
+  </view>
+</view>
