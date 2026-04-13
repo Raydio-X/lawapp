@@ -1,237 +1,120 @@
-require('dotenv').config();
 const db = require('../config/database');
 
-const mockUsers = [
-    { openid: 'mock_openid_test', nickname: '法硕考生', avatar: '', bio: '法硕备考中，每天进步一点点' },
-    { openid: 'mock_openid_user1', nickname: '法硕小王', avatar: '', bio: '刑法爱好者' },
-    { openid: 'mock_openid_user2', nickname: '考研党', avatar: '', bio: '民法专精' },
-    { openid: 'mock_openid_user3', nickname: '法学生', avatar: '', bio: '法理学研究' }
-];
-
-const mockLibraries = [
-    { name: '2024法硕刑法总则', subject: '刑法', description: '刑法总则核心知识点，包含犯罪构成、刑罚体系等内容', created_by: 1 },
-    { name: '民法典物权编重点', subject: '民法', description: '民法典物权编重点法条和知识点梳理', created_by: 1 },
-    { name: '法理学核心概念', subject: '法理学', description: '法理学基础概念和原理', created_by: 2 },
-    { name: '宪法条文速记', subject: '宪法', description: '宪法重要条文和知识点', created_by: 3 },
-    { name: '刑法分则罪名大全', subject: '刑法', description: '刑法分则各类罪名详解', created_by: 1 },
-    { name: '合同法精要', subject: '民法', description: '合同法核心知识点', created_by: 2 }
-];
-
-const mockChapters = [
-    { library_id: 1, name: '第一章 刑法概说', sort_order: 1 },
-    { library_id: 1, name: '第二章 犯罪概念', sort_order: 2 },
-    { library_id: 1, name: '第三章 犯罪构成', sort_order: 3 },
-    { library_id: 1, name: '第四章 正当化事由', sort_order: 4 },
-    { library_id: 1, name: '第五章 故意犯罪的停止形态', sort_order: 5 },
-    { library_id: 2, name: '第一章 物权概述', sort_order: 1 },
-    { library_id: 2, name: '第二章 所有权', sort_order: 2 },
-    { library_id: 3, name: '第一章 法的本质', sort_order: 1 },
-    { library_id: 3, name: '第二章 法律关系', sort_order: 2 }
-];
-
-const mockCards = [
-    {
-        library_id: 1,
-        chapter_id: 1,
-        question: '刑法的概念与特征是什么？',
-        answer: '刑法是规定犯罪、刑事责任和刑罚的法律规范的总和。其特征包括：\n1. 特定性：只规定犯罪与刑罚\n2. 严厉性：涉及生命、自由、财产等最重要的法益\n3. 补充性：只有在其他法律手段不足以保护法益时才适用\n4. 保障性：保障其他法律的实施',
-        tags: ['基础', '概念', '必考'],
-        created_by: 1
-    },
-    {
-        library_id: 1,
-        chapter_id: 1,
-        question: '罪刑法定原则的基本内容是什么？',
-        answer: '罪刑法定原则是指"法无明文规定不为罪，法无明文规定不处罚"。其基本内容包括：\n1. 成文法主义：禁止习惯法\n2. 禁止事后法：禁止溯及既往\n3. 禁止类推：禁止不利于被告人的类推解释\n4. 明确性原则：罪刑规范必须明确\n5. 禁止绝对不定期刑',
-        tags: ['原则', '必考', '重点'],
-        created_by: 1
-    },
-    {
-        library_id: 1,
-        chapter_id: 1,
-        question: '刑法解释的种类有哪些？',
-        answer: '刑法解释按效力分为：\n1. 立法解释：全国人大常委会的解释\n2. 司法解释：最高法、最高检的解释\n3. 学理解释：学者、机构的解释（无法律效力）\n\n按方法分为：\n1. 文理解释：按文字含义解释\n2. 论理解释：按立法精神解释（扩张、限制、当然、历史、比较、目的解释等）',
-        tags: ['基础', '理解'],
-        created_by: 1
-    },
-    {
-        library_id: 1,
-        chapter_id: 3,
-        question: '什么是犯罪构成？',
-        answer: '犯罪构成是刑法规定的，决定某一行为的社会危害性及其程度，而为该行为成立犯罪所必须具备的一切客观要件与主观要件的有机整体。\n\n犯罪构成四要件：\n1. 犯罪客体\n2. 犯罪客观方面\n3. 犯罪主体\n4. 犯罪主观方面',
-        tags: ['基础', '重点'],
-        created_by: 1
-    },
-    {
-        library_id: 1,
-        chapter_id: 4,
-        question: '正当防卫的成立条件有哪些？',
-        answer: '正当防卫的成立条件：\n1. 起因条件：存在不法侵害\n2. 时间条件：不法侵害正在进行\n3. 主观条件：具有防卫意图\n4. 对象条件：针对不法侵害人本人\n5. 限度条件：没有明显超过必要限度造成重大损害\n\n特殊防卫：对正在进行行凶、杀人、抢劫、强奸、绑架以及其他严重危及人身安全的暴力犯罪，采取防卫行为，造成不法侵害人伤亡的，不属于防卫过当。',
-        tags: ['重点', '必考', '难点'],
-        created_by: 1
-    },
-    {
-        library_id: 1,
-        chapter_id: 5,
-        question: '犯罪未遂的概念与特征是什么？',
-        answer: '犯罪未遂是指已经着手实行犯罪，由于犯罪分子意志以外的原因而未得逞的犯罪形态。\n\n特征：\n1. 已经着手实行犯罪\n2. 犯罪未得逞\n3. 犯罪未得逞是由于犯罪分子意志以外的原因\n\n处罚原则：可以比照既遂犯从轻或者减轻处罚。',
-        tags: ['重点', '必考'],
-        created_by: 1
-    },
-    {
-        library_id: 1,
-        chapter_id: 5,
-        question: '犯罪中止的概念与特征是什么？',
-        answer: '犯罪中止是指在犯罪过程中，自动放弃犯罪或者自动有效地防止犯罪结果发生的犯罪形态。\n\n特征：\n1. 时空性：必须发生在犯罪过程中\n2. 自动性：自动放弃犯罪意图\n3. 客观性：客观上有中止行为\n4. 有效性：有效地防止犯罪结果发生\n\n处罚原则：没有造成损害的，应当免除处罚；造成损害的，应当减轻处罚。',
-        tags: ['重点', '必考'],
-        created_by: 1
-    },
-    {
-        library_id: 2,
-        chapter_id: 6,
-        question: '物权的概念与特征是什么？',
-        answer: '物权是指权利人依法对特定的物享有直接支配和排他的权利。\n\n特征：\n1. 支配性：权利人可以直接支配标的物\n2. 排他性：同一物上不能存在两个内容相同的物权\n3. 绝对性：义务主体是不特定的\n4. 公示性：物权变动需要公示',
-        tags: ['基础', '概念'],
-        created_by: 1
-    },
-    {
-        library_id: 2,
-        chapter_id: 7,
-        question: '所有权的权能有哪些？',
-        answer: '所有权的权能包括：\n1. 占有权能：对物进行实际控制\n2. 使用权能：按照物的性能和用途使用\n3. 收益权能：获取物的孳息\n4. 处分权能：决定物的事实上和法律上的命运\n\n这四项权能可以与所有权分离，但所有权人仍保留最终处分权。',
-        tags: ['基础', '重点'],
-        created_by: 1
-    },
-    {
-        library_id: 3,
-        chapter_id: 8,
-        question: '法律关系的构成要素包括哪些？',
-        answer: '法律关系由三个要素构成：\n\n1. 主体：法律关系的参加者（自然人、法人、国家）\n2. 客体：权利义务指向的对象（物、行为、智力成果、人身利益）\n3. 内容：主体之间的权利和义务\n\n三者缺一不可，共同构成完整的法律关系。',
-        tags: ['基础', '概念'],
-        created_by: 2
-    },
-    {
-        library_id: 1,
-        chapter_id: 2,
-        question: '刑法中正当防卫的构成要件有哪些？',
-        answer: '正当防卫的构成要件包括五个方面：\n\n1. 起因条件：存在现实的不法侵害\n2. 时间条件：不法侵害正在进行\n3. 主观条件：具有防卫意识\n4. 对象条件：针对不法侵害人本人\n5. 限度条件：没有明显超过必要限度\n\n记忆口诀："现进防本限"（现进房本现）',
-        tags: ['刑法', '简答题'],
-        created_by: 1
-    },
-    {
-        library_id: 2,
-        chapter_id: 6,
-        question: '民法典合同编的违约责任规定',
-        answer: '违约责任的承担方式包括：\n\n1. 继续履行\n2. 采取补救措施\n3. 赔偿损失\n4. 违约金\n5. 定金罚则\n\n注意：违约金和定金不能同时适用，只能择一主张。',
-        tags: ['民法', '重点'],
-        created_by: 1
-    },
-    {
-        library_id: 4,
-        chapter_id: null,
-        question: '宪法中公民的基本权利有哪些？',
-        answer: '公民基本权利主要包括：\n\n1. 平等权\n2. 政治权利和自由（选举权、言论自由等）\n3. 宗教信仰自由\n4. 人身自由权\n5. 社会经济权利（劳动权、受教育权等）\n6. 监督权和取得赔偿权\n\n这些权利是公民最基本的权利，受宪法保护。',
-        tags: ['宪法', '简答题'],
-        created_by: 3
-    },
-    {
-        library_id: 5,
-        chapter_id: null,
-        question: '法制史：唐律疏议的历史地位',
-        answer: '《唐律疏议》的历史地位：\n\n1. 是中国历史上第一部完整保存下来的封建法典\n2. 标志着中国古代立法的最高水平\n3. 对后世影响深远，宋、明、清各代法典均以其为蓝本\n4. 对东亚各国法律发展产生重要影响（日本、朝鲜、越南）\n\n被誉为"中华法系"的代表作。',
-        tags: ['法制史', '论述'],
-        created_by: 1
-    }
-];
-
-const mockComments = [
-    { card_id: 1, user_id: 2, content: '刑法的补充性特征很重要，要记住是最后手段！' },
-    { card_id: 1, user_id: 3, content: '四个特征可以用"特严补保"来记忆' },
-    { card_id: 2, user_id: 2, content: '罪刑法定原则是刑法最重要的原则，必须牢记！' },
-    { card_id: 5, user_id: 3, content: '正当防卫的五个条件要分清楚，考试经常考' }
-];
-
-async function seedDatabase() {
+async function seedData() {
     let connection;
     try {
         connection = await db.getConnection();
-        await connection.beginTransaction();
+        console.log('Connected to MySQL server');
 
-        console.log('开始插入模拟数据...');
+        await connection.query('USE lawapp');
 
-        for (const user of mockUsers) {
-            await connection.execute(
-                'INSERT INTO users (openid, nickname, avatar, bio) VALUES (?, ?, ?, ?)',
-                [user.openid, user.nickname, user.avatar, user.bio]
+        const [existingUsers] = await connection.query('SELECT id FROM users WHERE openid = ?', ['test_openid']);
+        let userId;
+        
+        if (existingUsers.length === 0) {
+            const [userResult] = await connection.query(
+                'INSERT INTO users (openid, nickname, avatar) VALUES (?, ?, ?)',
+                ['test_openid', '测试用户', 'https://via.placeholder.com/100']
             );
+            userId = userResult.insertId;
+            console.log('Created test user');
+        } else {
+            userId = existingUsers[0].id;
+            console.log('Test user already exists');
         }
-        console.log(`✓ 插入 ${mockUsers.length} 个用户`);
 
-        for (const library of mockLibraries) {
-            await connection.execute(
-                'INSERT INTO libraries (name, subject, description, created_by, card_count) VALUES (?, ?, ?, ?, 0)',
-                [library.name, library.subject, library.description, library.created_by]
+        const libraries = [
+            { name: '刑法总论', subject: '刑法', description: '刑法基础理论与总则规定', card_count: 150 },
+            { name: '民法总则', subject: '民法', description: '民法基本原则与总则规定', card_count: 120 },
+            { name: '宪法学', subject: '宪法', description: '宪法基本理论与制度', card_count: 80 },
+            { name: '行政法', subject: '行政法', description: '行政法基础与行政诉讼', card_count: 90 },
+            { name: '刑诉法', subject: '刑事诉讼法', description: '刑事诉讼程序与制度', card_count: 110 },
+            { name: '民诉法', subject: '民事诉讼法', description: '民事诉讼程序与制度', card_count: 100 }
+        ];
+
+        const libraryIds = [];
+        for (const lib of libraries) {
+            const [result] = await connection.query(
+                'INSERT INTO libraries (name, subject, description, card_count, created_by, is_public) VALUES (?, ?, ?, ?, ?, ?)',
+                [lib.name, lib.subject, lib.description, lib.card_count, userId, 1]
             );
+            libraryIds.push(result.insertId);
         }
-        console.log(`✓ 插入 ${mockLibraries.length} 个知识库`);
+        console.log('Created libraries');
 
-        for (const chapter of mockChapters) {
-            await connection.execute(
+        const chapters = [
+            { libraryIndex: 0, name: '刑法概述' },
+            { libraryIndex: 0, name: '犯罪构成' },
+            { libraryIndex: 0, name: '刑罚' },
+            { libraryIndex: 1, name: '民法概述' },
+            { libraryIndex: 1, name: '民事主体' },
+            { libraryIndex: 1, name: '民事法律行为' },
+            { libraryIndex: 1, name: '代理' },
+            { libraryIndex: 2, name: '宪法基本理论' },
+            { libraryIndex: 2, name: '国家机构' },
+            { libraryIndex: 3, name: '行政法概述' },
+            { libraryIndex: 3, name: '行政处罚' },
+            { libraryIndex: 4, name: '管辖' },
+            { libraryIndex: 4, name: '证据' },
+            { libraryIndex: 5, name: '管辖' },
+            { libraryIndex: 5, name: '当事人' }
+        ];
+
+        const chapterIds = {};
+        for (const chapter of chapters) {
+            const [result] = await connection.query(
                 'INSERT INTO chapters (library_id, name, sort_order) VALUES (?, ?, ?)',
-                [chapter.library_id, chapter.name, chapter.sort_order]
+                [libraryIds[chapter.libraryIndex], chapter.name, 0]
+            );
+            const key = `${chapter.libraryIndex}_${chapter.name}`;
+            chapterIds[key] = result.insertId;
+        }
+        console.log('Created chapters');
+
+        const cards = [
+            { libraryIndex: 0, chapterName: '刑法概述', question: '刑法的基本原则有哪些？', answer: '刑法的基本原则包括：1. 罪刑法定原则；2. 适用刑法人人平等原则；3. 罪责刑相适应原则。这三个原则是刑法适用的基本原则，贯穿于刑法的整个体系。', tags: ['基本原则', '刑法概述'], like_count: 128 },
+            { libraryIndex: 0, chapterName: '刑法概述', question: '什么是罪刑法定原则？', answer: '罪刑法定原则是指法律明文规定为犯罪行为的，依照法律定罪处刑；法律没有明文规定为犯罪行为的，不得定罪处刑。其基本内容包括：法律主义、禁止事后法、禁止类推解释、禁止绝对不定期刑。', tags: ['基本原则', '罪刑法定'], like_count: 95 },
+            { libraryIndex: 0, chapterName: '犯罪构成', question: '犯罪构成的四要件是什么？', answer: '犯罪构成的四要件包括：1. 犯罪客体：刑法所保护而被犯罪行为所侵害的社会关系；2. 犯罪客观方面：犯罪活动的客观外在表现；3. 犯罪主体：实施犯罪行为的人；4. 犯罪主观方面：犯罪主体对其实施的犯罪行为及其结果所持的心理态度。', tags: ['犯罪构成', '四要件'], like_count: 156 },
+            { libraryIndex: 0, chapterName: '犯罪构成', question: '什么是犯罪故意？', answer: '犯罪故意是指明知自己的行为会发生危害社会的结果，并且希望或者放任这种结果发生，因而构成犯罪的，是故意犯罪。故意犯罪分为直接故意和间接故意。', tags: ['主观方面', '故意'], like_count: 87 },
+            { libraryIndex: 0, chapterName: '刑罚', question: '主刑有哪些种类？', answer: '主刑包括：1. 管制；2. 拘役；3. 有期徒刑；4. 无期徒刑；5. 死刑。主刑只能独立适用，不能附加适用。', tags: ['刑罚', '主刑'], like_count: 112 },
+            
+            { libraryIndex: 1, chapterName: '民法概述', question: '民法的基本原则有哪些？', answer: '民法的基本原则包括：1. 平等原则；2. 自愿原则；3. 公平原则；4. 诚信原则；5. 守法与公序良俗原则；6. 绿色原则。这些原则贯穿于民法的整个体系。', tags: ['基本原则', '民法概述'], like_count: 134 },
+            { libraryIndex: 1, chapterName: '民事主体', question: '自然人的民事行为能力如何分类？', answer: '自然人的民事行为能力分为三类：1. 完全民事行为能力人（18周岁以上或16周岁以上以自己劳动收入为主要生活来源）；2. 限制民事行为能力人（8周岁以上未成年人或不能完全辨认自己行为的成年人）；3. 无民事行为能力人（不满8周岁或完全不能辨认自己行为）。', tags: ['民事主体', '行为能力'], like_count: 145 },
+            { libraryIndex: 1, chapterName: '民事法律行为', question: '什么是民事法律行为？', answer: '民事法律行为是民事主体通过意思表示设立、变更、终止民事法律关系的行为。其有效要件包括：1. 行为人具有相应的民事行为能力；2. 意思表示真实；3. 不违反法律、行政法规的强制性规定，不违背公序良俗。', tags: ['法律行为', '有效要件'], like_count: 98 },
+            { libraryIndex: 1, chapterName: '代理', question: '代理的种类有哪些？', answer: '代理的种类包括：1. 委托代理、法定代理和指定代理；2. 一般代理和特别代理；3. 单独代理和共同代理；4. 本代理和复代理。委托代理是基于被代理人的授权而产生的代理。', tags: ['代理', '分类'], like_count: 76 },
+            
+            { libraryIndex: 2, chapterName: '宪法基本理论', question: '宪法的特征有哪些？', answer: '宪法的特征包括：1. 宪法是国家的根本法；2. 宪法是公民权利的保障书；3. 宪法是民主事实法律化的基本形式；4. 宪法具有最高的法律效力。', tags: ['宪法特征', '基本理论'], like_count: 89 },
+            { libraryIndex: 2, chapterName: '国家机构', question: '全国人民代表大会的职权有哪些？', answer: '全国人民代表大会的职权包括：1. 修改宪法；2. 监督宪法实施；3. 制定和修改刑事、民事、国家机构的和其他的基本法律；4. 选举国家主席、副主席；5. 根据主席提名决定国务院总理人选等。', tags: ['国家机构', '人大职权'], like_count: 102 },
+            
+            { libraryIndex: 3, chapterName: '行政法概述', question: '行政法的基本原则有哪些？', answer: '行政法的基本原则包括：1. 行政合法性原则；2. 行政合理性原则；3. 行政应急性原则。这些原则是行政活动必须遵循的基本准则。', tags: ['基本原则', '行政法'], like_count: 67 },
+            { libraryIndex: 3, chapterName: '行政处罚', question: '行政处罚的种类有哪些？', answer: '行政处罚的种类包括：1. 警告、通报批评；2. 罚款、没收违法所得、没收非法财物；3. 暂扣许可证件、降低资质等级、吊销许可证件；4. 限制开展生产经营活动、责令停产停业、责令关闭、限制从业；5. 行政拘留；6. 法律、行政法规规定的其他行政处罚。', tags: ['行政处罚', '种类'], like_count: 88 },
+            
+            { libraryIndex: 4, chapterName: '管辖', question: '刑事诉讼的立案管辖如何划分？', answer: '立案管辖的划分：1. 公安机关管辖：大部分刑事案件的侦查；2. 人民检察院管辖：贪污贿赂犯罪、国家工作人员渎职犯罪、国家机关工作人员利用职权实施的侵犯公民人身权利和民主权利的犯罪；3. 人民法院管辖：自诉案件。', tags: ['管辖', '立案'], like_count: 94 },
+            { libraryIndex: 4, chapterName: '证据', question: '刑事诉讼证据的种类有哪些？', answer: '刑事诉讼证据的种类包括：1. 物证；2. 书证；3. 证人证言；4. 被害人陈述；5. 犯罪嫌疑人、被告人供述和辩解；6. 鉴定意见；7. 勘验、检查、辨认、侦查实验等笔录；8. 视听资料、电子数据。', tags: ['证据', '种类'], like_count: 118 },
+            
+            { libraryIndex: 5, chapterName: '管辖', question: '民事诉讼级别管辖如何确定？', answer: '民事诉讼级别管辖：1. 基层人民法院管辖第一审民事案件；2. 中级人民法院管辖重大涉外案件、在本辖区有重大影响的案件、最高人民法院确定由中级人民法院管辖的案件；3. 高级人民法院管辖在本辖区有重大影响的第一审民事案件；4. 最高人民法院管辖在全国有重大影响的案件。', tags: ['管辖', '级别'], like_count: 82 },
+            { libraryIndex: 5, chapterName: '当事人', question: '民事诉讼当事人的权利有哪些？', answer: '民事诉讼当事人的权利包括：1. 委托代理人；2. 申请回避；3. 收集、提供证据；4. 进行辩论；5. 请求调解；6. 提起上诉；7. 申请执行；8. 申请再审等。当事人必须依法行使诉讼权利，遵守诉讼秩序。', tags: ['当事人', '诉讼权利'], like_count: 71 }
+        ];
+
+        for (const card of cards) {
+            const chapterKey = `${card.libraryIndex}_${card.chapterName}`;
+            const chapterId = chapterIds[chapterKey] || null;
+            await connection.query(
+                'INSERT INTO cards (library_id, chapter_id, question, answer, tags, created_by, is_public, like_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [libraryIds[card.libraryIndex], chapterId, card.question, card.answer, JSON.stringify(card.tags), userId, 1, card.like_count]
             );
         }
-        console.log(`✓ 插入 ${mockChapters.length} 个章节`);
+        console.log('Created cards');
 
-        for (const card of mockCards) {
-            await connection.execute(
-                'INSERT INTO cards (library_id, chapter_id, question, answer, tags, created_by) VALUES (?, ?, ?, ?, ?, ?)',
-                [card.library_id, card.chapter_id, card.question, card.answer, JSON.stringify(card.tags), card.created_by]
-            );
-        }
-        console.log(`✓ 插入 ${mockCards.length} 张卡片`);
-
-        for (const library of mockLibraries) {
-            const [rows] = await connection.execute(
-                'SELECT COUNT(*) as count FROM cards WHERE library_id = ?',
-                [mockLibraries.indexOf(library) + 1]
-            );
-            await connection.execute(
-                'UPDATE libraries SET card_count = ? WHERE id = ?',
-                [rows[0].count, mockLibraries.indexOf(library) + 1]
-            );
-        }
-
-        for (const comment of mockComments) {
-            await connection.execute(
-                'INSERT INTO comments (card_id, user_id, content) VALUES (?, ?, ?)',
-                [comment.card_id, comment.user_id, comment.content]
-            );
-        }
-        console.log(`✓ 插入 ${mockComments.length} 条评论`);
-
-        await connection.execute(
-            'INSERT INTO user_stats (user_id, total_study_days, current_streak, longest_streak, last_study_date, total_cards_learned) VALUES (1, 15, 7, 10, CURDATE(), 50)'
-        );
-        console.log('✓ 插入用户统计数据');
-
-        await connection.commit();
-        console.log('\n✅ 模拟数据插入完成！');
-        
-        console.log('\n测试账号信息:');
-        console.log('- openid: mock_openid_test');
-        console.log('- nickname: 法硕考生');
-        
+        console.log('Seed data created successfully!');
     } catch (error) {
-        await connection.rollback();
-        console.error('❌ 插入模拟数据失败:', error);
+        console.error('Error seeding data:', error);
         throw error;
     } finally {
         if (connection) {
-            connection.release();
+            await connection.end();
         }
-        await db.end();
     }
 }
 
-seedDatabase();
+seedData();

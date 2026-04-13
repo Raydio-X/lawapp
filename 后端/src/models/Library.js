@@ -6,11 +6,13 @@ class LibraryModel {
         const offset = (page - 1) * pageSize;
         
         let sql = `SELECT l.*, u.nickname as creator_name, 
-                   (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id) as favorite_count
+                   (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id) as favorite_count,
+                   (SELECT COUNT(*) FROM user_likes ul WHERE ul.target_type = 'library' AND ul.target_id = l.id AND ul.user_id = ?) as is_liked,
+                   (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id AND f.user_id = ?) as is_favorited
                    FROM libraries l 
                    LEFT JOIN users u ON l.created_by = u.id 
                    WHERE l.is_public = 1`;
-        const values = [];
+        const values = [userId || 0, userId || 0];
 
         if (subject) {
             sql += ' AND l.subject = ?';
@@ -39,7 +41,11 @@ class LibraryModel {
         const [countRows] = await db.execute(countSql, countValues);
 
         return {
-            list: rows,
+            list: rows.map(row => ({
+                ...row,
+                is_liked: row.is_liked > 0,
+                is_favorited: row.is_favorited > 0
+            })),
             pagination: {
                 page: Number(page),
                 pageSize: Number(pageSize),
@@ -192,6 +198,13 @@ class LibraryModel {
         );
         
         return rows[0]?.like_count || 0;
+    }
+
+    static async updateLikeCount(id, count) {
+        await db.execute(
+            'UPDATE libraries SET like_count = ? WHERE id = ?',
+            [count, id]
+        );
     }
 }
 

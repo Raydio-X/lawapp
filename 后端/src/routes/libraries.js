@@ -3,6 +3,7 @@ const LibraryModel = require('../models/Library');
 const ChapterModel = require('../models/Chapter');
 const CardModel = require('../models/Card');
 const FavoriteModel = require('../models/Favorite');
+const LikeModel = require('../models/Like');
 const { auth, optionalAuth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -108,7 +109,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
         await LibraryModel.incrementViewCount(req.params.id);
 
-        const chapters = await ChapterModel.getList(req.params.id);
+        const chapters = await ChapterModel.getTree(req.params.id);
 
         res.json({
             success: true,
@@ -259,7 +260,7 @@ router.post('/:id/favorite', auth, async (req, res) => {
     }
 });
 
-router.post('/:id/like', async (req, res) => {
+router.post('/:id/like', auth, async (req, res) => {
     try {
         const library = await LibraryModel.findById(req.params.id);
         
@@ -271,11 +272,12 @@ router.post('/:id/like', async (req, res) => {
             });
         }
 
-        const likeCount = await LibraryModel.incrementLikeCount(req.params.id);
+        const result = await LikeModel.toggle(req.user.id, 'library', req.params.id);
+        await LibraryModel.updateLikeCount(req.params.id, result.likeCount);
 
         res.json({
             success: true,
-            data: { likeCount, isLiked: true }
+            data: { likeCount: result.likeCount, isLiked: result.isLiked }
         });
     } catch (error) {
         console.error('Like library error:', error);
@@ -287,7 +289,7 @@ router.post('/:id/like', async (req, res) => {
     }
 });
 
-router.post('/:id/unlike', async (req, res) => {
+router.post('/:id/unlike', auth, async (req, res) => {
     try {
         const library = await LibraryModel.findById(req.params.id);
         
@@ -299,11 +301,12 @@ router.post('/:id/unlike', async (req, res) => {
             });
         }
 
-        const likeCount = await LibraryModel.decrementLikeCount(req.params.id);
+        const result = await LikeModel.toggle(req.user.id, 'library', req.params.id);
+        await LibraryModel.updateLikeCount(req.params.id, result.likeCount);
 
         res.json({
             success: true,
-            data: { likeCount, isLiked: false }
+            data: { likeCount: result.likeCount, isLiked: result.isLiked }
         });
     } catch (error) {
         console.error('Unlike library error:', error);

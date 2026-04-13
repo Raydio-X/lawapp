@@ -6,16 +6,21 @@ class CardModel {
         const offset = (page - 1) * pageSize;
 
         let sql = `SELECT c.*, l.name as library_name, ch.name as chapter_name,
-                   (SELECT COUNT(*) FROM study_records sr WHERE sr.card_id = c.id AND sr.user_id = ?) as study_count
+                   (SELECT COUNT(*) FROM study_records sr WHERE sr.card_id = c.id AND sr.user_id = ?) as study_count,
+                   (SELECT COUNT(*) FROM user_likes ul WHERE ul.target_type = 'card' AND ul.target_id = c.id AND ul.user_id = ?) as is_liked,
+                   (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'card' AND f.target_id = c.id AND f.user_id = ?) as is_favorited,
+                   (SELECT mastered FROM card_mastery cm WHERE cm.card_id = c.id AND cm.user_id = ?) as is_learned
                    FROM cards c 
                    LEFT JOIN libraries l ON c.library_id = l.id 
                    LEFT JOIN chapters ch ON c.chapter_id = ch.id 
-                   WHERE c.is_public = 1`;
-        const values = [userId || 0];
+                   WHERE 1=1`;
+        const values = [userId || 0, userId || 0, userId || 0, userId || 0];
 
         if (libraryId) {
             sql += ' AND c.library_id = ?';
             values.push(libraryId);
+        } else {
+            sql += ' AND c.is_public = 1';
         }
 
         if (chapterId) {
@@ -27,11 +32,13 @@ class CardModel {
 
         const [rows] = await db.execute(sql, values);
         
-        let countSql = 'SELECT COUNT(*) as total FROM cards WHERE is_public = 1';
+        let countSql = 'SELECT COUNT(*) as total FROM cards WHERE 1=1';
         const countValues = [];
         if (libraryId) {
             countSql += ' AND library_id = ?';
             countValues.push(libraryId);
+        } else {
+            countSql += ' AND is_public = 1';
         }
         if (chapterId) {
             countSql += ' AND chapter_id = ?';
@@ -43,7 +50,10 @@ class CardModel {
         return {
             list: rows.map(row => ({
                 ...row,
-                tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
+                tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+                is_liked: row.is_liked > 0,
+                is_favorited: row.is_favorited > 0,
+                is_learned: row.is_learned === 1
             })),
             pagination: {
                 page: parseInt(page),
@@ -139,18 +149,25 @@ class CardModel {
         }
     }
 
-    static async getHotCards(limit = 10) {
+    static async getHotCards(limit = 10, userId = null) {
         const [rows] = await db.execute(
-            `SELECT c.*, l.name as library_name, l.subject
+            `SELECT c.*, l.name as library_name, l.subject,
+             (SELECT COUNT(*) FROM user_likes ul WHERE ul.target_type = 'card' AND ul.target_id = c.id AND ul.user_id = ?) as is_liked,
+             (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'card' AND f.target_id = c.id AND f.user_id = ?) as is_favorited,
+             (SELECT mastered FROM card_mastery cm WHERE cm.card_id = c.id AND cm.user_id = ?) as is_learned
              FROM cards c 
              LEFT JOIN libraries l ON c.library_id = l.id 
              WHERE c.is_public = 1 
              ORDER BY c.study_count DESC, c.like_count DESC 
-             LIMIT ${parseInt(limit)}`
+             LIMIT ${parseInt(limit)}`,
+            [userId || 0, userId || 0, userId || 0]
         );
         return rows.map(row => ({
             ...row,
-            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
+            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+            is_liked: row.is_liked > 0,
+            is_favorited: row.is_favorited > 0,
+            is_learned: row.is_learned === 1
         }));
     }
 
@@ -244,6 +261,13 @@ class CardModel {
         );
         
         return rows[0]?.like_count || 0;
+    }
+
+    static async updateLikeCount(id, count) {
+        await db.execute(
+            'UPDATE cards SET like_count = ? WHERE id = ?',
+            [count, id]
+        );
     }
 }
 

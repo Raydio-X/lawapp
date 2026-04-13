@@ -10,7 +10,7 @@ class CommentModel {
              FROM comments cm
              LEFT JOIN users u ON cm.user_id = u.id
              WHERE cm.card_id = ?
-             ORDER BY cm.created_at DESC
+             ORDER BY cm.like_count DESC, cm.created_at DESC
              LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
             [cardId]
         );

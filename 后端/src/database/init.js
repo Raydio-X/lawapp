@@ -131,6 +131,26 @@ async function initDatabase() {
         console.log('Created study_records table');
 
         await connection.query(`
+            CREATE TABLE card_mastery (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                card_id INT NOT NULL,
+                library_id INT NOT NULL,
+                mastered TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_user_card (user_id, card_id),
+                INDEX idx_user_id (user_id),
+                INDEX idx_card_id (card_id),
+                INDEX idx_library_id (library_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+                FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created card_mastery table');
+
+        await connection.query(`
             CREATE TABLE comments (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 card_id INT NOT NULL,
@@ -160,6 +180,20 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created favorites table');
+
+        await connection.query(`
+            CREATE TABLE user_likes (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                target_type ENUM('library', 'card') NOT NULL,
+                target_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_user_target (user_id, target_type, target_id),
+                INDEX idx_user_id (user_id),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created user_likes table');
 
         await connection.query(`
             CREATE TABLE wrong_cards (
