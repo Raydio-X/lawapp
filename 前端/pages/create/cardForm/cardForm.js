@@ -2,6 +2,8 @@ const { libraryAPI, cardAPI, chapterAPI } = require('../../../utils/api');
 
 Page({
   data: {
+    cardId: null,
+    isEdit: false,
     question: '',
     answer: '',
 
@@ -25,12 +27,25 @@ Page({
   },
 
   onLoad(options) {
+    if (options.id) {
+      this.setData({ cardId: parseInt(options.id), isEdit: true });
+      wx.setNavigationBarTitle({ title: '编辑卡片' });
+    } else {
+      wx.setNavigationBarTitle({ title: '新增卡片' });
+    }
     if (options.question) {
       this.setData({ question: decodeURIComponent(options.question) });
     }
     if (options.answer) {
       this.setData({ answer: decodeURIComponent(options.answer) });
     }
+    if (options.libraryId) {
+      this.setData({ 
+        preselectedLibraryId: parseInt(options.libraryId),
+        preselectedLibraryName: options.libraryName ? decodeURIComponent(options.libraryName) : ''
+      });
+    }
+    
     this.loadLibraries();
   },
 
@@ -47,6 +62,10 @@ Page({
     this.setData({ loading: true });
 
     try {
+      if (this.data.isEdit && this.data.cardId) {
+        await this.loadCardDetail();
+      }
+      
       const res = await libraryAPI.getMyLibraries();
       if (res.success && res.data) {
         const libraries = res.data.list || res.data || [];
@@ -68,14 +87,25 @@ Page({
           value: lib.id
         }));
 
+        let selectedLibrary = null;
+        if (this.data.preselectedLibraryId) {
+          selectedLibrary = libraries.find(lib => lib.id === this.data.preselectedLibraryId);
+        }
+        if (!selectedLibrary && this.data.editLibraryId) {
+          selectedLibrary = libraries.find(lib => lib.id === this.data.editLibraryId);
+        }
+        if (!selectedLibrary) {
+          selectedLibrary = libraries[0];
+        }
+
         this.setData({
           libraries: libraries,
           libraryOptions: libraryOptions,
-          selectedLibrary: libraries[0],
-          selectedLibraryIndex: [libraries[0].id]
+          selectedLibrary: selectedLibrary,
+          selectedLibraryIndex: [selectedLibrary.id]
         });
 
-        this.loadChapters(libraries[0].id);
+        await this.loadChapters(selectedLibrary.id);
         this.checkCanSubmit();
       }
     } catch (error) {
@@ -83,6 +113,24 @@ Page({
       wx.showToast({ title: error.message || '加载失败', icon: 'none' });
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  async loadCardDetail() {
+    try {
+      const res = await cardAPI.getDetail(this.data.cardId);
+      if (res.success && res.data) {
+        const card = res.data;
+        this.setData({
+          question: card.question,
+          answer: card.answer,
+          editLibraryId: card.library_id,
+          editChapterId: card.chapter_id
+        });
+      }
+    } catch (error) {
+      console.error('加载卡片详情失败:', error);
+      wx.showToast({ title: error.message || '加载失败', icon: 'none' });
     }
   },
 
@@ -97,11 +145,19 @@ Page({
           value: ch.id
         }));
 
+        let selectedChapter = null;
+        if (this.data.editChapterId) {
+          selectedChapter = chapters.find(ch => ch.id === this.data.editChapterId);
+        }
+        if (!selectedChapter && chapters.length > 0) {
+          selectedChapter = chapters[0];
+        }
+
         this.setData({
           chapters: chapters,
           chapterOptions: chapterOptions,
-          selectedChapter: chapters.length > 0 ? chapters[0] : null,
-          selectedChapterIndex: chapters.length > 0 ? [chapters[0].id] : []
+          selectedChapter: selectedChapter,
+          selectedChapterIndex: selectedChapter ? [selectedChapter.id] : []
         });
       }
     } catch (error) {
@@ -241,7 +297,7 @@ Page({
   },
 
   async onSubmit() {
-    const { question, answer, selectedLibrary, selectedChapter } = this.data;
+    const { isEdit, cardId, question, answer, selectedLibrary, selectedChapter } = this.data;
 
     if (!question.trim()) {
       wx.showToast({ title: '请输入题目', icon: 'none' });
@@ -270,19 +326,24 @@ Page({
         is_public: 1
       };
 
-      const result = await cardAPI.create(cardData);
+      let result;
+      if (isEdit && cardId) {
+        result = await cardAPI.update(cardId, cardData);
+      } else {
+        result = await cardAPI.create(cardData);
+      }
 
       if (result.success) {
-        wx.showToast({ title: '创建成功', icon: 'success', duration: 1500 });
+        wx.showToast({ title: isEdit ? '保存成功' : '创建成功', icon: 'success', duration: 1500 });
         setTimeout(() => {
           wx.navigateBack();
         }, 1500);
       } else {
-        wx.showToast({ title: result.message || '创建失败', icon: 'none' });
+        wx.showToast({ title: result.message || (isEdit ? '保存失败' : '创建失败'), icon: 'none' });
       }
     } catch (error) {
-      console.error('创建卡片失败:', error);
-      wx.showToast({ title: error.message || '创建失败', icon: 'none' });
+      console.error(isEdit ? '保存卡片失败:' : '创建卡片失败:', error);
+      wx.showToast({ title: error.message || (isEdit ? '保存失败' : '创建失败'), icon: 'none' });
     } finally {
       this.setData({ loading: false });
     }

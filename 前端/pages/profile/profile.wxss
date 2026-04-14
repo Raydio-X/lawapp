@@ -207,6 +207,39 @@
   box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
+.menu-section .t-cell {
+  align-items: center;
+}
+
+.menu-section .t-cell__left-icon {
+  display: flex;
+  align-items: center;
+}
+
+.menu-section .t-cell__title {
+  margin-top: -9rpx;
+}
+
+/* 自定义数字标签 */
+.custom-badge {
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #999;
+  margin-right: 8rpx;
+  margin-top: -6rpx;
+}
+
+.custom-badge.wrong {
+  color: #999;
+}
+
+/* 菜单项右侧内容 */
+.menu-section .t-cell__right {
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+}
+
 /* 退出登录区域 */
 .logout-section {
   margin-top: 48rpx;

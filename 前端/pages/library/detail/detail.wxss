@@ -102,23 +102,8 @@
 }
 
 .progress-stats {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   font-size: 26rpx;
   color: #999;
-}
-
-.continue-btn {
-  color: #0052D9;
-  font-weight: 500;
-  padding: 8rpx 16rpx;
-  background-color: rgba(0, 82, 217, 0.1);
-  border-radius: 8rpx;
-}
-
-.continue-btn:active {
-  background-color: rgba(0, 82, 217, 0.2);
 }
 
 /* 区域二：章节目录（树形结构） */

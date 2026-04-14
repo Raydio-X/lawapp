@@ -79,7 +79,7 @@
         data-menu="favorite"
       >
         <t-icon slot="left-icon" name="star" size="44rpx" color="#FFAD1F" />
-        <t-badge slot="note" count="{{stats.favoriteCount}}" />
+        <view slot="note" class="custom-badge" wx:if="{{stats.favoriteCount > 0}}">{{stats.favoriteCount}}</view>
       </t-cell>
       <t-cell 
         title="错题本" 
@@ -89,7 +89,7 @@
         data-menu="wrong"
       >
         <t-icon slot="left-icon" name="error-circle" size="44rpx" color="#E34D59" />
-        <t-badge slot="note" count="{{stats.wrongCount}}" />
+        <view slot="note" class="custom-badge wrong" wx:if="{{stats.wrongCount > 0}}">{{stats.wrongCount}}</view>
       </t-cell>
     </t-cell-group>
   </view>

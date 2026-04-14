@@ -1,4 +1,4 @@
-const { libraryAPI, authAPI, chapterAPI } = require('../../utils/api');
+const { libraryAPI, authAPI, chapterAPI, cardAPI } = require('../../utils/api');
 
 Page({
   data: {
@@ -14,7 +14,12 @@ Page({
     showDeleteConfirm: false,
     deleteItem: { title: '', childCount: 0, toDelete: [] },
     showDeleteLibraryConfirm: false,
-    deleteLibraryItem: { id: null, name: '', cardCount: 0, index: -1 }
+    deleteLibraryItem: { id: null, name: '', cardCount: 0, index: -1 },
+    editTab: 'info',
+    editLibraryName: '',
+    editCards: [],
+    showDeleteCardConfirm: false,
+    deleteCardItem: { id: null, index: -1 }
   },
 
   _dragStartX: 0,
@@ -30,6 +35,10 @@ Page({
 
   onShow() {
     this.loadMyLibraries();
+    
+    if (this.data.showOutlinePopup && this.data.currentLibrary) {
+      this.loadCards(this.data.currentLibrary.id);
+    }
   },
 
   async loadMyLibraries() {
@@ -187,10 +196,141 @@ Page({
 
     this.setData({
       currentLibrary: library,
-      showOutlinePopup: true
+      showOutlinePopup: true,
+      editTab: 'info',
+      editLibraryName: library.name,
+      editCards: []
     });
 
     await this.loadChapters(id);
+    await this.loadCards(id);
+  },
+
+  async loadCards(libraryId) {
+    try {
+      const res = await cardAPI.getList({ library_id: libraryId, page: 1, pageSize: 1000 });
+      if (res.success && res.data) {
+        const cards = (res.data.list || res.data || []).map(card => ({
+          id: card.id,
+          question: card.question,
+          answer: card.answer,
+          chapterId: card.chapter_id,
+          chapterName: card.chapter_name || ''
+        }));
+        this.setData({ editCards: cards });
+      }
+    } catch (error) {
+      console.error('加载卡片失败:', error);
+    }
+  },
+
+  onSwitchEditTab(e) {
+    const { tab } = e.currentTarget.dataset;
+    this.setData({ editTab: tab });
+  },
+
+  onLibraryNameInput(e) {
+    this.setData({ editLibraryName: e.detail.value });
+  },
+
+  async onSaveLibraryName() {
+    const { editLibraryName, currentLibrary } = this.data;
+    
+    if (!editLibraryName.trim()) {
+      wx.showToast({ title: '请输入知识库名称', icon: 'none' });
+      return;
+    }
+
+    if (editLibraryName === currentLibrary.name) {
+      wx.showToast({ title: '名称未修改', icon: 'none' });
+      return;
+    }
+
+    try {
+      const res = await libraryAPI.update(currentLibrary.id, { name: editLibraryName.trim() });
+      if (res.success) {
+        const myLibraries = this.data.myLibraries;
+        const index = myLibraries.findIndex(lib => lib.id === currentLibrary.id);
+        if (index !== -1) {
+          myLibraries[index].name = editLibraryName.trim();
+          this.setData({ 
+            myLibraries,
+            'currentLibrary.name': editLibraryName.trim()
+          });
+        }
+        wx.showToast({ title: '保存成功', icon: 'success' });
+      }
+    } catch (error) {
+      console.error('保存知识库名称失败:', error);
+      wx.showToast({ title: error.message || '保存失败', icon: 'none' });
+    }
+  },
+
+  onEditCard(e) {
+    const { id } = e.currentTarget.dataset;
+    const { currentLibrary } = this.data;
+    
+    wx.navigateTo({
+      url: `/pages/create/cardForm/cardForm?id=${id}&libraryId=${currentLibrary.id}&libraryName=${encodeURIComponent(currentLibrary.name)}`
+    });
+  },
+
+  onDeleteCard(e) {
+    const { id, index } = e.currentTarget.dataset;
+    
+    this.setData({
+      showDeleteCardConfirm: true,
+      deleteCardItem: { id, index }
+    });
+  },
+
+  onDeleteCardConfirmChange(e) {
+    this.setData({ showDeleteCardConfirm: e.detail.visible });
+  },
+
+  onCancelDeleteCard() {
+    this.setData({
+      showDeleteCardConfirm: false,
+      deleteCardItem: { id: null, index: -1 }
+    });
+  },
+
+  async onConfirmDeleteCard() {
+    const { id, index } = this.data.deleteCardItem;
+
+    try {
+      const res = await cardAPI.delete(id);
+      if (res.success) {
+        const editCards = this.data.editCards;
+        editCards.splice(index, 1);
+        
+        const myLibraries = this.data.myLibraries;
+        const libIndex = myLibraries.findIndex(lib => lib.id === this.data.currentLibrary.id);
+        if (libIndex !== -1 && myLibraries[libIndex].cardCount > 0) {
+          myLibraries[libIndex].cardCount--;
+        }
+        
+        this.setData({ 
+          editCards,
+          myLibraries,
+          showDeleteCardConfirm: false,
+          deleteCardItem: { id: null, index: -1 }
+        });
+        
+        wx.showToast({ title: '删除成功', icon: 'success' });
+      }
+    } catch (error) {
+      console.error('删除卡片失败:', error);
+      wx.showToast({ title: error.message || '删除失败', icon: 'none' });
+    }
+  },
+
+  onAddCard() {
+    const { currentLibrary } = this.data;
+    
+    wx.navigateTo({
+      url: `/pages/create/cardForm/cardForm?libraryId=${currentLibrary.id}&libraryName=${encodeURIComponent(currentLibrary.name)}`
+    });
   },
 
   async loadChapters(libraryId) {
@@ -269,6 +409,10 @@ Page({
 
   onDeleteConfirmChange(e) {
     this.setData({ showDeleteConfirm: e.detail.visible });
+  },
+
+  preventTouchMove() {
+    return false;
   },
 
   onCancelDelete() {

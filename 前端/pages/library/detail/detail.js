@@ -407,54 +407,51 @@ Page({
     });
   },
 
-  onContinueLearning() {
-    let targetCard = null;
-    let targetChapterIndex = -1;
+  onStartStudy() {
+    const chapters = this.data.chapters;
+    const unlearnedCards = [];
     
-    for (let i = 0; i < this.data.chapters.length; i++) {
-      const chapter = this.data.chapters[i];
-      for (const card of chapter.cards) {
-        if (!card.learned) {
-          targetCard = card;
-          targetChapterIndex = i;
-          break;
+    const collectUnlearnedCards = (chapterList) => {
+      chapterList.forEach(chapter => {
+        chapter.cards.forEach(card => {
+          if (!card.learned) {
+            const fullCard = this.data.allCards.find(c => c.id === card.id);
+            unlearnedCards.push({
+              id: card.id,
+              question: card.title,
+              answer: fullCard ? fullCard.answer : '',
+              tags: card.tags,
+              learned: card.learned
+            });
+          }
+        });
+        
+        if (chapter.children && chapter.children.length > 0) {
+          collectUnlearnedCards(chapter.children);
         }
-      }
-      if (targetCard) break;
-    }
-
-    if (targetCard) {
-      this.expandAndSelectChapter(targetChapterIndex);
-      let globalIndex = 0;
-      for (let i = 0; i < targetChapterIndex; i++) {
-        globalIndex += this.data.chapters[i].cards.length;
-      }
-      for (let j = 0; j < this.data.chapters[targetChapterIndex].cards.length; j++) {
-        if (this.data.chapters[targetChapterIndex].cards[j].id === targetCard.id) {
-          globalIndex += j;
-          break;
-        }
-      }
-      this.saveCardsDataAndNavigate(targetCard.id, globalIndex);
-    } else {
+      });
+    };
+    
+    collectUnlearnedCards(chapters);
+    
+    if (unlearnedCards.length === 0) {
       wx.showToast({
-        title: '恭喜！已完成所有卡片',
+        title: '恭喜！已掌握所有卡片',
         icon: 'success'
       });
+      return;
     }
-  },
-
-  onStartStudy() {
-    const selectedChapter = this.data.selectedChapter;
-    const selectedChapterIndex = this.data.selectedChapterIndex;
-    if (selectedChapter && selectedChapter.cards.length > 0) {
-      const firstCard = selectedChapter.cards[0];
-      let globalIndex = 0;
-      for (let i = 0; i < selectedChapterIndex; i++) {
-        globalIndex += this.data.chapters[i].cards.length;
-      }
-      this.saveCardsDataAndNavigate(firstCard.id, globalIndex);
-    }
+    
+    wx.setStorageSync('libraryCardsData', {
+      cardList: unlearnedCards,
+      libraryId: this.data.libraryInfo.id,
+      libraryName: this.data.libraryInfo.name,
+      isFiltered: true
+    });
+    
+    wx.navigateTo({
+      url: `/pages/card/study/study?cardId=${unlearnedCards[0].id}&libraryId=${this.data.libraryInfo.id}&index=0`
+    });
   },
 
   onRandomStudy() {

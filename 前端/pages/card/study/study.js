@@ -136,6 +136,31 @@ Page({
 
   async loadLibraryCards(cardId, index) {
     try {
+      const storedData = wx.getStorageSync('libraryCardsData');
+      
+      if (storedData && storedData.isFiltered && storedData.cardList && storedData.cardList.length > 0) {
+        const cardList = storedData.cardList;
+        const currentIndex = index || 0;
+        const currentCard = cardList[currentIndex] || cardList[0];
+
+        this.setData({
+          cardList: cardList,
+          totalCards: cardList.length,
+          currentIndex: currentIndex,
+          currentCard: currentCard,
+          answerRevealed: false
+        });
+
+        const titleName = this.data.libraryName || '卡片';
+        wx.setNavigationBarTitle({
+          title: `${titleName} ${currentIndex + 1}/${cardList.length}`
+        });
+
+        this.loadComments(currentCard.id);
+        this.checkFavorite(currentCard.id);
+        return;
+      }
+
       const res = await cardAPI.getList({ 
         library_id: this.data.libraryId, 
         page: 1, 

@@ -79,7 +79,7 @@
         block
         bindtap="onSubmit"
         disabled="{{!canSubmit}}"
-      >创建卡片</t-button>
+      >{{isEdit ? '保存修改' : '创建卡片'}}</t-button>
     </view>
   </view>
 

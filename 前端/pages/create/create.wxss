@@ -289,16 +289,28 @@
   background-color: rgba(227, 77, 89, 0.1);
 }
 
-/* 编辑大纲弹窗 */
-.outline-popup {
+/* 编辑弹窗 */
+.edit-popup {
   background-color: #fff;
   border-radius: 32rpx 32rpx 0 0;
-  max-height: 80vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
-.outline-popup-header {
+.edit-disable-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  background-color: transparent;
+}
+
+.edit-popup-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -306,22 +318,197 @@
   border-bottom: 2rpx solid #f0f0f0;
 }
 
-.outline-popup-title {
+.edit-popup-title {
   font-size: 32rpx;
   font-weight: 600;
   color: #333;
 }
 
-.outline-popup-done {
+.edit-popup-done {
   padding: 12rpx 24rpx;
   background-color: #0052D9;
   border-radius: 8rpx;
 }
 
-.outline-popup-done text {
+.edit-popup-done text {
   font-size: 28rpx;
   color: #fff;
   font-weight: 500;
+}
+
+/* Tab 切换 */
+.edit-tabs {
+  display: flex;
+  border-bottom: 2rpx solid #f0f0f0;
+}
+
+.edit-tab {
+  flex: 1;
+  text-align: center;
+  padding: 24rpx 0;
+  font-size: 28rpx;
+  color: #666;
+  position: relative;
+}
+
+.edit-tab.active {
+  color: #0052D9;
+  font-weight: 600;
+}
+
+.edit-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 48rpx;
+  height: 4rpx;
+  background-color: #0052D9;
+  border-radius: 2rpx;
+}
+
+/* 编辑内容区域 */
+.edit-content {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* 基本信息编辑 */
+.edit-info-section {
+  padding: 24rpx 32rpx;
+}
+
+.edit-info-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #f5f5f5;
+}
+
+.edit-info-label {
+  font-size: 28rpx;
+  color: #333;
+  width: 180rpx;
+  flex-shrink: 0;
+}
+
+.edit-info-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  text-align: right;
+}
+
+.edit-info-value {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.edit-info-save-btn {
+  margin: 32rpx;
+  padding: 24rpx;
+  background-color: #0052D9;
+  border-radius: 12rpx;
+  text-align: center;
+}
+
+.edit-info-save-btn text {
+  font-size: 30rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 卡片管理 */
+.cards-manage-container {
+  padding: 24rpx 32rpx;
+}
+
+.cards-manage-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.cards-manage-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #f8f9fa;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+}
+
+.cards-manage-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cards-manage-title {
+  font-size: 28rpx;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cards-manage-chapter {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 8rpx;
+}
+
+.cards-manage-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-left: 16rpx;
+}
+
+.cards-manage-btn {
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+}
+
+.cards-manage-btn:active {
+  opacity: 0.7;
+}
+
+.cards-manage-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48rpx 0;
+  color: #999;
+  font-size: 28rpx;
+}
+
+.cards-manage-empty text {
+  margin-top: 16rpx;
+}
+
+.cards-manage-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  padding: 24rpx;
+  margin-top: 16rpx;
+  border: 2rpx dashed #ddd;
+  border-radius: 12rpx;
+  color: #0052D9;
+  font-size: 28rpx;
+  transition: all 0.2s ease;
+}
+
+.cards-manage-add-btn:active {
+  background-color: rgba(0, 82, 217, 0.04);
+  border-color: #0052D9;
 }
 
 .outline-container {
