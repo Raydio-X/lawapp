@@ -444,39 +444,44 @@ const chapterAPI = {
  * 学习记录相关 API
  */
 const studyAPI = {
-  // 获取学习统计
   getStats: () => {
     return get('/study/stats');
   },
 
-  // 获取今日学习记录
   getTodayRecords: () => {
     return get('/study/today');
   },
 
-  // 获取学习日历
   getCalendar: (params = {}) => {
     return get('/study/calendar', params);
   },
 
-  // 获取知识库学习进度
   getLibraryProgress: (libraryId) => {
     return get(`/study/progress/${libraryId}`);
   },
 
-  // 获取最近学习的卡片
   getRecentCards: (limit = 10) => {
     return get('/study/recent', { limit });
   },
 
-  // 获取学习趋势
   getTrend: (days = 7) => {
     return get('/study/trend', { days });
   },
 
-  // 获取学习热力图
   getHeatmap: (year) => {
     return get('/study/heatmap', { year });
+  },
+
+  recordStudyTime: (libraryId, duration, options = {}) => {
+    return post('/study/time', { libraryId, duration }, { showLoading: false, ...options });
+  },
+
+  getStudyTime: (options = {}) => {
+    return get('/study/time', {}, { showLoading: false, ...options });
+  },
+
+  getTodayStudyTime: (options = {}) => {
+    return get('/study/today-time', {}, { showLoading: false, ...options });
   }
 };
 

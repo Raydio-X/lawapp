@@ -17,27 +17,92 @@ Page({
       percent: 0,
       todayCards: 0,
       streak: 0,
-      totalTime: '0h'
+      totalTime: '0分钟',
+      todayStudyTime: 0,
+      dailyGoal: 50,
+      todayNew: 0,
+      weekTime: '0分钟',
+      weekTrend: 0,
+      toReview: 0,
+      totalCards: 0
     },
+    goalPercent: 0,
     loading: false
   },
 
+  studyTimeTimer: null,
+  isLoading: false,
+
   onLoad() {
-    this.loadAllData();
+    this.loadAllData(true);
   },
 
   onShow() {
-    this.loadAllData();
+    if (!this.isLoading) {
+      this.loadAllData(false);
+    }
+    this.startStudyTimeTimer();
   },
 
-  async loadAllData() {
+  onHide() {
+    this.stopStudyTimeTimer();
+  },
+
+  onUnload() {
+    this.stopStudyTimeTimer();
+  },
+
+  startStudyTimeTimer() {
+    this.loadTodayStudyTime();
+    this.studyTimeTimer = setInterval(() => {
+      this.loadTodayStudyTime();
+    }, 10000);
+  },
+
+  stopStudyTimeTimer() {
+    if (this.studyTimeTimer) {
+      clearInterval(this.studyTimeTimer);
+      this.studyTimeTimer = null;
+    }
+  },
+
+  async loadTodayStudyTime() {
+    const token = wx.getStorageSync('access_token');
+    if (!token) return;
+
+    try {
+      const res = await studyAPI.getTodayStudyTime();
+      if (res.success && res.data) {
+        const seconds = res.data.todayStudyTime || 0;
+        this.setData({
+          'studyProgress.todayStudyTime': seconds,
+          'studyProgress.totalTime': this.formatStudyTime(seconds)
+        });
+      }
+    } catch (error) {
+      console.error('获取今日学习时间失败:', error);
+    }
+  },
+
+  formatStudyTime(seconds) {
+    if (!seconds || seconds <= 0) return '0分钟';
+    const minutes = Math.floor(seconds / 60);
+    return `${minutes}分钟`;
+  },
+
+  async loadAllData(showLoading = false) {
     const token = wx.getStorageSync('access_token');
     if (!token) {
       this.resetData();
       return;
     }
 
-    this.setData({ loading: true });
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    if (showLoading) {
+      this.setData({ loading: true });
+    }
 
     try {
       await Promise.all([
@@ -48,7 +113,10 @@ Page({
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
-      this.setData({ loading: false });
+      this.isLoading = false;
+      if (showLoading) {
+        this.setData({ loading: false });
+      }
     }
   },
 
@@ -69,8 +137,16 @@ Page({
         percent: 0,
         todayCards: 0,
         streak: 0,
-        totalTime: '0h'
-      }
+        totalTime: '0分钟',
+        todayStudyTime: 0,
+        dailyGoal: 50,
+        todayNew: 0,
+        weekTime: '0分钟',
+        weekTrend: 0,
+        toReview: 0,
+        totalCards: 0
+      },
+      goalPercent: 0
     });
   },
 
@@ -150,18 +226,21 @@ Page({
       const res = await studyAPI.getStats();
       if (res.success && res.data) {
         const stats = res.data;
-        const totalMinutes = stats.totalTime || 0;
-        const hours = Math.floor(totalMinutes / 60);
-        const minutes = totalMinutes % 60;
-        const totalTime = hours > 0 ? `${hours}h${minutes > 0 ? minutes + 'm' : ''}` : `${minutes}m`;
+        const dailyGoal = stats.dailyGoal || 50;
+        const todayCards = stats.todayCards || 0;
+        const goalPercent = Math.min(100, Math.round((todayCards / dailyGoal) * 100));
 
         this.setData({
-          studyProgress: {
-            percent: stats.progress || 0,
-            todayCards: stats.todayCards || 0,
-            streak: stats.streak || 0,
-            totalTime: totalTime
-          }
+          'studyProgress.percent': stats.progress || 0,
+          'studyProgress.todayCards': todayCards,
+          'studyProgress.streak': stats.streak || 0,
+          'studyProgress.dailyGoal': dailyGoal,
+          'studyProgress.todayNew': stats.todayNew || 0,
+          'studyProgress.weekTime': this.formatStudyTime(stats.weekTime || 0),
+          'studyProgress.weekTrend': stats.weekTrend || 0,
+          'studyProgress.toReview': stats.toReview || 0,
+          'studyProgress.totalCards': stats.totalCards || 0,
+          goalPercent: goalPercent
         });
       }
     } catch (error) {

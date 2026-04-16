@@ -28,27 +28,35 @@ Page({
   _lastLevelChangeTime: 0,
   _lastSortTime: 0,
   _isDragging: false,
+  _isLoading: false,
 
   onLoad() {
-    this.loadMyLibraries();
+    this.loadMyLibraries(true);
   },
 
   onShow() {
-    this.loadMyLibraries();
+    if (!this._isLoading) {
+      this.loadMyLibraries(false);
+    }
     
     if (this.data.showOutlinePopup && this.data.currentLibrary) {
       this.loadCards(this.data.currentLibrary.id);
     }
   },
 
-  async loadMyLibraries() {
+  async loadMyLibraries(showLoading = false) {
     const token = wx.getStorageSync('access_token');
     if (!token) {
       this.setData({ myLibraries: [] });
       return;
     }
 
-    this.setData({ loading: true });
+    if (this._isLoading) return;
+    this._isLoading = true;
+
+    if (showLoading) {
+      this.setData({ loading: true });
+    }
 
     try {
       const res = await libraryAPI.getMyLibraries();
@@ -70,7 +78,10 @@ Page({
         icon: 'none'
       });
     } finally {
-      this.setData({ loading: false });
+      this._isLoading = false;
+      if (showLoading) {
+        this.setData({ loading: false });
+      }
     }
   },
 

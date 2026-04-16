@@ -7,16 +7,25 @@ Page({
     type: 'card'
   },
 
+  _isLoading: false,
+
   onLoad() {
-    this.loadFavorites();
+    this.loadFavorites(true);
   },
 
   onShow() {
-    this.loadFavorites();
+    if (!this._isLoading) {
+      this.loadFavorites(false);
+    }
   },
 
-  async loadFavorites() {
-    this.setData({ loading: true });
+  async loadFavorites(showLoading = false) {
+    if (this._isLoading) return;
+    this._isLoading = true;
+
+    if (showLoading) {
+      this.setData({ loading: true });
+    }
 
     try {
       const res = await favoriteAPI.getList({ type: this.data.type, page: 1, pageSize: 100 });
@@ -34,7 +43,10 @@ Page({
       console.error('加载收藏失败:', error);
       wx.showToast({ title: error.message || '加载失败', icon: 'none' });
     } finally {
-      this.setData({ loading: false });
+      this._isLoading = false;
+      if (showLoading) {
+        this.setData({ loading: false });
+      }
     }
   },
 

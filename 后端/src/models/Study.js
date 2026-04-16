@@ -85,13 +85,57 @@ class StudyModel {
             [userId]
         );
 
+        const todayTotal = todayCards[0].count || 0;
+
+        const [todayNew] = await db.execute(
+            `SELECT COUNT(DISTINCT sr.card_id) as count FROM study_records sr
+             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE()
+             AND sr.card_id NOT IN (
+                 SELECT DISTINCT card_id FROM study_records 
+                 WHERE user_id = ? AND DATE(created_at) < CURDATE()
+             )`,
+            [userId, userId]
+        );
+
+        const [weekTime] = await db.execute(
+            `SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records 
+             WHERE user_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
+            [userId]
+        );
+
+        const [lastWeekTime] = await db.execute(
+            `SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records 
+             WHERE user_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) 
+             AND study_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
+            [userId]
+        );
+
+        const currentWeekSeconds = weekTime[0]?.total || 0;
+        const lastWeekSeconds = lastWeekTime[0]?.total || 0;
+        let weekTrend = 0;
+        if (lastWeekSeconds > 0) {
+            weekTrend = Math.round(((currentWeekSeconds - lastWeekSeconds) / lastWeekSeconds) * 100);
+        }
+
+        const [toReview] = await db.execute(
+            `SELECT COUNT(DISTINCT sr.card_id) as count FROM study_records sr
+             WHERE sr.user_id = ? AND sr.feedback IN ('hard', 'normal')
+             AND DATE(sr.created_at) <= DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
+            [userId]
+        );
+
         return {
             totalCards: totalCards[0].count,
-            todayCards: todayCards[0].count,
+            todayCards: todayTotal,
             streak: stats[0]?.current_streak || 0,
             totalTime: stats[0]?.total_study_time || 0,
             libraryCount: libraries[0].count,
-            progress: 0
+            progress: 0,
+            dailyGoal: 50,
+            todayNew: todayNew[0]?.count || 0,
+            weekTime: currentWeekSeconds,
+            weekTrend: weekTrend,
+            toReview: toReview[0]?.count || 0
         };
     }
 
@@ -182,6 +226,70 @@ class StudyModel {
             [userId, year || new Date().getFullYear()]
         );
         return rows;
+    }
+
+    static async recordStudyTime(userId, libraryId, duration) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const [existing] = await db.execute(
+            'SELECT * FROM study_time_records WHERE user_id = ? AND study_date = ?',
+            [userId, today]
+        );
+
+        if (existing.length === 0) {
+            const [result] = await db.execute(
+                `INSERT INTO study_time_records (user_id, library_id, duration, study_date) 
+                 VALUES (?, ?, ?, ?)`,
+                [userId, libraryId, duration, today]
+            );
+            return { inserted: true, duration };
+        } else {
+            const newDuration = existing[0].duration + duration;
+            await db.execute(
+                'UPDATE study_time_records SET duration = ? WHERE user_id = ? AND study_date = ?',
+                [newDuration, userId, today]
+            );
+            return { inserted: false, duration: newDuration };
+        }
+    }
+
+    static async getTodayStudyTime(userId) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const [rows] = await db.execute(
+            'SELECT duration FROM study_time_records WHERE user_id = ? AND study_date = ?',
+            [userId, today]
+        );
+
+        return {
+            todayStudyTime: rows[0]?.duration || 0
+        };
+    }
+
+    static async getStudyTimeStats(userId) {
+        const today = new Date().toISOString().split('T')[0];
+        
+        const [todayTime] = await db.execute(
+            'SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records WHERE user_id = ? AND study_date = ?',
+            [userId, today]
+        );
+
+        const [totalTime] = await db.execute(
+            'SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records WHERE user_id = ?',
+            [userId]
+        );
+
+        const [weeklyTime] = await db.execute(
+            `SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records 
+             WHERE user_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
+            [userId]
+        );
+
+        return {
+            todayStudyTime: todayTime[0]?.total || 0,
+            totalStudyTime: totalTime[0]?.total || 0,
+            weeklyStudyTime: weeklyTime[0]?.total || 0
+        };
     }
 }
 

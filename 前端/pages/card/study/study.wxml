@@ -118,7 +118,24 @@
 </view>
 
 <!-- 模块四：卡片切换学习导航 -->
-<view class="study-nav-bar" wx:if="{{!loading && currentCard}}">
+<!-- 学习模式（开始学习） -->
+<view class="study-nav-bar study-mode" wx:if="{{!loading && currentCard && mode === 'study'}}">
+  <view class="study-mode-left">
+    <view class="nav-btn-prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
+      <t-icon name="chevron-left" size="36rpx" color="{{currentIndex <= 0 ? '#ccc' : '#666'}}" />
+      <text class="prev-text">上一张</text>
+    </view>
+    <text class="progress-text-nav">{{currentIndex + 1}} / {{totalCards}}</text>
+  </view>
+  
+  <view class="master-btn {{answerRevealed ? 'active' : ''}}" bindtap="onToggleLearned">
+    <t-icon name="check" size="44rpx" color="#fff" />
+    <text class="master-text">{{currentIndex >= totalCards - 1 ? '完成学习' : '已掌握，下一张'}}</text>
+  </view>
+</view>
+
+<!-- 普通模式（随机抽题、直接点击卡片等） -->
+<view class="study-nav-bar" wx:if="{{!loading && currentCard && mode !== 'study'}}">
   <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
     <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#0052D9'}}" />
     <text class="nav-text">上一张</text>

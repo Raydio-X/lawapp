@@ -142,4 +142,70 @@ router.get('/heatmap', auth, async (req, res) => {
     }
 });
 
+router.post('/time', auth, async (req, res) => {
+    try {
+        const { libraryId, duration } = req.body;
+        
+        if (!duration || duration <= 0) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '学习时长无效'
+            });
+        }
+
+        const result = await StudyModel.recordStudyTime(req.user.id, libraryId || null, duration);
+
+        res.json({
+            success: true,
+            data: {
+                todayStudyTime: result.duration
+            }
+        });
+    } catch (error) {
+        console.error('Record study time error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '记录学习时间失败'
+        });
+    }
+});
+
+router.get('/time', auth, async (req, res) => {
+    try {
+        const stats = await StudyModel.getStudyTimeStats(req.user.id);
+
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        console.error('Get study time error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取学习时间失败'
+        });
+    }
+});
+
+router.get('/today-time', auth, async (req, res) => {
+    try {
+        const result = await StudyModel.getTodayStudyTime(req.user.id);
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Get today study time error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取今日学习时间失败'
+        });
+    }
+});
+
 module.exports = router;

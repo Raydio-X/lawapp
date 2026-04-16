@@ -38,32 +38,69 @@
     </view>
   </view>
 
-  <!-- 学习进度 -->
-  <view class="progress-section">
-    <view class="progress-header">
-      <text class="progress-title">今日学习</text>
-      <text class="progress-more" bindtap="onViewDetail">查看详情</text>
+  <!-- 今日学习 -->
+  <view class="today-section">
+    <view class="section-header">
+      <text class="section-title">今日学习</text>
+      <text class="section-more" bindtap="onViewDetail">查看详情</text>
     </view>
-    <view class="progress-content">
-      <view class="progress-ring">
-        <view class="progress-info">
-          <text class="progress-percent">{{studyProgress.percent}}%</text>
-          <text class="progress-text">完成度</text>
+    
+    <!-- 核心数据卡片 -->
+    <view class="core-stats">
+      <view class="core-stat-item">
+        <view class="core-stat-icon time-icon">
+          <t-icon name="time" size="40rpx" color="#0052D9" />
+        </view>
+        <view class="core-stat-content">
+          <text class="core-stat-value">{{studyProgress.totalTime}}</text>
+          <text class="core-stat-label">学习时长</text>
         </view>
       </view>
-      <view class="progress-stats">
-        <view class="progress-stat">
-          <text class="progress-value">{{studyProgress.todayCards}}</text>
-          <text class="progress-label">今日背诵</text>
+      <view class="core-stat-divider"></view>
+      <view class="core-stat-item">
+        <view class="core-stat-icon streak-icon">
+          <t-icon name="calendar" size="40rpx" color="#FF6B35" />
         </view>
-        <view class="progress-stat">
-          <text class="progress-value">{{studyProgress.streak}}</text>
-          <text class="progress-label">连续天数</text>
+        <view class="core-stat-content">
+          <text class="core-stat-value">{{studyProgress.streak}}天</text>
+          <text class="core-stat-label">连续打卡</text>
         </view>
-        <view class="progress-stat">
-          <text class="progress-value">{{studyProgress.totalTime}}</text>
-          <text class="progress-label">学习时长</text>
-        </view>
+      </view>
+    </view>
+
+    <!-- 今日目标 -->
+    <view class="goal-card">
+      <view class="goal-header">
+        <text class="goal-title">今日目标</text>
+        <text class="goal-progress">{{studyProgress.todayCards}}/{{studyProgress.dailyGoal}}张</text>
+      </view>
+      <view class="goal-bar">
+        <view class="goal-bar-fill" style="width: {{goalPercent}}%"></view>
+      </view>
+      <text class="goal-hint" wx:if="{{studyProgress.todayCards >= studyProgress.dailyGoal}}">🎉 今日目标已达成！</text>
+      <text class="goal-hint" wx:else>还差{{studyProgress.dailyGoal - studyProgress.todayCards}}张完成目标</text>
+    </view>
+
+    <!-- 学习数据网格 -->
+    <view class="stats-grid">
+      <view class="grid-item">
+        <text class="grid-value">{{studyProgress.todayNew}}</text>
+        <text class="grid-label">今日新学</text>
+      </view>
+      <view class="grid-item">
+        <text class="grid-value">{{studyProgress.weekTime}}</text>
+        <text class="grid-label">本周累计</text>
+        <view class="grid-trend up" wx:if="{{studyProgress.weekTrend > 0}}">↑{{studyProgress.weekTrend}}%</view>
+        <view class="grid-trend down" wx:elif="{{studyProgress.weekTrend < 0}}">↓{{-studyProgress.weekTrend}}%</view>
+      </view>
+      <view class="grid-item">
+        <text class="grid-value">{{studyProgress.toReview}}</text>
+        <text class="grid-label">待复习</text>
+        <view class="grid-tag review" wx:if="{{studyProgress.toReview > 0}}">需复习</view>
+      </view>
+      <view class="grid-item">
+        <text class="grid-value">{{studyProgress.totalCards}}</text>
+        <text class="grid-label">累计背诵</text>
       </view>
     </view>
   </view>

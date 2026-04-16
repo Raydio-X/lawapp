@@ -450,7 +450,7 @@ Page({
     });
     
     wx.navigateTo({
-      url: `/pages/card/study/study?cardId=${unlearnedCards[0].id}&libraryId=${this.data.libraryInfo.id}&index=0`
+      url: `/pages/card/study/study?cardId=${unlearnedCards[0].id}&libraryId=${this.data.libraryInfo.id}&index=0&mode=study`
     });
   },
 

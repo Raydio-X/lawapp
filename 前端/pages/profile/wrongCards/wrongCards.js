@@ -11,16 +11,25 @@ Page({
     }
   },
 
+  _isLoading: false,
+
   onLoad() {
-    this.loadWrongCards();
+    this.loadWrongCards(true);
   },
 
   onShow() {
-    this.loadWrongCards();
+    if (!this._isLoading) {
+      this.loadWrongCards(false);
+    }
   },
 
-  async loadWrongCards() {
-    this.setData({ loading: true });
+  async loadWrongCards(showLoading = false) {
+    if (this._isLoading) return;
+    this._isLoading = true;
+
+    if (showLoading) {
+      this.setData({ loading: true });
+    }
 
     try {
       const [listRes, statsRes] = await Promise.all([
@@ -49,7 +58,10 @@ Page({
       console.error('加载错题失败:', error);
       wx.showToast({ title: error.message || '加载失败', icon: 'none' });
     } finally {
-      this.setData({ loading: false });
+      this._isLoading = false;
+      if (showLoading) {
+        this.setData({ loading: false });
+      }
     }
   },
 

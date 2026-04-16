@@ -102,8 +102,8 @@
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* 学习进度 */
-.progress-section {
+/* 今日学习 */
+.today-section {
   background-color: #fff;
   margin: 24rpx 32rpx;
   border-radius: 20rpx;
@@ -111,91 +111,195 @@
   box-shadow: 0 4rpx 24rpx rgba(0, 0, 0, 0.06);
 }
 
-.progress-header {
+.section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32rpx;
+  margin-bottom: 24rpx;
 }
 
-.progress-title {
-  font-size: 30rpx;
+.section-title {
+  font-size: 32rpx;
   font-weight: 600;
   color: #333;
 }
 
-.progress-more {
+.section-more {
   font-size: 26rpx;
   color: #0052D9;
 }
 
-.progress-content {
+/* 核心数据卡片 */
+.core-stats {
   display: flex;
-  align-items: center;
-  gap: 48rpx;
+  background: linear-gradient(135deg, #f8faff 0%, #f0f5ff 100%);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
 }
 
-.progress-ring {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 50%;
-  background: conic-gradient(#0052D9 0% 65%, #f0f0f0 65% 100%);
+.core-stat-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 30rpx;
+}
+
+.core-stat-icon {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 16rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.progress-ring::before {
-  content: '';
-  width: 130rpx;
-  height: 130rpx;
-  background-color: #fff;
-  border-radius: 50%;
-  position: absolute;
+.time-icon {
+  background: linear-gradient(135deg, #e8f0ff 0%, #d4e4ff 100%);
 }
 
-.progress-info {
-  position: relative;
-  z-index: 1;
+.streak-icon {
+  background: linear-gradient(135deg, #fff3e8 0%, #ffe4d4 100%);
+}
+
+.core-stat-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  gap: 4rpx;
 }
 
-.progress-percent {
+.core-stat-value {
   font-size: 36rpx;
   font-weight: 700;
-  color: #0052D9;
+  color: #333;
 }
 
-.progress-text {
-  font-size: 22rpx;
+.core-stat-label {
+  font-size: 24rpx;
   color: #999;
 }
 
-.progress-stats {
-  flex: 1;
-  display: flex;
-  justify-content: space-around;
+.core-stat-divider {
+  width: 2rpx;
+  height: 60rpx;
+  background-color: rgba(0, 0, 0, 0.08);
+  margin: 0 16rpx;
 }
 
-.progress-stat {
+/* 今日目标 */
+.goal-card {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+}
+
+.goal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.goal-title {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.goal-progress {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #0052D9;
+}
+
+.goal-bar {
+  height: 16rpx;
+  background-color: rgba(0, 82, 217, 0.15);
+  border-radius: 8rpx;
+  overflow: hidden;
+  margin-bottom: 12rpx;
+}
+
+.goal-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0052D9 0%, #336FE3 100%);
+  border-radius: 8rpx;
+  transition: width 0.3s ease;
+}
+
+.goal-hint {
+  font-size: 24rpx;
+  color: #666;
+}
+
+/* 学习数据网格 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16rpx;
+}
+
+.grid-item {
+  background-color: #f8f9fc;
+  border-radius: 16rpx;
+  padding: 24rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8rpx;
 }
 
-.progress-value {
-  font-size: 36rpx;
-  font-weight: 600;
+.grid-value {
+  font-size: 40rpx;
+  font-weight: 700;
   color: #333;
 }
 
-.progress-label {
+.grid-label {
   font-size: 24rpx;
   color: #999;
+}
+
+.grid-tag {
+  font-size: 20rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  margin-top: 4rpx;
+}
+
+.grid-tag.good {
+  background-color: #e8f7ed;
+  color: #00a870;
+}
+
+.grid-tag.normal {
+  background-color: #fff7e8;
+  color: #fa8c16;
+}
+
+.grid-tag.improve {
+  background-color: #ffebe8;
+  color: #e34d59;
+}
+
+.grid-tag.review {
+  background-color: #f0e8ff;
+  color: #7b61ff;
+}
+
+.grid-trend {
+  font-size: 22rpx;
+  font-weight: 500;
+  margin-top: 4rpx;
+}
+
+.grid-trend.up {
+  color: #00a870;
+}
+
+.grid-trend.down {
+  color: #e34d59;
 }
 
 /* 菜单区域 */

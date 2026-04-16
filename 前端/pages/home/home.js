@@ -10,22 +10,31 @@ Page({
     loading: false
   },
 
+  isLoading: false,
+
   onLoad() {
-    this.loadData();
+    this.loadData(true);
   },
 
   onShow() {
-    this.loadData();
+    if (!this.isLoading) {
+      this.loadData(false);
+    }
   },
 
   onPullDownRefresh() {
-    this.loadData(() => {
+    this.loadData(false, () => {
       wx.stopPullDownRefresh();
     });
   },
 
-  async loadData(callback) {
-    this.setData({ loading: true });
+  async loadData(showLoading = false, callback) {
+    if (this.isLoading) return;
+    this.isLoading = true;
+
+    if (showLoading) {
+      this.setData({ loading: true });
+    }
 
     try {
       await Promise.all([
@@ -35,7 +44,10 @@ Page({
     } catch (error) {
       console.error('加载数据失败:', error);
     } finally {
-      this.setData({ loading: false });
+      this.isLoading = false;
+      if (showLoading) {
+        this.setData({ loading: false });
+      }
       if (callback) callback();
     }
   },
