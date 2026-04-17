@@ -411,35 +411,12 @@
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
   padding: 0 24rpx;
 }
 
-.learned-toggle {
-  display: flex;
-  align-items: center;
-  gap: 12rpx;
-  padding: 20rpx 40rpx;
-  border-radius: 40rpx;
-  background-color: #f5f6fa;
-  border: 2rpx solid #e8e8e8;
-  transition: all 0.2s ease;
-}
-
-.learned-toggle text {
-  font-size: 28rpx;
+.progress-text-nav {
+  font-size: 26rpx;
   color: #999;
-  font-weight: 600;
-}
-
-.learned-toggle.active {
-  background-color: rgba(0, 181, 120, 0.1);
-  border-color: #00B578;
-}
-
-.learned-toggle.active text {
-  color: #00B578;
-}
-
-.learned-toggle:active {
-  transform: scale(0.98);
+  font-weight: 500;
 }

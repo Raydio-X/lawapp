@@ -117,10 +117,7 @@
   </view>
   
   <view class="nav-center">
-    <view class="learned-toggle {{currentCard.learned ? 'active' : ''}}" bindtap="onToggleLearned">
-      <t-icon name="{{currentCard.learned ? 'check-rectangle-filled' : 'check-rectangle'}}" size="36rpx" color="{{currentCard.learned ? '#00B578' : '#999'}}" />
-      <text>{{currentCard.learned ? '已掌握' : '标记掌握'}}</text>
-    </view>
+    <text class="progress-text-nav">{{currentIndex + 1}} / {{totalCards}}</text>
   </view>
   
   <view class="nav-btn next {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">

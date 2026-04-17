@@ -43,10 +43,6 @@
             <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
             <text>{{item.likes}} 点赞</text>
           </view>
-          <view class="stat-item" wx:if="{{item.learned}}">
-            <t-icon name="check-circle" size="24rpx" color="#00B578" />
-            <text style="color: #00B578;">已掌握</text>
-          </view>
         </view>
         <view class="study-btn">
           <t-icon name="chevron-right" size="32rpx" color="#0052D9" />

@@ -13,14 +13,9 @@ Page({
     loading: true,
     libraryName: '',
     isFavorite: false,
-    studyStartTime: null,
-    todayStudyTime: 0,
-    currentSessionTime: 0,
     mode: ''
   },
 
-  studyTimer: null,
-  syncTimer: null,
   studiedCards: new Set(),
 
   onLoad(options) {
@@ -34,104 +29,15 @@ Page({
       });
     }
     
-    this.loadTodayStudyTime();
     this.loadCardData(cardId, parseInt(index) || 0);
   },
 
   onUnload() {
-    this.stopStudyTimer();
-    this.syncStudyTime();
     this.saveStudyProgress();
     this.notifyPrevPage();
   },
 
   onHide() {
-    this.stopStudyTimer();
-    this.syncStudyTime();
-  },
-
-  onShow() {
-    this.startStudyTimer();
-  },
-
-  startStudyTimer() {
-    if (this.studyTimer) {
-      clearInterval(this.studyTimer);
-      this.studyTimer = null;
-    }
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer);
-      this.syncTimer = null;
-    }
-
-    this.setData({ studyStartTime: Date.now() });
-    
-    this.studyTimer = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - this.data.studyStartTime) / 1000);
-      this.setData({ currentSessionTime: elapsed });
-    }, 1000);
-
-    this.syncTimer = setInterval(() => {
-      this.syncStudyTime();
-    }, 30000);
-  },
-
-  stopStudyTimer() {
-    if (this.studyTimer) {
-      clearInterval(this.studyTimer);
-      this.studyTimer = null;
-    }
-    if (this.syncTimer) {
-      clearInterval(this.syncTimer);
-      this.syncTimer = null;
-    }
-  },
-
-  async loadTodayStudyTime() {
-    const token = wx.getStorageSync('access_token');
-    if (!token) return;
-
-    try {
-      const res = await studyAPI.getTodayStudyTime();
-      if (res.success && res.data) {
-        this.setData({ todayStudyTime: res.data.todayStudyTime || 0 });
-      }
-    } catch (error) {
-      console.error('获取今日学习时间失败:', error);
-    }
-  },
-
-  async syncStudyTime() {
-    const token = wx.getStorageSync('access_token');
-    if (!token) return;
-
-    const { studyStartTime, libraryId } = this.data;
-    if (!studyStartTime) return;
-
-    const elapsed = Math.floor((Date.now() - studyStartTime) / 1000);
-    if (elapsed <= 0) return;
-
-    try {
-      const res = await studyAPI.recordStudyTime(
-        libraryId === 'hot_cards' ? null : libraryId, 
-        elapsed
-      );
-      
-      if (res.success && res.data) {
-        this.setData({ 
-          todayStudyTime: res.data.todayStudyTime,
-          studyStartTime: Date.now()
-        });
-      }
-    } catch (error) {
-      console.error('同步学习时间失败:', error);
-    }
-  },
-
-  formatStudyTime(seconds) {
-    if (!seconds || seconds < 0) seconds = 0;
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}分钟`;
   },
 
   notifyPrevPage() {
@@ -522,70 +428,6 @@ Page({
     this.loadComments(newCard.id);
     this.checkFavorite(newCard.id);
     this.saveStudyProgress();
-  },
-
-  async onToggleLearned() {
-    const token = wx.getStorageSync('access_token');
-    if (!token) {
-      wx.showToast({ title: '请先登录', icon: 'none' });
-      return;
-    }
-
-    const { currentCard, currentIndex, cardList, libraryId, answerRevealed, totalCards, mode } = this.data;
-
-    if (mode === 'study' && !answerRevealed) {
-      wx.showToast({ title: '请先查看答案', icon: 'none' });
-      return;
-    }
-    
-    try {
-      const res = await cardAPI.toggleMastery(currentCard.id);
-      
-      if (res.success) {
-        const isLearned = res.data.mastered;
-        
-        const updatedCard = {
-          ...currentCard,
-          learned: isLearned
-        };
-
-        const updatedCardList = [...cardList];
-        updatedCardList[currentIndex] = updatedCard;
-
-        this.setData({
-          currentCard: updatedCard,
-          cardList: updatedCardList
-        });
-
-        const masteryChanges = wx.getStorageSync('cardMasteryChanges') || {};
-        masteryChanges[currentCard.id] = isLearned;
-        wx.setStorageSync('cardMasteryChanges', masteryChanges);
-
-        if (mode === 'study') {
-          if (currentIndex >= totalCards - 1) {
-            wx.showToast({
-              title: '恭喜完成学习！',
-              icon: 'success'
-            });
-            setTimeout(() => {
-              wx.navigateBack();
-            }, 1500);
-          } else {
-            setTimeout(() => {
-              this.switchCard(currentIndex + 1);
-            }, 500);
-          }
-        } else {
-          wx.showToast({
-            title: isLearned ? '已标记掌握' : '已取消掌握',
-            icon: 'success'
-          });
-        }
-      }
-    } catch (error) {
-      console.error('设置掌握状态失败:', error);
-      wx.showToast({ title: error.message || '操作失败', icon: 'none' });
-    }
   },
 
   async onToggleFavorite() {

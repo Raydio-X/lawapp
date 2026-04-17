@@ -397,6 +397,16 @@ const cardAPI = {
   // 获取随机卡片
   getRandom: (libraryId) => {
     return get(`/libraries/${libraryId}/cards/random`);
+  },
+
+  // 获取待复习卡片列表
+  getReviewCards: () => {
+    return get('/cards/review/list');
+  },
+
+  // 获取待复习卡片数量
+  getReviewCount: () => {
+    return get('/cards/review/count');
   }
 };
 
@@ -544,12 +554,14 @@ const wrongCardAPI = {
  * 收藏相关 API
  */
 const favoriteAPI = {
-  // 获取收藏列表
   getList: (params = {}) => {
     return get('/favorites', params);
   },
 
-  // 添加收藏
+  getLibraries: (params = {}) => {
+    return get('/favorites/libraries', params);
+  },
+
   add: (targetType, targetId) => {
     return post('/favorites', { targetType, targetId });
   },

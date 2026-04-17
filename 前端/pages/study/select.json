@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "选择知识库",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-checkbox": "tdesign-miniprogram/checkbox/checkbox"
+  }
+}

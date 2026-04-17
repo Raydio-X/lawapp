@@ -62,12 +62,15 @@ class LibraryModel {
         const [rows] = await db.execute(
             `SELECT l.*, 
              (SELECT COUNT(*) FROM cards c WHERE c.library_id = l.id) as card_count,
+             (SELECT COUNT(*) FROM card_mastery cm 
+              JOIN cards c ON c.id = cm.card_id 
+              WHERE c.library_id = l.id AND cm.user_id = ? AND cm.mastered = 1) as learned_cards,
              (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id) as favorite_count
              FROM libraries l 
              WHERE l.created_by = ? 
              ORDER BY l.created_at DESC 
              LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
-            [userId]
+            [userId, userId]
         );
 
         const [countRows] = await db.execute(
@@ -76,7 +79,11 @@ class LibraryModel {
         );
 
         return {
-            list: rows,
+            list: rows.map(row => ({
+                ...row,
+                totalCards: row.card_count,
+                learnedCards: row.learned_cards
+            })),
             pagination: {
                 page: parseInt(page),
                 pageSize: parseInt(pageSize),

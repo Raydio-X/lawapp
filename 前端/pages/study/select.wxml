@@ -1,0 +1,75 @@
+<view class="container">
+  <!-- 提示信息 -->
+  <view class="tips-bar">
+    <t-icon name="info-circle" size="32rpx" color="#0052D9" />
+    <text class="tips-text">请选择要学习的知识库，可多选</text>
+  </view>
+
+  <!-- 知识库列表 -->
+  <view class="library-list">
+    <view 
+      class="library-item {{item.selected ? 'selected' : ''}}" 
+      wx:for="{{libraries}}" 
+      wx:key="id"
+      bindtap="onToggleSelect"
+      data-index="{{index}}"
+    >
+      <view class="library-checkbox">
+        <view class="checkbox-inner" wx:if="{{item.selected}}">
+          <t-icon name="check" size="28rpx" color="#fff" />
+        </view>
+      </view>
+      <view class="library-info">
+        <view class="library-header">
+          <text class="library-name">{{item.name}}</text>
+          <view class="source-tag {{item.source}}">
+            <text>{{item.source === 'my' ? '我的' : '收藏'}}</text>
+          </view>
+          <view class="library-badge" wx:if="{{item.unlearned > 0}}">
+            <text>{{item.unlearned}}张待学</text>
+          </view>
+        </view>
+        <view class="library-meta">
+          <text class="meta-item">{{item.totalCards}}张卡片</text>
+          <text class="meta-divider">|</text>
+          <text class="meta-item">已学{{item.learnedCards}}张</text>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-track">
+            <view class="progress-fill" style="width: {{item.progress}}%;"></view>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="empty-state" wx:if="{{libraries.length === 0 && !loading}}">
+    <t-icon name="folder-open" size="100rpx" color="#ddd" />
+    <text class="empty-text">还没有可学习的知识库</text>
+    <text class="empty-hint">请先创建或收藏知识库</text>
+  </view>
+
+  <!-- 底部占位 -->
+  <view class="bottom-placeholder"></view>
+</view>
+
+<!-- 底部操作栏 -->
+<view class="bottom-bar">
+  <view class="select-all" bindtap="onSelectAll">
+    <view class="checkbox-inner {{isAllSelected ? 'checked' : ''}}">
+      <t-icon name="check" size="24rpx" color="#fff" wx:if="{{isAllSelected}}" />
+    </view>
+    <text>全选</text>
+  </view>
+  <view class="action-buttons">
+    <view class="random-btn {{selectedCount > 0 ? 'active' : ''}}" bindtap="onRandomStudy">
+      <t-icon name="shuffle" size="32rpx" color="{{selectedCount > 0 ? '#fff' : '#999'}}" />
+      <text>随机抽题</text>
+    </view>
+    <view class="start-btn {{selectedCount > 0 ? 'active' : ''}}" bindtap="onStartStudy">
+      <text>开始学习</text>
+      <text class="selected-count" wx:if="{{selectedCount > 0}}">({{selectedCount}}个)</text>
+    </view>
+  </view>
+</view>

@@ -130,7 +130,7 @@
     <!-- 卡片列表 -->
     <view class="card-list-vertical">
       <view 
-        class="card-item-large {{card.learned ? 'learned' : ''}}"
+        class="card-item-large"
         wx:for="{{selectedChapter.cards}}" 
         wx:for-item="card"
         wx:for-index="cardIndex"
@@ -140,13 +140,6 @@
       >
         <view class="card-header">
           <view class="card-number-large">{{cardIndex + 1}}</view>
-          <view class="card-status-icon">
-            <t-icon 
-              name="{{card.learned ? 'check-circle-filled' : 'circle'}}" 
-              size="44rpx" 
-              color="{{card.learned ? '#00B578' : '#ddd'}}" 
-            />
-          </view>
         </view>
         <view class="card-content-large">
           <text class="card-title-large">{{card.title}}</text>
@@ -155,7 +148,7 @@
               wx:for="{{card.tags}}" 
               wx:for-item="tag" 
               wx:key="*this"
-              theme="{{card.learned ? 'success' : 'primary'}}" 
+              theme="primary" 
               variant="light"
               size="small"
             >{{tag}}</t-tag>
@@ -176,16 +169,4 @@
 
   <!-- 底部占位 -->
   <view class="bottom-placeholder"></view>
-</view>
-
-<!-- 底部固定操作栏 -->
-<view class="bottom-action-bar">
-  <view class="action-btn primary" bindtap="onStartStudy">
-    <t-icon name="play" size="32rpx" color="#fff" />
-    <text>开始学习</text>
-  </view>
-  <view class="action-btn secondary" bindtap="onRandomStudy">
-    <t-icon name="refresh" size="32rpx" color="#0052D9" />
-    <text>随机抽题</text>
-  </view>
 </view>

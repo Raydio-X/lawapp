@@ -534,4 +534,40 @@ router.post('/:id/mastery/toggle', auth, async (req, res) => {
     }
 });
 
+router.get('/review/list', auth, async (req, res) => {
+    try {
+        const cards = await MasteryModel.getReviewCards(req.user.id);
+
+        res.json({
+            success: true,
+            data: cards
+        });
+    } catch (error) {
+        console.error('Get review cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取复习卡片失败'
+        });
+    }
+});
+
+router.get('/review/count', auth, async (req, res) => {
+    try {
+        const count = await MasteryModel.getReviewCount(req.user.id);
+
+        res.json({
+            success: true,
+            data: { count }
+        });
+    } catch (error) {
+        console.error('Get review count error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取复习数量失败'
+        });
+    }
+});
+
 module.exports = router;

@@ -12,7 +12,7 @@
     <view class="card-header">
       <view class="card-meta">
         <text class="card-number">卡片 {{currentIndex + 1}} / {{totalCards}}</text>
-        <view class="card-tags">
+        <view class="card-tags" wx:if="{{currentCard.tags && currentCard.tags.length > 0}}">
           <t-tag wx:for="{{currentCard.tags}}" wx:key="*this" theme="primary" variant="light" size="small">{{item}}</t-tag>
         </view>
       </view>
@@ -46,7 +46,7 @@
         <text>参考答案</text>
       </view>
       <view class="answer-content">
-        <text class="answer-text">{{currentCard.answer}}</text>
+        <text class="answer-text">{{currentCard.answer || '暂无答案'}}</text>
       </view>
     </view>
   </view>
@@ -102,14 +102,6 @@
         <t-icon name="send" size="36rpx" color="{{commentText ? '#fff' : '#ccc'}}" />
       </view>
     </view>
-
-    <!-- 收藏按钮 -->
-    <view class="favorite-section">
-      <view class="favorite-btn-inline {{isFavorite ? 'active' : ''}}" bindtap="onToggleFavorite">
-        <t-icon name="{{isFavorite ? 'star-filled' : 'star'}}" size="36rpx" color="{{isFavorite ? '#FAAD14' : '#999'}}" />
-        <text>{{isFavorite ? '已收藏' : '收藏此卡片'}}</text>
-      </view>
-    </view>
   </view>
 
   <!-- 底部占位 -->
@@ -118,8 +110,7 @@
 </view>
 
 <!-- 模块四：卡片切换学习导航 -->
-<!-- 学习模式（开始学习） -->
-<view class="study-nav-bar study-mode" wx:if="{{!loading && currentCard && mode === 'study'}}">
+<view class="study-nav-bar study-mode" wx:if="{{!loading && currentCard}}">
   <view class="study-mode-left">
     <view class="nav-btn-prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
       <t-icon name="chevron-left" size="36rpx" color="{{currentIndex <= 0 ? '#ccc' : '#666'}}" />
@@ -128,25 +119,8 @@
     <text class="progress-text-nav">{{currentIndex + 1}} / {{totalCards}}</text>
   </view>
   
-  <view class="nav-btn-next-card {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
-    <text class="next-text">下一张</text>
-    <t-icon name="chevron-right" size="36rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#0052D9'}}" />
-  </view>
-</view>
-
-<!-- 普通模式（随机抽题、直接点击卡片等） -->
-<view class="study-nav-bar" wx:if="{{!loading && currentCard && mode !== 'study'}}">
-  <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
-    <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#0052D9'}}" />
-    <text class="nav-text">上一张</text>
-  </view>
-  
-  <view class="nav-center">
-    <text class="progress-text-nav">{{currentIndex + 1}} / {{totalCards}}</text>
-  </view>
-  
-  <view class="nav-btn next {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
-    <text class="nav-text">下一张</text>
-    <t-icon name="chevron-right" size="40rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#0052D9'}}" />
+  <view class="master-btn {{answerRevealed ? 'active' : ''}}" bindtap="onMarkLearned">
+    <t-icon name="check" size="44rpx" color="#fff" />
+    <text class="master-text">{{currentIndex >= totalCards - 1 ? '完成学习' : '已学习'}}</text>
   </view>
 </view>

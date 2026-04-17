@@ -1,8 +1,69 @@
 const express = require('express');
 const FavoriteModel = require('../models/Favorite');
+const db = require('../config/database');
 const { auth } = require('../middlewares/auth');
 
 const router = express.Router();
+
+router.get('/libraries', auth, async (req, res) => {
+    try {
+        const { page = 1, pageSize = 100 } = req.query;
+        const offset = (page - 1) * pageSize;
+
+        const [rows] = await db.execute(
+            `SELECT l.id, l.name, l.description, l.subject, l.created_at,
+                    (SELECT COUNT(*) FROM cards c WHERE c.library_id = l.id) as total_cards,
+                    (SELECT COUNT(*) FROM card_mastery cm 
+                     JOIN cards c ON c.id = cm.card_id 
+                     WHERE c.library_id = l.id AND cm.user_id = ? AND cm.mastered = 1) as learned_cards,
+                    (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id) as favorite_count,
+                    f.created_at as favorited_at
+             FROM favorites f
+             JOIN libraries l ON l.id = f.target_id
+             WHERE f.user_id = ? AND f.target_type = 'library'
+             ORDER BY f.created_at DESC
+             LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
+            [req.user.id, req.user.id]
+        );
+
+        const [countRows] = await db.execute(
+            'SELECT COUNT(*) as total FROM favorites WHERE user_id = ? AND target_type = ?',
+            [req.user.id, 'library']
+        );
+
+        const libraries = rows.map(row => ({
+            id: row.id,
+            name: row.name,
+            description: row.description,
+            subject: row.subject,
+            createdAt: row.created_at,
+            totalCards: row.total_cards,
+            learnedCards: row.learned_cards,
+            favoriteCount: row.favorite_count,
+            favoritedAt: row.favorited_at,
+            isFavorited: true
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                libraries,
+                pagination: {
+                    page: parseInt(page),
+                    pageSize: parseInt(pageSize),
+                    total: countRows[0].total
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get favorite libraries error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取收藏知识库失败'
+        });
+    }
+});
 
 router.get('/', auth, async (req, res) => {
     try {

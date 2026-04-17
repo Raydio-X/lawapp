@@ -3,6 +3,9 @@
     "pages/login/login",
     "pages/home/home",
     "pages/home/hotCards/hotCards",
+    "pages/study/index",
+    "pages/study/select",
+    "pages/study/cards/cards",
     "pages/create/create",
     "pages/create/cardForm/cardForm",
     "pages/create/libraryForm/libraryForm",
@@ -21,6 +24,10 @@
       {
         "pagePath":"pages/home/home",
         "text":"社区"
+      },
+      {
+        "pagePath":"pages/study/index",
+        "text":"学习"
       },
       {
         "pagePath":"pages/create/create",

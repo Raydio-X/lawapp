@@ -232,39 +232,9 @@ Page({
     // 加载新卡片的评论
     this.loadComments(newCard.id);
 
-    // 保存学习进度
     this.saveStudyProgress();
   },
 
-  // 标记掌握/取消掌握
-  onToggleLearned() {
-    const { currentCard, currentIndex, cardList } = this.data;
-    
-    // 更新当前卡片状态
-    const updatedCard = {
-      ...currentCard,
-      learned: !currentCard.learned
-    };
-
-    // 更新卡片列表
-    const updatedCardList = [...cardList];
-    updatedCardList[currentIndex] = updatedCard;
-
-    this.setData({
-      currentCard: updatedCard,
-      cardList: updatedCardList
-    });
-
-    wx.showToast({
-      title: updatedCard.learned ? '已标记掌握' : '已取消掌握',
-      icon: 'success'
-    });
-
-    // 保存到服务器
-    console.log('更新卡片学习状态:', updatedCard.id, updatedCard.learned);
-  },
-
-  // 保存学习进度
   saveStudyProgress() {
     const { libraryId, currentIndex, currentCard } = this.data;
     
