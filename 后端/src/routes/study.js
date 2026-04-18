@@ -142,6 +142,53 @@ router.get('/heatmap', auth, async (req, res) => {
     }
 });
 
+router.get('/monthly-stats', auth, async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        
+        const stats = await StudyModel.getMonthlyStats(
+            req.user.id,
+            parseInt(year) || new Date().getFullYear(),
+            parseInt(month) || new Date().getMonth() + 1
+        );
+
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        console.error('Get monthly stats error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取月度统计失败'
+        });
+    }
+});
+
+router.get('/monthly-avg-stats', auth, async (req, res) => {
+    try {
+        const { year, month } = req.query;
+
+        const stats = await StudyModel.getMonthlyAvgStats(
+            parseInt(year) || new Date().getFullYear(),
+            parseInt(month) || new Date().getMonth() + 1
+        );
+
+        res.json({
+            success: true,
+            data: stats
+        });
+    } catch (error) {
+        console.error('Get monthly avg stats error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取月度平均统计失败'
+        });
+    }
+});
+
 router.post('/time', auth, async (req, res) => {
     try {
         const { libraryId, duration } = req.body;

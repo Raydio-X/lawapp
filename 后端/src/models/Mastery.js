@@ -1,12 +1,14 @@
 const db = require('../config/database');
 
 class MasteryModel {
-    static REVIEW_INTERVALS = [1, 1, 1, 1, 1, 1];
+    static REVIEW_INTERVALS = [1, 2, 4, 7, 15, 30];
 
     static calculateNextReviewDate(reviewCount) {
         const today = new Date();
         const nextDate = new Date(today);
-        nextDate.setDate(nextDate.getDate() + 1);
+        const intervalIndex = Math.min(reviewCount, this.REVIEW_INTERVALS.length - 1);
+        const daysToAdd = this.REVIEW_INTERVALS[intervalIndex];
+        nextDate.setDate(nextDate.getDate() + daysToAdd);
         return nextDate.toISOString().split('T')[0];
     }
 
@@ -21,19 +23,22 @@ class MasteryModel {
             const today = new Date().toISOString().split('T')[0];
             
             if (newMastered === 1) {
-                const reviewCount = existing[0].review_count || 0;
+                const reviewCount = (existing[0].review_count || 0) + 1;
                 const nextReviewDate = this.calculateNextReviewDate(reviewCount);
                 
                 await db.execute(
                     `UPDATE card_mastery 
-                     SET mastered = ?, next_review_date = ?, last_review_date = ?, review_count = review_count + 1 
+                     SET mastered = ?, next_review_date = ?, last_review_date = ?, review_count = ? 
                      WHERE user_id = ? AND card_id = ?`,
-                    [newMastered, nextReviewDate, today, userId, cardId]
+                    [newMastered, nextReviewDate, today, reviewCount, userId, cardId]
                 );
             } else {
+                const nextReviewDate = this.calculateNextReviewDate(0);
                 await db.execute(
-                    'UPDATE card_mastery SET mastered = ? WHERE user_id = ? AND card_id = ?',
-                    [newMastered, userId, cardId]
+                    `UPDATE card_mastery 
+                     SET mastered = ?, next_review_date = ?, last_review_date = ?, review_count = 0 
+                     WHERE user_id = ? AND card_id = ?`,
+                    [newMastered, nextReviewDate, today, userId, cardId]
                 );
             }
             
@@ -43,7 +48,7 @@ class MasteryModel {
             };
         } else {
             const today = new Date().toISOString().split('T')[0];
-            const nextReviewDate = this.calculateNextReviewDate(0);
+            const nextReviewDate = this.calculateNextReviewDate(1);
             
             await db.execute(
                 `INSERT INTO card_mastery (user_id, card_id, library_id, mastered, review_count, next_review_date, last_review_date) 
@@ -67,39 +72,45 @@ class MasteryModel {
 
         if (existing.length > 0) {
             if (mastered) {
-                const reviewCount = existing[0].review_count || 0;
+                const reviewCount = (existing[0].review_count || 0) + 1;
                 const nextReviewDate = this.calculateNextReviewDate(reviewCount);
                 
                 await db.execute(
                     `UPDATE card_mastery 
-                     SET mastered = ?, next_review_date = ?, last_review_date = ?, review_count = review_count + 1 
+                     SET mastered = 1, next_review_date = ?, last_review_date = ?, review_count = ? 
                      WHERE user_id = ? AND card_id = ?`,
-                    [mastered ? 1 : 0, nextReviewDate, today, userId, cardId]
+                    [nextReviewDate, today, reviewCount, userId, cardId]
                 );
             } else {
+                const nextReviewDate = this.calculateNextReviewDate(0);
+                
                 await db.execute(
-                    'UPDATE card_mastery SET mastered = ? WHERE user_id = ? AND card_id = ?',
-                    [mastered ? 1 : 0, userId, cardId]
+                    `UPDATE card_mastery 
+                     SET mastered = 1, next_review_date = ?, last_review_date = ?, review_count = 0 
+                     WHERE user_id = ? AND card_id = ?`,
+                    [nextReviewDate, today, userId, cardId]
                 );
             }
         } else {
             if (mastered) {
-                const nextReviewDate = this.calculateNextReviewDate(0);
+                const nextReviewDate = this.calculateNextReviewDate(1);
                 await db.execute(
                     `INSERT INTO card_mastery (user_id, card_id, library_id, mastered, review_count, next_review_date, last_review_date) 
                      VALUES (?, ?, ?, 1, 1, ?, ?)`,
                     [userId, cardId, libraryId, nextReviewDate, today]
                 );
             } else {
+                const nextReviewDate = this.calculateNextReviewDate(0);
                 await db.execute(
-                    'INSERT INTO card_mastery (user_id, card_id, library_id, mastered) VALUES (?, ?, ?, ?)',
-                    [userId, cardId, libraryId, mastered ? 1 : 0]
+                    `INSERT INTO card_mastery (user_id, card_id, library_id, mastered, review_count, next_review_date, last_review_date) 
+                     VALUES (?, ?, ?, 1, 0, ?, ?)`,
+                    [userId, cardId, libraryId, nextReviewDate, today]
                 );
             }
         }
 
         return {
-            mastered: mastered,
+            mastered: true,
             cardId: cardId
         };
     }

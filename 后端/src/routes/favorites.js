@@ -20,15 +20,17 @@ router.get('/libraries', auth, async (req, res) => {
                     f.created_at as favorited_at
              FROM favorites f
              JOIN libraries l ON l.id = f.target_id
-             WHERE f.user_id = ? AND f.target_type = 'library'
+             WHERE f.user_id = ? AND f.target_type = 'library' AND l.created_by != ?
              ORDER BY f.created_at DESC
              LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
-            [req.user.id, req.user.id]
+            [req.user.id, req.user.id, req.user.id]
         );
 
         const [countRows] = await db.execute(
-            'SELECT COUNT(*) as total FROM favorites WHERE user_id = ? AND target_type = ?',
-            [req.user.id, 'library']
+            `SELECT COUNT(*) as total FROM favorites f
+             JOIN libraries l ON l.id = f.target_id
+             WHERE f.user_id = ? AND f.target_type = ? AND l.created_by != ?`,
+            [req.user.id, 'library', req.user.id]
         );
 
         const libraries = rows.map(row => ({

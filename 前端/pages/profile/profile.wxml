@@ -118,31 +118,12 @@
         <t-icon slot="left-icon" name="star" size="44rpx" color="#FFAD1F" />
         <view slot="note" class="custom-badge" wx:if="{{stats.favoriteCount > 0}}">{{stats.favoriteCount}}</view>
       </t-cell>
-      <t-cell 
-        title="错题本" 
-        hover 
-        arrow
-        bindtap="onMenuTap"
-        data-menu="wrong"
-      >
-        <t-icon slot="left-icon" name="error-circle" size="44rpx" color="#E34D59" />
-        <view slot="note" class="custom-badge wrong" wx:if="{{stats.wrongCount > 0}}">{{stats.wrongCount}}</view>
-      </t-cell>
     </t-cell-group>
   </view>
 
   <!-- 其他功能 -->
   <view class="menu-section">
     <t-cell-group>
-      <t-cell 
-        title="学习统计" 
-        hover 
-        arrow
-        bindtap="onMenuTap"
-        data-menu="statistics"
-      >
-        <t-icon slot="left-icon" name="chart" size="44rpx" color="#7B61FF" />
-      </t-cell>
       <t-cell 
         title="学习计划" 
         hover 

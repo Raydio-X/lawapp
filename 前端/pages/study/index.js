@@ -1,15 +1,11 @@
-const { libraryAPI, studyAPI, wrongCardAPI, favoriteAPI, cardAPI } = require('../../utils/api');
+const { libraryAPI, studyAPI, favoriteAPI, cardAPI } = require('../../utils/api');
 
 Page({
   data: {
     greeting: '',
-    todayStudyTime: '0分钟',
-    todayNewCards: 0,
-    todayReview: 0,
     streak: 0,
     unlearnedCount: 0,
     reviewCount: 0,
-    wrongCount: 0,
     favoriteCount: 0,
     libraries: [],
     loading: true
@@ -55,7 +51,6 @@ Page({
       await Promise.all([
         this.loadStats(),
         this.loadLibraries(),
-        this.loadWrongCards(),
         this.loadFavorites()
       ]);
     } catch (error) {
@@ -67,30 +62,15 @@ Page({
 
   async loadStats() {
     try {
-      const [statsRes, todayTimeRes, reviewCountRes] = await Promise.all([
+      const [statsRes, reviewCountRes] = await Promise.all([
         studyAPI.getStats(),
-        studyAPI.getTodayStudyTime(),
         cardAPI.getReviewCount()
       ]);
 
       if (statsRes.success) {
         const stats = statsRes.data;
-        const todayCards = stats.todayCards || 0;
-        const todayNew = stats.todayNew || 0;
-        const todayReviewCount = Math.max(0, todayCards - todayNew);
-        
         this.setData({
-          todayNewCards: todayNew,
-          todayReview: todayReviewCount,
           streak: stats.streak || 0
-        });
-      }
-
-      if (todayTimeRes.success && todayTimeRes.data) {
-        const seconds = todayTimeRes.data.todayStudyTime || 0;
-        const minutes = Math.floor(seconds / 60);
-        this.setData({
-          todayStudyTime: minutes > 0 ? `${minutes}分钟` : '0分钟'
         });
       }
 
@@ -138,18 +118,6 @@ Page({
       this.setData({ unlearnedCount: totalUnlearned });
     } catch (error) {
       console.error('加载知识库失败:', error);
-    }
-  },
-
-  async loadWrongCards() {
-    try {
-      const res = await wrongCardAPI.getList();
-      if (res.success) {
-        const wrongCards = res.data || [];
-        this.setData({ wrongCount: wrongCards.length });
-      }
-    } catch (error) {
-      console.error('加载错题失败:', error);
     }
   },
 
@@ -225,15 +193,8 @@ Page({
   },
 
   onSmartExam() {
-    wx.showToast({
-      title: '功能开发中，敬请期待',
-      icon: 'none'
-    });
-  },
-
-  onWrongCards() {
     wx.navigateTo({
-      url: '/pages/profile/wrongCards/wrongCards'
+      url: '/pages/study/exam/setup'
     });
   },
 

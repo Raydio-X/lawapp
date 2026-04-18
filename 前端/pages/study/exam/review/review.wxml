@@ -1,0 +1,34 @@
+<view class="container" style="--status-bar-height: {{statusBarHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <view class="nav-title">考试解析</view>
+    </view>
+  </view>
+
+  <view class="question-list">
+    <view class="question-item" wx:for="{{questions}}" wx:key="id">
+      <view class="question-header">
+        <view class="question-number">第{{index + 1}}题</view>
+      </view>
+      
+      <view class="question-content">
+        <text>{{item.question}}</text>
+      </view>
+
+      <view class="answer-section">
+        <view class="answer-row">
+          <text class="answer-label">参考答案：</text>
+          <text class="answer-text">{{item.answer}}</text>
+        </view>
+        <view class="answer-row">
+          <text class="answer-label">你的作答：</text>
+          <text class="answer-text user-answer">{{userAnswers[index] || '未作答'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="footer-bar">
+    <button class="back-btn" bindtap="onBack">返回</button>
+  </view>
+</view>

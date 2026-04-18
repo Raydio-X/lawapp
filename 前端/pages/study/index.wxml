@@ -11,41 +11,23 @@
     </view>
   </view>
 
-  <!-- 今日学习统计 -->
-  <view class="stats-card">
-    <view class="stats-row">
-      <view class="stat-item">
-        <text class="stat-value">{{todayStudyTime}}</text>
-        <text class="stat-label">学习时长</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value">{{todayNewCards}}</text>
-        <text class="stat-label">今日新学</text>
-      </view>
-      <view class="stat-divider"></view>
-      <view class="stat-item">
-        <text class="stat-value">{{todayReview}}</text>
-        <text class="stat-label">今日复习</text>
-      </view>
-    </view>
-  </view>
-
   <!-- 主要学习入口 -->
   <view class="main-actions">
     <view class="action-card primary" bindtap="onStartStudy">
       <view class="action-bg"></view>
       <view class="action-content">
-        <view class="action-header">
+        <view class="action-main">
+          <view class="action-text-wrap">
+            <text class="action-title">开始学习</text>
+            <text class="action-desc">学习未掌握的卡片</text>
+          </view>
           <view class="action-icon-wrap">
             <t-icon name="play-circle" size="48rpx" color="#fff" />
           </view>
-          <view class="action-badge" wx:if="{{unlearnedCount > 0}}">
-            <text>{{unlearnedCount}}张待学</text>
-          </view>
         </view>
-        <text class="action-title">开始学习</text>
-        <text class="action-desc">学习未掌握的卡片</text>
+        <view class="action-badge" wx:if="{{unlearnedCount > 0}}">
+          <text>{{unlearnedCount}}张待学</text>
+        </view>
       </view>
     </view>
 
@@ -54,8 +36,8 @@
         <view class="action-icon-wrap">
           <t-icon name="file-add" size="40rpx" color="#7C3AED" />
         </view>
-        <text class="action-title">智能组卷</text>
-        <text class="action-desc">AI智能推荐</text>
+        <text class="action-title">模拟组卷</text>
+        <text class="action-desc">自定义模拟考试</text>
       </view>
 
       <view class="action-card small review" bindtap="onReview">
@@ -70,17 +52,6 @@
 
   <!-- 功能模块 -->
   <view class="module-section">
-    <view class="module-card" bindtap="onWrongCards">
-      <view class="module-icon wrong-icon">
-        <t-icon name="close-circle" size="44rpx" color="#E34D59" />
-      </view>
-      <view class="module-info">
-        <text class="module-title">错题本</text>
-        <text class="module-desc">{{wrongCount}}道错题待巩固</text>
-      </view>
-      <t-icon name="chevron-right" size="36rpx" color="#ccc" />
-    </view>
-
     <view class="module-card" bindtap="onFavorites">
       <view class="module-icon fav-icon">
         <t-icon name="star" size="44rpx" color="#FFB800" />
@@ -105,7 +76,7 @@
   </view>
 
   <!-- 学习提示 -->
-  <view class="tips-section" wx:if="{{unlearnedCount === 0 && wrongCount === 0}}">
+  <view class="tips-section" wx:if="{{unlearnedCount === 0}}">
     <view class="tips-card">
       <t-icon name="check-circle" size="40rpx" color="#00B578" />
       <text class="tips-text">太棒了！所有卡片都已掌握</text>

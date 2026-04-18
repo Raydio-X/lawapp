@@ -1,0 +1,13 @@
+<view class="radar-chart">
+  <canvas type="2d" id="radarCanvas" class="radar-canvas"></canvas>
+  <view class="radar-legend">
+    <view class="legend-item">
+      <view class="legend-line user-line"></view>
+      <text class="legend-text">我的数据</text>
+    </view>
+    <view class="legend-item">
+      <view class="legend-line avg-line"></view>
+      <text class="legend-text">平均数据</text>
+    </view>
+  </view>
+</view>

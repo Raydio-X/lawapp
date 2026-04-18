@@ -91,7 +91,7 @@
 .action-card.primary {
   background: linear-gradient(135deg, #0052D9 0%, #3366FF 100%);
   border-radius: 20rpx;
-  padding: 28rpx;
+  padding: 40rpx 36rpx;
   margin-bottom: 16rpx;
   position: relative;
   overflow: hidden;
@@ -113,18 +113,23 @@
   z-index: 1;
 }
 
-.action-header {
+.action-main {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16rpx;
+  align-items: center;
+}
+
+.action-text-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
 }
 
 .action-icon-wrap {
-  width: 80rpx;
-  height: 80rpx;
+  width: 88rpx;
+  height: 88rpx;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 20rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -132,33 +137,29 @@
 
 .action-badge {
   background: rgba(255, 255, 255, 0.25);
-  padding: 4rpx 14rpx;
-  border-radius: 20rpx;
-  display: flex;
+  padding: 8rpx 20rpx;
+  border-radius: 24rpx;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 40rpx;
-  line-height: 1;
+  margin-top: 20rpx;
 }
 
 .action-badge text {
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 500;
   color: #fff;
-  line-height: 1;
 }
 
 .action-card.primary .action-title {
   font-size: 36rpx;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
-  display: block;
-  margin-bottom: 6rpx;
 }
 
 .action-card.primary .action-desc {
   font-size: 24rpx;
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.8);
 }
 
 /* 小卡片行 */

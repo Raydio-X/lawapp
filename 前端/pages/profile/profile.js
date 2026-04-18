@@ -1,4 +1,4 @@
-const { authAPI, studyAPI, libraryAPI, favoriteAPI, wrongCardAPI } = require('../../utils/api');
+const { authAPI, studyAPI, libraryAPI, favoriteAPI } = require('../../utils/api');
 
 Page({
   data: {
@@ -10,8 +10,7 @@ Page({
     stats: {
       libraryCount: 0,
       cardCount: 0,
-      favoriteCount: 0,
-      wrongCount: 0
+      favoriteCount: 0
     },
     studyProgress: {
       percent: 0,
@@ -130,8 +129,7 @@ Page({
       stats: {
         libraryCount: 0,
         cardCount: 0,
-        favoriteCount: 0,
-        wrongCount: 0
+        favoriteCount: 0
       },
       studyProgress: {
         percent: 0,
@@ -182,16 +180,14 @@ Page({
     });
 
     try {
-      const [libRes, favRes, wrongRes] = await Promise.all([
+      const [libRes, favRes] = await Promise.all([
         libraryAPI.getMyLibraries(),
-        favoriteAPI.getList({ page: 1, pageSize: 1 }),
-        wrongCardAPI.getList({ page: 1, pageSize: 1 })
+        favoriteAPI.getList({ page: 1, pageSize: 1 })
       ]);
 
       let libraryCount = 0;
       let cardCount = 0;
       let favoriteCount = 0;
-      let wrongCount = 0;
 
       if (libRes.success && libRes.data) {
         const libData = libRes.data.list || libRes.data || [];
@@ -204,16 +200,11 @@ Page({
         wx.setStorageSync('favoriteCount', favoriteCount);
       }
 
-      if (wrongRes.success && wrongRes.data) {
-        wrongCount = wrongRes.data.pagination?.total || wrongRes.data.total || 0;
-      }
-
       this.setData({
         stats: {
           libraryCount,
           cardCount,
-          favoriteCount,
-          wrongCount
+          favoriteCount
         }
       });
     } catch (error) {
@@ -362,10 +353,7 @@ Page({
   },
 
   onViewDetail() {
-    wx.showToast({
-      title: '查看学习详情',
-      icon: 'none'
-    });
+    wx.navigateTo({ url: '/pages/profile/study-stats/study-stats' });
   },
 
   onMenuTap(e) {
@@ -377,12 +365,6 @@ Page({
         break;
       case 'favorite':
         wx.navigateTo({ url: '/pages/profile/favorites/favorites' });
-        break;
-      case 'wrong':
-        wx.navigateTo({ url: '/pages/profile/wrongCards/wrongCards' });
-        break;
-      case 'statistics':
-        wx.navigateTo({ url: '/pages/profile/statistics/statistics' });
         break;
       default:
         wx.showToast({

@@ -482,6 +482,14 @@ const studyAPI = {
     return get('/study/heatmap', { year });
   },
 
+  getMonthlyStats: (year, month) => {
+    return get('/study/monthly-stats', { year, month });
+  },
+
+  getMonthlyAvgStats: (year, month) => {
+    return get('/study/monthly-avg-stats', { year, month });
+  },
+
   recordStudyTime: (libraryId, duration, options = {}) => {
     return post('/study/time', { libraryId, duration }, { showLoading: false, ...options });
   },
@@ -521,36 +529,6 @@ const commentAPI = {
 };
 
 /**
- * 错题本相关 API
- */
-const wrongCardAPI = {
-  // 获取错题列表
-  getList: (params = {}) => {
-    return get('/wrong-cards', params);
-  },
-
-  // 获取错题统计
-  getStats: () => {
-    return get('/wrong-cards/stats');
-  },
-
-  // 标记为已掌握
-  markAsMastered: (cardId) => {
-    return post(`/wrong-cards/${cardId}/master`);
-  },
-
-  // 标记为未掌握
-  markAsUnmastered: (cardId) => {
-    return post(`/wrong-cards/${cardId}/unmaster`);
-  },
-
-  // 删除错题
-  delete: (cardId) => {
-    return del(`/wrong-cards/${cardId}`);
-  }
-};
-
-/**
  * 收藏相关 API
  */
 const favoriteAPI = {
@@ -566,42 +544,46 @@ const favoriteAPI = {
     return post('/favorites', { targetType, targetId });
   },
 
-  // 取消收藏
   remove: (targetType, targetId) => {
     return del('/favorites', { targetType, targetId });
   },
 
-  // 检查是否已收藏
   check: (targetType, targetId) => {
     return get('/favorites/check', { targetType, targetId });
   },
 
-  // 切换收藏状态
   toggle: (targetType, targetId) => {
     return post('/favorites/toggle', { targetType, targetId });
   }
 };
 
-// 导出模块
+/**
+ * 考试相关 API
+ */
+const examAPI = {
+  generate: (params = {}) => {
+    return post('/exam/generate', params);
+  },
+
+  submit: (data = {}) => {
+    return post('/exam/submit', data);
+  }
+};
+
 module.exports = {
-  // 基础请求方法
   request,
   get,
   post,
   put,
   del,
   upload,
-
-  // 工具函数
   isLoggedIn,
-
-  // API 模块
   authAPI,
   libraryAPI,
   cardAPI,
   chapterAPI,
   studyAPI,
   commentAPI,
-  wrongCardAPI,
-  favoriteAPI
+  favoriteAPI,
+  examAPI
 };

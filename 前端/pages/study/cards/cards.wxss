@@ -3,8 +3,55 @@
   min-height: 100vh;
   background-color: #f5f6fa;
   padding: 24rpx;
+  padding-top: calc(var(--status-bar-height, 20px) + 44px + 24rpx);
   padding-bottom: calc(180rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(180rpx + env(safe-area-inset-bottom));
+}
+
+/* 自定义导航栏 */
+.custom-nav {
+  background: #fff;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.04);
+}
+
+.nav-content {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16rpx;
+}
+
+.nav-left {
+  width: 80rpx;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64rpx;
+  height: 64rpx;
+  border-radius: 50%;
+}
+
+.back-btn:active {
+  background: #f5f6fa;
+}
+
+.nav-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.nav-right {
+  width: 80rpx;
 }
 
 /* 模块一：题目展示区 */
@@ -423,35 +470,64 @@
   font-weight: 500;
 }
 
-.master-btn {
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 32rpx;
+  width: 100%;
+  opacity: 0.4;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.action-buttons.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.forgot-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10rpx;
-  width: 80%;
-  padding: 20rpx 0;
-  border-radius: 40rpx;
-  background: linear-gradient(135deg, #ccc 0%, #aaa 100%);
-  box-shadow: 0 6rpx 20rpx rgba(0, 0, 0, 0.12);
+  min-width: 180rpx;
+  height: 88rpx;
+  padding: 0 48rpx;
+  border-radius: 44rpx;
+  background: linear-gradient(135deg, #E34D59 0%, #F3696B 100%);
+  box-shadow: 0 6rpx 20rpx rgba(227, 77, 89, 0.25);
   transition: all 0.3s ease;
-  margin: 0 auto;
 }
 
-.master-btn.active {
+.forgot-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 12rpx rgba(227, 77, 89, 0.2);
+}
+
+.mastered-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 180rpx;
+  height: 88rpx;
+  padding: 0 48rpx;
+  border-radius: 44rpx;
   background: linear-gradient(135deg, #00B578 0%, #00C853 100%);
   box-shadow: 0 6rpx 24rpx rgba(0, 181, 120, 0.35);
+  transition: all 0.3s ease;
 }
 
-.master-btn.active:active {
-  transform: scale(0.98);
+.mastered-btn:active {
+  transform: scale(0.96);
   box-shadow: 0 4rpx 12rpx rgba(0, 181, 120, 0.3);
 }
 
-.master-text {
-  font-size: 28rpx;
+.btn-text {
+  font-size: 30rpx;
   color: #fff;
   font-weight: 600;
-  letter-spacing: 1rpx;
+  letter-spacing: 2rpx;
+  line-height: 1;
+  text-align: center;
 }
 
 /* 加载状态 */

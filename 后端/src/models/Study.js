@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const MasteryModel = require('./Mastery');
 
 class StudyModel {
     static async recordStudy(userId, cardId, libraryId, feedback = 'normal', duration = 0) {
@@ -117,12 +118,7 @@ class StudyModel {
             weekTrend = Math.round(((currentWeekSeconds - lastWeekSeconds) / lastWeekSeconds) * 100);
         }
 
-        const [toReview] = await db.execute(
-            `SELECT COUNT(DISTINCT sr.card_id) as count FROM study_records sr
-             WHERE sr.user_id = ? AND sr.feedback IN ('hard', 'normal')
-             AND DATE(sr.created_at) <= DATE_SUB(CURDATE(), INTERVAL 1 DAY)`,
-            [userId]
-        );
+        const toReviewCount = await MasteryModel.getReviewCount(userId);
 
         return {
             totalCards: totalCards[0].count,
@@ -135,7 +131,7 @@ class StudyModel {
             todayNew: todayNew[0]?.count || 0,
             weekTime: currentWeekSeconds,
             weekTrend: weekTrend,
-            toReview: toReview[0]?.count || 0
+            toReview: toReviewCount
         };
     }
 
@@ -228,6 +224,49 @@ class StudyModel {
         return rows;
     }
 
+    static async getMonthlyStats(userId, year, month) {
+        const [timeRows] = await db.execute(
+            `SELECT study_date as date, duration
+             FROM study_time_records
+             WHERE user_id = ? AND YEAR(study_date) = ? AND MONTH(study_date) = ?
+             AND study_date < CURDATE()`,
+            [userId, year, month]
+        );
+
+        const [cardRows] = await db.execute(
+            `SELECT DATE(created_at) as date, COUNT(DISTINCT card_id) as count
+             FROM study_records
+             WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?
+             AND DATE(created_at) < CURDATE()
+             GROUP BY DATE(created_at)`,
+            [userId, year, month]
+        );
+
+        const stats = {};
+        
+        timeRows.forEach(row => {
+            const dateStr = row.date.toISOString().split('T')[0];
+            stats[dateStr] = {
+                duration: row.duration || 0,
+                cards: 0
+            };
+        });
+
+        cardRows.forEach(row => {
+            const dateStr = row.date.toISOString().split('T')[0];
+            if (stats[dateStr]) {
+                stats[dateStr].cards = row.count || 0;
+            } else {
+                stats[dateStr] = {
+                    duration: 0,
+                    cards: row.count || 0
+                };
+            }
+        });
+
+        return stats;
+    }
+
     static async recordStudyTime(userId, libraryId, duration) {
         const today = new Date().toISOString().split('T')[0];
         
@@ -289,6 +328,50 @@ class StudyModel {
             todayStudyTime: todayTime[0]?.total || 0,
             totalStudyTime: totalTime[0]?.total || 0,
             weeklyStudyTime: weeklyTime[0]?.total || 0
+        };
+    }
+
+    static async getMonthlyAvgStats(year, month) {
+        const [timeRows] = await db.execute(
+            `SELECT 
+                AVG(study_days) as avg_study_days,
+                AVG(total_time) as avg_total_time,
+                AVG(avg_daily_time) as avg_daily_time,
+                AVG(max_daily_time) as avg_max_daily_time
+            FROM (
+                SELECT 
+                    COUNT(*) as study_days,
+                    SUM(duration) as total_time,
+                    AVG(duration) as avg_daily_time,
+                    MAX(duration) as max_daily_time
+                FROM study_time_records
+                WHERE YEAR(study_date) = ? AND MONTH(study_date) = ?
+                AND study_date < CURDATE()
+                GROUP BY user_id
+            ) as user_stats`,
+            [year, month]
+        );
+
+        const [cardRows] = await db.execute(
+            `SELECT AVG(total_cards) as avg_total_cards
+            FROM (
+                SELECT COUNT(DISTINCT card_id) as total_cards
+                FROM study_records
+                WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?
+                AND DATE(created_at) < CURDATE()
+                GROUP BY user_id
+            ) as card_stats`,
+            [year, month]
+        );
+
+        const timeStats = timeRows[0] || {};
+        const cardStats = cardRows[0] || {};
+        return {
+            avgStudyDays: Math.round(timeStats.avg_study_days || 0),
+            avgTotalTime: Math.round((timeStats.avg_total_time || 0) / 60),
+            avgDailyTime: Math.round((timeStats.avg_daily_time || 0) / 60),
+            avgMaxDailyTime: Math.round((timeStats.avg_max_daily_time || 0) / 60),
+            avgTotalCards: Math.round(cardStats.avg_total_cards || 0)
         };
     }
 }

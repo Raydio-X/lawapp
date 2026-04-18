@@ -1,0 +1,146 @@
+<wxs module="utils">
+module.exports = {
+  contains: function(arr, val) {
+    if (!arr || !arr.length) return false;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] === val) return true;
+    }
+    return false;
+  },
+  equals: function(a, b) {
+    return a == b;
+  }
+}
+</wxs>
+
+<view class="container">
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">选择知识库</text>
+      <text class="section-desc">从以下知识库中选择题目来源</text>
+    </view>
+
+    <view class="tabs">
+      <view class="tab {{activeTab === 'my' ? 'active' : ''}}" bindtap="onTabChange" data-tab="my">我的知识库</view>
+      <view class="tab {{activeTab === 'favorite' ? 'active' : ''}}" bindtap="onTabChange" data-tab="favorite">收藏知识库</view>
+    </view>
+
+    <view class="library-list" wx:if="{{libraries.length > 0}}">
+      <view 
+        class="library-item {{utils.contains(selectedLibraries, item.id) ? 'selected' : ''}}" 
+        wx:for="{{libraries}}" 
+        wx:key="id"
+        bindtap="onLibraryToggle"
+        data-id="{{item.id}}"
+      >
+        <view class="library-info">
+          <text class="library-name">{{item.name}}</text>
+          <text class="library-count">{{item.card_count || item.totalCards}}张卡片</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="empty-tip" wx:else>
+      <text>{{activeTab === 'my' ? '暂无知识库' : '暂无收藏的知识库'}}</text>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">题目数量</text>
+      <text class="section-value">{{questionCount}}题</text>
+    </view>
+    <view class="count-options">
+      <view 
+        class="count-option {{utils.equals(questionCount, 10) ? 'active' : ''}}" 
+        bindtap="onCountChange" 
+        data-count="10"
+      >10题</view>
+      <view 
+        class="count-option {{utils.equals(questionCount, 20) ? 'active' : ''}}" 
+        bindtap="onCountChange" 
+        data-count="20"
+      >20题</view>
+      <view 
+        class="count-option {{utils.equals(questionCount, 30) ? 'active' : ''}}" 
+        bindtap="onCountChange" 
+        data-count="30"
+      >30题</view>
+      <view 
+        class="count-option {{utils.equals(questionCount, 50) ? 'active' : ''}}" 
+        bindtap="onCountChange" 
+        data-count="50"
+      >50题</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">考试时长</text>
+      <text class="section-value">{{duration}}分钟</text>
+    </view>
+    <view class="duration-slider">
+      <slider 
+        min="5" 
+        max="120" 
+        step="5" 
+        value="{{duration}}" 
+        block-size="24"
+        activeColor="#0052D9"
+        backgroundColor="#E7E7E7"
+        bindchange="onDurationChange"
+      />
+      <view class="duration-labels">
+        <text>5分钟</text>
+        <text>120分钟</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">出题方式</text>
+    </view>
+    <view class="mode-options">
+      <view 
+        class="mode-option {{examMode === 'random' ? 'active' : ''}}" 
+        bindtap="onModeChange" 
+        data-mode="random"
+      >
+        <t-icon name="shuffle" size="40rpx" color="{{examMode === 'random' ? '#0052D9' : '#999'}}" />
+        <text class="mode-name">随机出题</text>
+        <text class="mode-desc">从选中知识库随机抽取</text>
+      </view>
+      <view 
+        class="mode-option {{examMode === 'sequential' ? 'active' : ''}}" 
+        bindtap="onModeChange" 
+        data-mode="sequential"
+      >
+        <t-icon name="order" size="40rpx" color="{{examMode === 'sequential' ? '#0052D9' : '#999'}}" />
+        <text class="mode-name">顺序出题</text>
+        <text class="mode-desc">按知识库顺序出题</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="summary-card">
+    <view class="summary-row">
+      <text class="summary-label">已选知识库</text>
+      <text class="summary-value">{{selectedLibraries.length}}个</text>
+    </view>
+    <view class="summary-row">
+      <text class="summary-label">可用卡片</text>
+      <text class="summary-value">{{availableCards}}张</text>
+    </view>
+    <view class="summary-row">
+      <text class="summary-label">预计用时</text>
+      <text class="summary-value">{{duration}}分钟</text>
+    </view>
+  </view>
+
+  <view class="footer-bar">
+    <button class="start-btn {{selectedLibraries.length === 0 ? 'disabled' : ''}}" bindtap="onStartExam">
+      开始考试
+    </button>
+  </view>
+</view>

@@ -2,7 +2,6 @@ const express = require('express');
 const CardModel = require('../models/Card');
 const StudyModel = require('../models/Study');
 const CommentModel = require('../models/Comment');
-const WrongCardModel = require('../models/WrongCard');
 const FavoriteModel = require('../models/Favorite');
 const LikeModel = require('../models/Like');
 const MasteryModel = require('../models/Mastery');
@@ -319,42 +318,6 @@ router.post('/:id/study', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '记录学习失败'
-        });
-    }
-});
-
-router.post('/:id/wrong', auth, async (req, res) => {
-    try {
-        const result = await WrongCardModel.add(req.user.id, req.params.id);
-
-        res.json({
-            success: true,
-            data: result
-        });
-    } catch (error) {
-        console.error('Add wrong card error:', error);
-        res.status(500).json({
-            success: false,
-            code: 500,
-            message: '添加错题失败'
-        });
-    }
-});
-
-router.post('/:id/master', auth, async (req, res) => {
-    try {
-        await WrongCardModel.markAsMastered(req.user.id, req.params.id);
-
-        res.json({
-            success: true,
-            message: '已标记为掌握'
-        });
-    } catch (error) {
-        console.error('Mark as mastered error:', error);
-        res.status(500).json({
-            success: false,
-            code: 500,
-            message: '操作失败'
         });
     }
 });

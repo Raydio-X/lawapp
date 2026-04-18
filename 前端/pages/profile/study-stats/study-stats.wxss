@@ -1,0 +1,338 @@
+.container {
+  min-height: 100vh;
+  background: #f5f7fa;
+  padding: 24rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+/* 月份选择 */
+.month-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.04);
+}
+
+.month-btn {
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: #f5f7fa;
+  transition: all 0.2s ease;
+}
+
+.month-btn:active {
+  background: #e8e9eb;
+  transform: scale(0.95);
+}
+
+.month-text {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #333;
+  margin: 0 48rpx;
+}
+
+/* 热力图区域 */
+.heatmap-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.section-header {
+  margin-bottom: 28rpx;
+  display: flex;
+  align-items: center;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.section-subtitle {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 16rpx;
+}
+
+.heatmap-container {
+  margin-bottom: 24rpx;
+}
+
+.weekday-labels {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 16rpx;
+}
+
+.weekday-label {
+  font-size: 22rpx;
+  color: #999;
+  text-align: center;
+}
+
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8rpx;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.heatmap-cell:active {
+  transform: scale(0.92);
+}
+
+.cell-day {
+  font-size: 22rpx;
+  font-weight: 500;
+  color: #666;
+}
+
+/* 空白格子 */
+.heatmap-cell.empty {
+  background: transparent;
+}
+
+/* 热力图等级颜色 */
+.level-0 {
+  background: #f0f0f0;
+}
+
+.level-0 .cell-day {
+  color: #999;
+}
+
+.level-1 {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.level-1 .cell-day {
+  color: #155724;
+}
+
+.level-2 {
+  background: linear-gradient(135deg, #81c784 0%, #66bb6a 100%);
+}
+
+.level-2 .cell-day {
+  color: #fff;
+}
+
+.level-3 {
+  background: linear-gradient(135deg, #4caf50 0%, #43a047 100%);
+}
+
+.level-3 .cell-day {
+  color: #fff;
+}
+
+.level-4 {
+  background: linear-gradient(135deg, #2e7d32 0%, #1b5e20 100%);
+}
+
+.level-4 .cell-day {
+  color: #fff;
+  font-weight: 600;
+}
+
+/* 今日标记 */
+.heatmap-cell.today {
+  box-shadow: 0 0 0 3rpx #0052D9, 0 4rpx 12rpx rgba(0, 82, 217, 0.3);
+}
+
+.heatmap-cell.today .cell-day {
+  color: #0052D9;
+  font-weight: 700;
+}
+
+.level-1.today .cell-day,
+.level-2.today .cell-day,
+.level-3.today .cell-day,
+.level-4.today .cell-day {
+  color: #fff;
+}
+
+/* 图例 */
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  padding-top: 20rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.legend-label {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.legend-cells {
+  display: flex;
+  gap: 8rpx;
+}
+
+.legend-cell {
+  width: 28rpx;
+  height: 28rpx;
+  border-radius: 6rpx;
+}
+
+/* 统计模块 - 雷达图 */
+.stats-section {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.stats-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.stats-title-text {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.stats-update {
+  font-size: 22rpx;
+  color: #999;
+}
+
+/* 日期详情弹窗 - 新设计 */
+.day-detail-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.day-detail-card {
+  width: 600rpx;
+  background: #fff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100rpx);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 32rpx;
+  background: #0052D9;
+}
+
+.detail-date {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #fff;
+}
+
+.detail-close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+}
+
+.detail-body {
+  display: flex;
+  padding: 40rpx 32rpx;
+}
+
+.detail-stat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.detail-stat-icon {
+  margin-bottom: 16rpx;
+}
+
+.detail-stat-info {
+  display: flex;
+  align-items: baseline;
+  margin-bottom: 8rpx;
+}
+
+.detail-stat-value {
+  font-size: 44rpx;
+  font-weight: 600;
+  color: #333;
+  line-height: 1;
+}
+
+.detail-stat-unit {
+  font-size: 24rpx;
+  color: #999;
+  margin-left: 8rpx;
+}
+
+.detail-stat-label {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.detail-divider {
+  width: 1rpx;
+  background: #e8e8e8;
+  margin: 0 32rpx;
+}

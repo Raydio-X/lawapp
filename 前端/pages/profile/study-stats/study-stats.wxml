@@ -1,0 +1,111 @@
+<view class="container">
+  <!-- 月份选择 -->
+  <view class="month-selector">
+    <view class="month-btn" bindtap="onPrevMonth">
+      <t-icon name="chevron-left" size="36rpx" color="#666" />
+    </view>
+    <text class="month-text">{{currentYear}}年{{currentMonth}}月</text>
+    <view class="month-btn" bindtap="onNextMonth">
+      <t-icon name="chevron-right" size="36rpx" color="#666" />
+    </view>
+  </view>
+
+  <!-- 学习热力图 -->
+  <view class="heatmap-section">
+    <view class="section-header">
+      <text class="section-title">学习热力图</text>
+      <text class="section-subtitle">每日学习时长统计</text>
+    </view>
+    
+    <view class="heatmap-container">
+      <!-- 星期标签 -->
+      <view class="weekday-labels">
+        <text class="weekday-label">日</text>
+        <text class="weekday-label">一</text>
+        <text class="weekday-label">二</text>
+        <text class="weekday-label">三</text>
+        <text class="weekday-label">四</text>
+        <text class="weekday-label">五</text>
+        <text class="weekday-label">六</text>
+      </view>
+      
+      <!-- 热力图格子 -->
+      <view class="heatmap-grid">
+        <block wx:for="{{heatmapDays}}" wx:key="day">
+          <view 
+            class="heatmap-cell {{item.level}} {{item.isToday ? 'today' : ''}}" 
+            bindtap="onCellTap"
+            data-day="{{item}}"
+          >
+            <text class="cell-day" wx:if="{{!item.isEmpty}}">{{item.day}}</text>
+          </view>
+        </block>
+      </view>
+    </view>
+    
+    <!-- 图例 -->
+    <view class="heatmap-legend">
+      <text class="legend-label">少</text>
+      <view class="legend-cells">
+        <view class="legend-cell level-0"></view>
+        <view class="legend-cell level-1"></view>
+        <view class="legend-cell level-2"></view>
+        <view class="legend-cell level-3"></view>
+        <view class="legend-cell level-4"></view>
+      </view>
+      <text class="legend-label">多</text>
+    </view>
+  </view>
+
+  <!-- 本月统计 - 雷达图 -->
+  <view class="stats-section">
+    <view class="stats-title">
+      <text class="stats-title-text">本月数据</text>
+      <text class="stats-update">数据更新至{{updateDate}}0点</text>
+    </view>
+    
+    <radar-chart 
+      dimensions="{{radarDimensions}}" 
+      userData="{{radarUserData}}" 
+      avgData="{{radarAvgData}}"
+    ></radar-chart>
+  </view>
+
+  <!-- 选中日期详情 - 新设计 -->
+  <view class="day-detail-popup" wx:if="{{selectedDay}}" bindtap="onCloseDetail">
+    <view class="day-detail-card" catchtap="preventClose">
+      <view class="detail-header">
+        <text class="detail-date">{{selectedDay.date}}</text>
+        <view class="detail-close" bindtap="onCloseDetail">
+          <t-icon name="close" size="32rpx" color="#999" />
+        </view>
+      </view>
+      
+      <view class="detail-body">
+        <view class="detail-stat">
+          <view class="detail-stat-icon">
+            <t-icon name="time" size="48rpx" color="#0052D9" />
+          </view>
+          <view class="detail-stat-info">
+            <text class="detail-stat-value">{{selectedDay.duration}}</text>
+            <text class="detail-stat-unit">分钟</text>
+          </view>
+          <text class="detail-stat-label">学习时长</text>
+        </view>
+        
+        <view class="detail-divider"></view>
+        
+        <view class="detail-stat">
+          <view class="detail-stat-icon">
+            <t-icon name="view-module" size="48rpx" color="#0052D9" />
+          </view>
+          <view class="detail-stat-info">
+            <text class="detail-stat-value">{{selectedDay.cards}}</text>
+            <text class="detail-stat-unit">张</text>
+          </view>
+          <text class="detail-stat-label">学习卡片</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

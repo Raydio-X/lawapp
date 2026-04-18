@@ -1,0 +1,43 @@
+.radar-chart {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.radar-canvas {
+  width: 100%;
+  height: 540rpx;
+}
+
+.radar-legend {
+  display: flex;
+  justify-content: center;
+  gap: 48rpx;
+  margin-top: 16rpx;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.legend-line {
+  width: 32rpx;
+  height: 6rpx;
+  border-radius: 3rpx;
+}
+
+.user-line {
+  background: #5B8FF9;
+}
+
+.avg-line {
+  background: #FF9500;
+}
+
+.legend-text {
+  font-size: 24rpx;
+  color: #666;
+}

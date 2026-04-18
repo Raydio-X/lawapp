@@ -1,0 +1,94 @@
+<view class="container" style="--status-bar-height: {{statusBarHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <view class="nav-left">
+        <view class="exit-btn" bindtap="onExit">退出</view>
+      </view>
+      <view class="nav-title">考试中</view>
+      <view class="nav-right"></view>
+    </view>
+  </view>
+
+  <view class="header">
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progress}}%"></view>
+    </view>
+    <view class="header-info">
+      <view class="question-progress">
+        <text class="current">{{currentIndex + 1}}</text>
+        <text class="total">/{{questions.length}}</text>
+      </view>
+      <view class="timer">
+        <t-icon name="time" size="28rpx" color="#df1126ff" />
+        <text>{{remainingTimeText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="content" wx:if="{{currentQuestion}}">
+    <view class="question-card">
+      <view class="question-header">
+        <view class="question-tag">第{{currentIndex + 1}}题</view>
+        <view class="question-actions">
+          <view class="action-btn {{currentQuestion.isMarked ? 'marked' : ''}}" bindtap="onToggleMark">
+            <t-icon name="flag" size="32rpx" color="{{currentQuestion.isMarked ? '#E34D59' : '#999'}}" />
+          </view>
+        </view>
+      </view>
+      
+      <view class="question-content">
+        <text class="question-text">{{currentQuestion.question}}</text>
+      </view>
+    </view>
+
+    <view class="user-answer">
+      <view class="answer-label">你的作答</view>
+      <textarea 
+        class="answer-input" 
+        placeholder="请输入你的答案..."
+        value="{{userAnswers[currentIndex]}}"
+        bindinput="onAnswerInput"
+        auto-height
+        maxlength="1000"
+      />
+    </view>
+  </view>
+
+  <view class="footer">
+    <view class="nav-btns">
+      <button class="nav-btn prev" bindtap="onPrevQuestion" disabled="{{currentIndex === 0}}">上一题</button>
+      <button class="nav-btn next" bindtap="onNextQuestion">{{currentIndex === questions.length - 1 ? '提交试卷' : '下一题'}}</button>
+    </view>
+  </view>
+
+  <view class="result-modal" wx:if="{{showResult}}">
+    <view class="result-content">
+      <view class="result-header">
+        <t-icon name="time" size="100rpx" color="#0052D9" />
+        <text class="result-title">考试完成</text>
+      </view>
+      
+      <view class="result-stats">
+        <view class="stat-item">
+          <text class="stat-value">{{questions.length}}</text>
+          <text class="stat-label">总题数</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item">
+          <text class="stat-value">{{usedTimeText}}</text>
+          <text class="stat-label">用时</text>
+        </view>
+      </view>
+
+      <view class="result-tip">
+        <text>请前往解析页面查看答案</text>
+      </view>
+
+      <view class="result-btns">
+        <button class="result-btn review" bindtap="onReviewAll">
+          查看解析
+        </button>
+      </view>
+    </view>
+  </view>
+</view>

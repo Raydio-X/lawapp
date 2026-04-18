@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "错题本",
-  "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-loading": "tdesign-miniprogram/loading/loading"
-  }
-}

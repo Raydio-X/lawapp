@@ -86,7 +86,7 @@
 }
 
 .stat-number {
-  font-size: 44rpx;
+  font-size: 38rpx;
   font-weight: 700;
   color: #fff;
 }
@@ -169,7 +169,7 @@
 }
 
 .core-stat-value {
-  font-size: 36rpx;
+  font-size: 30rpx;
   font-weight: 700;
   color: #333;
 }
@@ -251,7 +251,7 @@
 }
 
 .grid-value {
-  font-size: 40rpx;
+  font-size: 32rpx;
   font-weight: 700;
   color: #333;
 }

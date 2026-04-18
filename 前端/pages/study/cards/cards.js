@@ -1,7 +1,10 @@
 const { cardAPI, studyAPI, commentAPI } = require('../../../utils/api');
 
+const app = getApp();
+
 Page({
   data: {
+    statusBarHeight: 20,
     currentIndex: 0,
     totalCards: 0,
     progress: 0,
@@ -14,11 +17,12 @@ Page({
     commentText: ''
   },
 
-  studyTimer: null,
-  studyStartTime: null,
   studiedCards: null,
 
   onLoad(options) {
+    const systemInfo = wx.getSystemInfoSync();
+    this.setData({ statusBarHeight: systemInfo.statusBarHeight });
+    
     const { index, total } = options;
     this.studiedCards = new Set();
     this.setData({
@@ -27,54 +31,34 @@ Page({
     });
     
     this.loadCardData();
-    this.startStudyTimer();
+    app.startStudyTimer();
   },
 
   onUnload() {
-    this.stopStudyTimer();
-    this.syncStudyTime();
+    app.stopStudyTimer();
   },
 
   onHide() {
-    this.stopStudyTimer();
-    this.syncStudyTime();
+    app.pauseStudyTimer();
   },
 
   onShow() {
-    if (this.studyStartTime) {
-      this.startStudyTimer();
+    if (app.getStudyStatus()) {
+      app.startStudyTimer();
     }
   },
 
-  startStudyTimer() {
-    if (this.studyTimer) {
-      clearInterval(this.studyTimer);
-    }
-    this.studyStartTime = Date.now();
-    this.studyTimer = setInterval(() => {
-      this.syncStudyTime();
-    }, 30000);
-  },
-
-  stopStudyTimer() {
-    if (this.studyTimer) {
-      clearInterval(this.studyTimer);
-      this.studyTimer = null;
-    }
-  },
-
-  async syncStudyTime() {
-    if (!this.studyStartTime) return;
-    
-    const duration = Math.floor((Date.now() - this.studyStartTime) / 1000);
-    if (duration < 10) return;
-    
-    try {
-      await studyAPI.recordStudyTime(null, duration, { showLoading: false });
-      this.studyStartTime = Date.now();
-    } catch (error) {
-      console.error('同步学习时间失败:', error);
-    }
+  onBack() {
+    wx.showModal({
+      title: '退出学习',
+      content: '确定要退出学习吗？',
+      success: (res) => {
+        if (res.confirm) {
+          app.stopStudyTimer();
+          wx.switchTab({ url: '/pages/study/index' });
+        }
+      }
+    });
   },
 
   loadCardData() {
@@ -260,7 +244,7 @@ Page({
     this.switchCard(currentIndex - 1);
   },
 
-  async onMarkLearned() {
+  async onForgot() {
     const { currentCard, currentIndex, totalCards, answerRevealed, cardList } = this.data;
     
     if (!answerRevealed) {
@@ -275,20 +259,18 @@ Page({
       if (!this.studiedCards.has(currentCard.id)) {
         await cardAPI.recordStudy(currentCard.id, {
           libraryId: currentCard.libraryId,
-          feedback: 'normal',
+          feedback: 'hard',
           duration: 0
         });
         this.studiedCards.add(currentCard.id);
       }
 
-      const res = await cardAPI.toggleMastery(currentCard.id);
+      const res = await cardAPI.setMastery(currentCard.id, false);
       
       if (res.success) {
-        const isLearned = res.data.mastered;
-        
         const updatedCard = {
           ...currentCard,
-          learned: isLearned
+          learned: false
         };
 
         const updatedCardList = [...cardList];
@@ -300,26 +282,80 @@ Page({
           totalCards
         });
 
-        if (currentIndex >= totalCards - 1) {
-          wx.showToast({
-            title: '恭喜完成学习！',
-            icon: 'success'
-          });
-          setTimeout(() => {
-            wx.navigateBack();
-          }, 1500);
-        } else {
-          setTimeout(() => {
-            this.switchCard(currentIndex + 1);
-          }, 300);
-        }
+        this.moveToNextCard(currentIndex, totalCards);
       }
     } catch (error) {
-      console.error('标记学习失败:', error);
+      console.error('标记忘记失败:', error);
       wx.showToast({
         title: error.message || '操作失败',
         icon: 'none'
       });
+    }
+  },
+
+  async onMastered() {
+    const { currentCard, currentIndex, totalCards, answerRevealed, cardList } = this.data;
+    
+    if (!answerRevealed) {
+      wx.showToast({
+        title: '请先查看答案',
+        icon: 'none'
+      });
+      return;
+    }
+
+    try {
+      if (!this.studiedCards.has(currentCard.id)) {
+        await cardAPI.recordStudy(currentCard.id, {
+          libraryId: currentCard.libraryId,
+          feedback: 'easy',
+          duration: 0
+        });
+        this.studiedCards.add(currentCard.id);
+      }
+
+      const res = await cardAPI.setMastery(currentCard.id, true);
+      
+      if (res.success) {
+        const updatedCard = {
+          ...currentCard,
+          learned: true
+        };
+
+        const updatedCardList = [...cardList];
+        updatedCardList[currentIndex] = updatedCard;
+
+        wx.setStorageSync('studyCardsData', {
+          cardList: updatedCardList,
+          libraryNames: this.data.libraryNames,
+          totalCards
+        });
+
+        this.moveToNextCard(currentIndex, totalCards);
+      }
+    } catch (error) {
+      console.error('标记掌握失败:', error);
+      wx.showToast({
+        title: error.message || '操作失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  moveToNextCard(currentIndex, totalCards) {
+    if (currentIndex >= totalCards - 1) {
+      wx.showToast({
+        title: '恭喜完成学习！',
+        icon: 'success'
+      });
+      setTimeout(() => {
+        app.stopStudyTimer();
+        wx.switchTab({ url: '/pages/study/index' });
+      }, 1500);
+    } else {
+      setTimeout(() => {
+        this.switchCard(currentIndex + 1);
+      }, 300);
     }
   },
 

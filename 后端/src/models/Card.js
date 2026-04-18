@@ -269,6 +269,21 @@ class CardModel {
             [count, id]
         );
     }
+
+    static async getByLibraryId(libraryId, userId = null) {
+        const [rows] = await db.execute(
+            `SELECT c.*, l.name as library_name
+             FROM cards c 
+             LEFT JOIN libraries l ON c.library_id = l.id 
+             WHERE c.library_id = ?
+             ORDER BY c.id ASC`,
+            [libraryId]
+        );
+        return rows.map(row => ({
+            ...row,
+            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
+        }));
+    }
 }
 
 module.exports = CardModel;
