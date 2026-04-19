@@ -232,6 +232,21 @@ async function initDatabase() {
         `);
         console.log('Created user_stats table');
 
+        await connection.query(`
+            CREATE TABLE study_time_records (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                library_id INT NULL,
+                duration INT NOT NULL DEFAULT 0 COMMENT '学习时长(秒)',
+                study_date DATE NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_date (user_id, study_date),
+                INDEX idx_study_date (study_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created study_time_records table');
+
         console.log('Database and tables created successfully!');
     } catch (error) {
         console.error('Error initializing database:', error);

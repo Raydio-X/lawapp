@@ -4,7 +4,7 @@
  */
 
 // API 基础配置
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://47.97.108.0:3000/api';
 
 const TOKEN_KEY = 'access_token';
 
