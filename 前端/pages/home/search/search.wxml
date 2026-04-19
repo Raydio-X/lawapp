@@ -1,0 +1,122 @@
+<view class="container">
+  <view class="search-header">
+    <view class="search-box">
+      <t-icon name="search" size="40rpx" color="#999" />
+      <input 
+        class="search-input" 
+        placeholder="搜索知识卡片 / 知识库" 
+        placeholder-class="placeholder"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+        value="{{keyword}}"
+        focus="{{!keyword}}"
+      />
+      <t-icon wx:if="{{keyword}}" name="close-circle-filled" size="40rpx" color="#ccc" bindtap="clearKeyword" />
+    </view>
+    <view class="cancel-btn" bindtap="goBack">取消</view>
+  </view>
+
+  <view class="search-body" wx:if="{{keyword}}">
+    <t-tabs value="{{activeTab}}" bind:change="onTabChange" t-class="search-tabs">
+      <t-tab-panel label="卡片" value="cards" />
+      <t-tab-panel label="知识库" value="libraries" />
+    </t-tabs>
+
+    <view class="search-result" wx:if="{{activeTab === 'cards'}}">
+      <view wx:if="{{cardsLoading}}" class="loading-wrap">
+        <t-loading theme="circular" size="80rpx" text="搜索中..." />
+      </view>
+      <block wx:elif="{{cards.length > 0}}">
+        <view class="result-count">找到 {{cardsTotal}} 张相关卡片</view>
+        <view 
+          class="card-item" 
+          wx:for="{{cards}}" 
+          wx:key="id"
+          bindtap="onCardTap"
+          data-index="{{index}}"
+        >
+          <view class="card-main">
+            <view class="card-question">
+              <text class="highlight-tag">问</text>
+              <text class="card-text">{{item.question}}</text>
+            </view>
+            <view class="card-answer">
+              <text class="highlight-tag answer-tag">答</text>
+              <text class="card-text answer-text">{{item.answer}}</text>
+            </view>
+          </view>
+          <view class="card-footer">
+            <view class="card-meta">
+              <text class="meta-item" wx:if="{{item.library_name}}">{{item.library_name}}</text>
+              <text class="meta-divider" wx:if="{{item.library_name && item.study_count}}">·</text>
+              <text class="meta-item" wx:if="{{item.study_count}}">{{item.study_count}}人学习</text>
+            </view>
+            <view class="card-tags" wx:if="{{item.tags.length > 0}}">
+              <t-tag 
+                wx:for="{{item.tags}}" 
+                wx:for-item="tag" 
+                wx:key="*this"
+                theme="primary" 
+                variant="light"
+                size="small"
+              >{{tag}}</t-tag>
+            </view>
+          </view>
+        </view>
+        <view class="load-more" wx:if="{{cardsHasMore}}" bindtap="loadMoreCards">
+          <text>加载更多</text>
+        </view>
+        <view class="no-more" wx:elif="{{cards.length > 0 && !cardsHasMore}}">
+          <text>没有更多了</text>
+        </view>
+      </block>
+      <view wx:else class="empty-wrap">
+        <t-empty icon="search" description="未找到相关卡片" />
+      </view>
+    </view>
+
+    <view class="search-result" wx:if="{{activeTab === 'libraries'}}">
+      <view wx:if="{{libsLoading}}" class="loading-wrap">
+        <t-loading theme="circular" size="80rpx" text="搜索中..." />
+      </view>
+      <block wx:elif="{{libraries.length > 0}}">
+        <view class="result-count">找到 {{libsTotal}} 个相关知识库</view>
+        <view 
+          class="lib-item" 
+          wx:for="{{libraries}}" 
+          wx:key="id"
+          bindtap="onLibraryTap"
+          data-id="{{item.id}}"
+        >
+          <view class="lib-icon">
+            <t-icon name="folder" size="48rpx" color="#0052D9" />
+          </view>
+          <view class="lib-info">
+            <text class="lib-name">{{item.name}}</text>
+            <view class="lib-meta">
+              <text wx:if="{{item.subject}}" class="lib-subject">{{item.subject}}</text>
+              <text class="lib-count">{{item.card_count || 0}}张卡片</text>
+            </view>
+          </view>
+          <view class="lib-arrow">
+            <t-icon name="chevron-right" size="36rpx" color="#ccc" />
+          </view>
+        </view>
+        <view class="load-more" wx:if="{{libsHasMore}}" bindtap="loadMoreLibraries">
+          <text>加载更多</text>
+        </view>
+        <view class="no-more" wx:elif="{{libraries.length > 0 && !libsHasMore}}">
+          <text>没有更多了</text>
+        </view>
+      </block>
+      <view wx:else class="empty-wrap">
+        <t-empty icon="search" description="未找到相关知识库" />
+      </view>
+    </view>
+  </view>
+
+  <view class="search-empty" wx:if="{{!keyword}}">
+    <t-icon name="search" size="96rpx" color="#ddd" />
+    <text class="empty-hint">输入关键词开始搜索</text>
+  </view>
+</view>

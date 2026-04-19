@@ -103,6 +103,15 @@ Page({
     });
   },
 
+  onSearchConfirm() {
+    const { searchValue } = this.data;
+    if (!searchValue.trim()) {
+      wx.showToast({ title: '请输入搜索关键词', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: `/pages/home/search/search?keyword=${encodeURIComponent(searchValue)}` });
+  },
+
   clearSearch() {
     this.setData({
       searchValue: ''

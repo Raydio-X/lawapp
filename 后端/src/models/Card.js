@@ -284,6 +284,20 @@ class CardModel {
             tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
         }));
     }
+
+    static async batchUpdateChapter(cardIds, chapterId, userId) {
+        if (!cardIds || cardIds.length === 0) {
+            return { success: true, count: 0 };
+        }
+
+        const placeholders = cardIds.map(() => '?').join(',');
+        const [result] = await db.execute(
+            `UPDATE cards SET chapter_id = ? WHERE id IN (${placeholders}) AND created_by = ?`,
+            [chapterId, ...cardIds, userId]
+        );
+
+        return { success: true, count: result.affectedRows };
+    }
 }
 
 module.exports = CardModel;

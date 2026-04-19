@@ -1,3 +1,19 @@
+<wxs module="utils">
+module.exports = {
+  contains: function(arr, val) {
+    if (!arr || !arr.length) return false;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] === val) return true;
+    }
+    return false;
+  },
+  getLevelText: function(level) {
+    if (level === 0) return '';
+    return level + '级';
+  }
+}
+</wxs>
+
 <view class="container">
   <!-- 页面标题 -->
   <view class="page-header">
@@ -46,31 +62,20 @@
 
   <!-- 快速操作区 -->
   <view class="quick-actions">
-    <view class="quick-action-title">快捷入口</view>
+    <view class="quick-action-title">快捷工具</view>
     <view class="quick-action-grid">
-      <view class="quick-action-item" bindtap="onQuickImport">
-        <view class="quick-action-icon import-icon">
-          <t-icon name="upload" size="40rpx" color="#0052D9" />
+      <view class="quick-action-item {{smartImportDisabled ? 'disabled' : ''}}" bindtap="onSmartImport">
+        <view class="quick-action-icon smart-icon">
+          <t-icon name="bulletpoint" size="40rpx" color="{{smartImportDisabled ? '#ccc' : '#0052D9'}}" />
+        </view>
+        <text class="quick-action-text">智能导入</text>
+        <view class="coming-soon-tag" wx:if="{{smartImportDisabled}}">即将开放</view>
+      </view>
+      <view class="quick-action-item" bindtap="onBatchImport">
+        <view class="quick-action-icon batch-icon">
+          <t-icon name="upload" size="40rpx" color="#00A870" />
         </view>
         <text class="quick-action-text">批量导入</text>
-      </view>
-      <view class="quick-action-item" bindtap="onQuickTemplate">
-        <view class="quick-action-icon template-icon">
-          <t-icon name="file-copy" size="40rpx" color="#0052D9" />
-        </view>
-        <text class="quick-action-text">使用模板</text>
-      </view>
-      <view class="quick-action-item" bindtap="onQuickScan">
-        <view class="quick-action-icon scan-icon">
-          <t-icon name="scan" size="40rpx" color="#0052D9" />
-        </view>
-        <text class="quick-action-text">拍照识题</text>
-      </view>
-      <view class="quick-action-item" bindtap="onQuickVoice">
-        <view class="quick-action-icon voice-icon">
-          <t-icon name="microphone" size="40rpx" color="#0052D9" />
-        </view>
-        <text class="quick-action-text">语音输入</text>
       </view>
     </view>
   </view>
@@ -230,17 +235,41 @@
     <!-- 卡片管理 Tab -->
     <view class="edit-content" wx:if="{{editTab === 'cards'}}">
       <view class="cards-manage-container">
+        <!-- 批量操作工具栏 -->
+        <view class="cards-manage-toolbar" wx:if="{{editCards.length > 0}}">
+          <view class="toolbar-left">
+            <view class="batch-toggle-btn {{isBatchSelectMode ? 'active' : ''}}" bindtap="onToggleBatchSelect">
+              <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#0052D9' : '#666'}}" />
+              <text>{{isBatchSelectMode ? '取消选择' : '批量管理'}}</text>
+            </view>
+          </view>
+          <view class="toolbar-right" wx:if="{{isBatchSelectMode}}">
+            <view class="select-all-btn" bindtap="onSelectAllCards">
+              <text>{{selectedCardIds.length === editCards.length ? '取消全选' : '全选'}}</text>
+            </view>
+            <view class="move-btn {{selectedCardIds.length > 0 ? '' : 'disabled'}}" bindtap="onShowChapterPicker">
+              <t-icon name="folder-move" size="32rpx" color="{{selectedCardIds.length > 0 ? '#0052D9' : '#ccc'}}" />
+              <text>移动到章节</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 已选择数量提示 -->
+        <view class="selected-count-bar" wx:if="{{isBatchSelectMode && selectedCardIds.length > 0}}">
+          <text>已选择 {{selectedCardIds.length}} 张卡片</text>
+        </view>
+
         <view class="cards-manage-list" wx:if="{{editCards.length > 0}}">
           <view 
-            class="cards-manage-item"
+            class="cards-manage-item {{isBatchSelectMode && utils.contains(selectedCardIds, item.id) ? 'selected' : ''}}"
             wx:for="{{editCards}}" 
             wx:key="id"
           >
-            <view class="cards-manage-info" bindtap="onEditCard" data-id="{{item.id}}" data-index="{{index}}">
+            <view class="cards-manage-info" bindtap="{{isBatchSelectMode ? 'onSelectCard' : 'onEditCard'}}" data-id="{{item.id}}" data-index="{{index}}">
               <view class="cards-manage-title">{{item.question}}</view>
               <view class="cards-manage-chapter" wx:if="{{item.chapterName}}">{{item.chapterName}}</view>
             </view>
-            <view class="cards-manage-actions">
+            <view class="cards-manage-actions" wx:if="{{!isBatchSelectMode}}">
               <view class="cards-manage-btn edit" catchtap="onEditCard" data-id="{{item.id}}" data-index="{{index}}">
                 <t-icon name="edit" size="36rpx" color="#0052D9" />
               </view>
@@ -256,11 +285,48 @@
           <text>暂无卡片</text>
         </view>
 
-        <view class="cards-manage-add-btn" bindtap="onAddCard">
+        <view class="cards-manage-add-btn" bindtap="onAddCard" wx:if="{{!isBatchSelectMode}}">
           <t-icon name="add" size="36rpx" color="#0052D9" />
           <text>添加卡片</text>
         </view>
       </view>
+    </view>
+  </view>
+</t-popup>
+
+<!-- 章节选择弹窗 -->
+<t-popup 
+  visible="{{showChapterPicker}}" 
+  bind:visible-change="onCloseChapterPicker"
+  placement="bottom"
+>
+  <view class="chapter-picker-popup">
+    <view class="chapter-picker-header">
+      <text class="chapter-picker-title">选择目标章节</text>
+      <view class="chapter-picker-close" bindtap="onCloseChapterPicker">
+        <t-icon name="close" size="40rpx" color="#999" />
+      </view>
+    </view>
+    <view class="chapter-picker-list">
+      <view 
+        class="chapter-picker-item {{targetChapterId === item.id ? 'selected' : ''}}"
+        wx:for="{{chapterPickerList}}" 
+        wx:key="id"
+        bindtap="onSelectChapter"
+        data-id="{{item.id}}"
+      >
+        <view class="chapter-picker-name" style="padding-left: {{item.level * 20}}rpx;">
+          <view class="chapter-level-indicator" wx:if="{{item.level > 0}}">
+            <text>{{utils.getLevelText(item.level)}}</text>
+          </view>
+          <text>{{item.name}}</text>
+        </view>
+        <t-icon wx:if="{{targetChapterId === item.id}}" name="check" size="36rpx" color="#0052D9" />
+      </view>
+    </view>
+    <view class="chapter-picker-footer">
+      <view class="chapter-picker-btn cancel" bindtap="onCloseChapterPicker">取消</view>
+      <view class="chapter-picker-btn confirm" bindtap="onConfirmMoveCards">确认移动</view>
     </view>
   </view>
 </t-popup>
@@ -321,3 +387,134 @@
     </view>
   </view>
 </t-popup>
+
+<!-- 批量导入弹窗 -->
+<view class="batch-popup" wx:if="{{showBatchImport}}" bindtap="onCloseBatchImport">
+  <view class="batch-container" catchtap="preventTouchMove">
+    <view class="batch-header">
+      <text class="batch-title">批量导入</text>
+      <view class="batch-close" bindtap="onCloseBatchImport">
+        <t-icon name="close" size="32rpx" color="#999" />
+      </view>
+    </view>
+
+    <!-- 步骤1: 选择知识库 -->
+    <view class="batch-step" wx:if="{{batchStep === 1}}">
+      <view class="batch-step-header">
+        <text class="batch-step-num">1</text>
+        <text class="batch-step-title">选择目标知识库</text>
+      </view>
+      <view class="batch-library-list">
+        <view 
+          class="batch-library-item {{batchLibraryId === item.id ? 'selected' : ''}}" 
+          wx:for="{{myLibraries}}" 
+          wx:key="id"
+          bindtap="onSelectBatchLibrary"
+          data-id="{{item.id}}"
+          data-name="{{item.name}}"
+        >
+          <view class="batch-library-radio">
+            <view class="batch-radio-dot" wx:if="{{batchLibraryId === item.id}}"></view>
+          </view>
+          <view class="batch-library-info">
+            <text class="batch-library-name">{{item.name}}</text>
+            <text class="batch-library-count">{{item.cardCount}}张卡片</text>
+          </view>
+        </view>
+      </view>
+      <view class="batch-empty" wx:if="{{myLibraries.length === 0}}">
+        <text>请先创建知识库</text>
+      </view>
+      <view class="batch-step-footer">
+        <view class="batch-next-btn {{!batchLibraryId ? 'disabled' : ''}}" bindtap="onBatchNext">下一步</view>
+      </view>
+    </view>
+
+    <!-- 步骤2: 上传文件 -->
+    <view class="batch-step" wx:if="{{batchStep === 2}}">
+      <view class="batch-step-header">
+        <text class="batch-step-num">2</text>
+        <text class="batch-step-title">上传Excel文件</text>
+      </view>
+      
+      <view class="batch-upload-area" bindtap="onChooseFile">
+        <view class="batch-upload-content" wx:if="{{!batchFileName}}">
+          <t-icon name="upload" size="64rpx" color="#00A870" />
+          <text class="batch-upload-text">点击选择Excel文件</text>
+          <text class="batch-upload-hint">支持 .xlsx / .xls 格式</text>
+        </view>
+        <view class="batch-upload-done" wx:else>
+          <t-icon name="file" size="48rpx" color="#00A870" />
+          <text class="batch-file-name">{{batchFileName}}</text>
+          <text class="batch-file-change">点击更换文件</text>
+        </view>
+      </view>
+
+      <view class="batch-template-section">
+        <view class="batch-template-title">
+          <t-icon name="info-circle" size="28rpx" color="#999" />
+          <text>模板格式说明</text>
+        </view>
+        <view class="batch-template-info">
+          <text class="batch-template-row"><text class="col-a">A列</text><text class="col-b">问题</text></text>
+          <text class="batch-template-row"><text class="col-a">B列</text><text class="col-b">答案</text></text>
+          <text class="batch-template-row"><text class="col-a">C列(可选)</text><text class="col-b">章节</text></text>
+        </view>
+        <view class="batch-download-template" bindtap="onDownloadTemplate">
+          <t-icon name="download" size="28rpx" color="#0052D9" />
+          <text>下载模板</text>
+        </view>
+      </view>
+
+      <view class="batch-step-actions">
+        <view class="batch-prev-btn" bindtap="onBatchPrev">上一步</view>
+        <view class="batch-next-btn {{!batchFileName ? 'disabled' : ''}}" bindtap="onBatchParse">解析文件</view>
+      </view>
+    </view>
+
+    <!-- 步骤3: 预览确认 -->
+    <view class="batch-step" wx:if="{{batchStep === 3}}">
+      <view class="batch-step-header">
+        <text class="batch-step-num">3</text>
+        <text class="batch-step-title">预览并确认</text>
+      </view>
+
+      <view class="batch-preview-summary">
+        <text class="batch-preview-total">共解析到 <text class="highlight">{{batchCards.length}}</text> 张卡片</text>
+      </view>
+
+      <scroll-view class="batch-preview-list" scroll-y>
+        <view class="batch-preview-item" wx:for="{{batchCards}}" wx:key="index">
+          <view class="batch-preview-index">{{index + 1}}</view>
+          <view class="batch-preview-content">
+            <text class="batch-preview-q">Q: {{item.question}}</text>
+            <text class="batch-preview-a">A: {{item.answer}}</text>
+            <text class="batch-preview-chapter" wx:if="{{item.chapter}}">{{item.chapter}}</text>
+          </view>
+        </view>
+      </scroll-view>
+
+      <view class="batch-step-actions">
+        <view class="batch-prev-btn" bindtap="onBatchPrev">上一步</view>
+        <view class="batch-next-btn {{batchImporting ? 'disabled' : ''}}" bindtap="onBatchConfirmImport">
+          {{batchImporting ? '导入中...' : '确认导入'}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 步骤4: 导入结果 -->
+    <view class="batch-step" wx:if="{{batchStep === 4}}">
+      <view class="batch-result">
+        <view class="batch-result-icon">
+          <t-icon name="{{batchImportSuccess ? 'check-circle' : 'error-circle'}}" size="96rpx" color="{{batchImportSuccess ? '#00A870' : '#E34D59'}}" />
+        </view>
+        <text class="batch-result-title">{{batchImportSuccess ? '导入成功' : '导入失败'}}</text>
+        <text class="batch-result-desc" wx:if="{{batchImportSuccess}}">成功导入 {{batchImportCount}} 张卡片</text>
+        <text class="batch-result-desc" wx:else>{{batchImportError || '请检查文件格式后重试'}}</text>
+      </view>
+      <view class="batch-step-footer">
+        <view class="batch-next-btn" bindtap="onCloseBatchImport">完成</view>
+      </view>
+    </view>
+  </view>
+</view>

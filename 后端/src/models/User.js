@@ -17,6 +17,14 @@ class UserModel {
         return rows[0];
     }
 
+    static async findByNickname(nickname) {
+        const [rows] = await db.execute(
+            'SELECT * FROM users WHERE nickname = ?',
+            [nickname]
+        );
+        return rows[0];
+    }
+
     static async create(data) {
         const [result] = await db.execute(
             'INSERT INTO users (openid, nickname, avatar, bio, phone, gender) VALUES (?, ?, ?, ?, ?, ?)',
@@ -49,6 +57,10 @@ class UserModel {
             fields.push('gender = ?');
             values.push(data.gender);
         }
+        if (data.daily_goal !== undefined) {
+            fields.push('daily_goal = ?');
+            values.push(data.daily_goal);
+        }
 
         if (fields.length === 0) return this.findById(id);
 
@@ -58,6 +70,14 @@ class UserModel {
             values
         );
         return this.findById(id);
+    }
+
+    static async updateDailyGoal(userId, dailyGoal) {
+        await db.execute(
+            'UPDATE users SET daily_goal = ? WHERE id = ?',
+            [dailyGoal, userId]
+        );
+        return this.findById(userId);
     }
 
     static async getStats(userId) {

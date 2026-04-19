@@ -8,6 +8,7 @@
         placeholder="搜索知识卡片 / 知识库" 
         placeholder-class="placeholder"
         bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
         value="{{searchValue}}"
       />
       <t-icon wx:if="{{searchValue}}" name="close-circle-filled" size="40rpx" color="#ccc" bindtap="clearSearch" />

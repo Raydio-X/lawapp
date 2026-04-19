@@ -21,7 +21,9 @@ async function runMigration() {
             'CREATE INDEX idx_next_review ON card_mastery(next_review_date)',
             `UPDATE card_mastery 
              SET review_count = 1, next_review_date = CURDATE(), last_review_date = CURDATE()
-             WHERE mastered = 1 AND next_review_date IS NULL`
+             WHERE mastered = 1 AND next_review_date IS NULL`,
+            'ALTER TABLE users ADD COLUMN daily_goal INT DEFAULT 50',
+            'UPDATE users SET daily_goal = 50 WHERE daily_goal IS NULL'
         ];
         
         for (const statement of statements) {

@@ -70,6 +70,11 @@ class StudyModel {
             [userId]
         );
 
+        const [user] = await db.execute(
+            'SELECT daily_goal FROM users WHERE id = ?',
+            [userId]
+        );
+
         const [todayCards] = await db.execute(
             `SELECT COUNT(*) as count FROM study_records 
              WHERE user_id = ? AND DATE(created_at) = CURDATE()`,
@@ -127,7 +132,7 @@ class StudyModel {
             totalTime: stats[0]?.total_study_time || 0,
             libraryCount: libraries[0].count,
             progress: 0,
-            dailyGoal: 50,
+            dailyGoal: user[0]?.daily_goal || 50,
             todayNew: todayNew[0]?.count || 0,
             weekTime: currentWeekSeconds,
             weekTrend: weekTrend,

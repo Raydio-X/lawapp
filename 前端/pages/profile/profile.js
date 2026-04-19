@@ -4,8 +4,7 @@ Page({
   data: {
     userInfo: {
       nickName: '法硕考生',
-      avatarUrl: '',
-      bio: '法硕备考中，每天进步一点点'
+      avatarUrl: ''
     },
     stats: {
       libraryCount: 0,
@@ -26,7 +25,11 @@ Page({
       totalCards: 0
     },
     goalPercent: 0,
-    loading: false
+    loading: false,
+    showPlanPicker: false,
+    cardCountOptions: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
+    pickerValue: [8],
+    tempCardCount: 50
   },
 
   studyTimeTimer: null,
@@ -123,8 +126,7 @@ Page({
     this.setData({
       userInfo: {
         nickName: '未登录',
-        avatarUrl: '',
-        bio: '请先登录'
+        avatarUrl: ''
       },
       stats: {
         libraryCount: 0,
@@ -157,8 +159,7 @@ Page({
           userInfo: {
             id: user.id,
             nickName: user.nickname || user.username || '法硕考生',
-            avatarUrl: user.avatar_url || '',
-            bio: user.bio || '法硕备考中，每天进步一点点'
+            avatarUrl: user.avatar_url || ''
           }
         });
         wx.setStorageSync('userInfo', this.data.userInfo);
@@ -241,16 +242,13 @@ Page({
 
   onEditProfile() {
     wx.showActionSheet({
-      itemList: ['修改昵称', '修改简介', '更换头像'],
+      itemList: ['修改昵称', '更换头像'],
       success: (res) => {
         switch (res.tapIndex) {
           case 0:
             this.editNickname();
             break;
           case 1:
-            this.editBio();
-            break;
-          case 2:
             this.changeAvatar();
             break;
         }
@@ -271,33 +269,6 @@ Page({
             if (result.success) {
               this.setData({
                 'userInfo.nickName': res.content
-              });
-              wx.setStorageSync('userInfo', this.data.userInfo);
-              wx.showToast({ title: '修改成功', icon: 'success' });
-            } else {
-              wx.showToast({ title: result.message || '修改失败', icon: 'none' });
-            }
-          } catch (error) {
-            wx.showToast({ title: error.message || '修改失败', icon: 'none' });
-          }
-        }
-      }
-    });
-  },
-
-  async editBio() {
-    wx.showModal({
-      title: '修改简介',
-      content: '',
-      editable: true,
-      placeholderText: '请输入简介',
-      success: async (res) => {
-        if (res.confirm && res.content) {
-          try {
-            const result = await authAPI.updateProfile({ bio: res.content });
-            if (result.success) {
-              this.setData({
-                'userInfo.bio': res.content
               });
               wx.setStorageSync('userInfo', this.data.userInfo);
               wx.showToast({ title: '修改成功', icon: 'success' });
@@ -366,6 +337,9 @@ Page({
       case 'favorite':
         wx.navigateTo({ url: '/pages/profile/favorites/favorites' });
         break;
+      case 'plan':
+        this.showPlanPickerPopup();
+        break;
       default:
         wx.showToast({
           title: `${menu}功能开发中`,
@@ -373,6 +347,65 @@ Page({
         });
     }
   },
+
+  showPlanPickerPopup() {
+    const { cardCountOptions } = this.data;
+    const currentGoal = this.data.studyProgress.dailyGoal || 50;
+    const index = cardCountOptions.indexOf(currentGoal);
+    const pickerIndex = index >= 0 ? index : 8;
+    
+    this.setData({
+      showPlanPicker: true,
+      pickerValue: [pickerIndex],
+      tempCardCount: cardCountOptions[pickerIndex]
+    });
+  },
+
+  onClosePlanPicker() {
+    this.setData({ showPlanPicker: false });
+  },
+
+  onPickerChange(e) {
+    const { cardCountOptions } = this.data;
+    const index = e.detail.value[0];
+    this.setData({
+      pickerValue: [index],
+      tempCardCount: cardCountOptions[index]
+    });
+  },
+
+  async onConfirmPlan() {
+    const { tempCardCount } = this.data;
+    
+    try {
+      const result = await studyAPI.updateDailyGoal(tempCardCount);
+      if (result.success) {
+        const todayCards = this.data.studyProgress.todayCards || 0;
+        const goalPercent = Math.min(100, Math.round((todayCards / tempCardCount) * 100));
+        
+        this.setData({
+          'studyProgress.dailyGoal': tempCardCount,
+          goalPercent: goalPercent,
+          showPlanPicker: false
+        });
+        wx.showToast({ title: '设置成功', icon: 'success' });
+      } else {
+        wx.showToast({ title: result.message || '设置失败', icon: 'none' });
+      }
+    } catch (error) {
+      const todayCards = this.data.studyProgress.todayCards || 0;
+      const goalPercent = Math.min(100, Math.round((todayCards / tempCardCount) * 100));
+      
+      this.setData({
+        'studyProgress.dailyGoal': tempCardCount,
+        goalPercent: goalPercent,
+        showPlanPicker: false
+      });
+      wx.showToast({ title: '设置成功', icon: 'success' });
+    }
+  },
+
+  preventClose() {},
 
   onLogout() {
     wx.showModal({

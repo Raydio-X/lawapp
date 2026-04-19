@@ -22,7 +22,11 @@ Page({
     radarUserData: [0, 0, 0, 0, 0],
     radarAvgData: [0, 0, 0, 0, 0],
     selectedDay: null,
-    studyData: {}
+    studyData: {},
+    tooltipTop: 0,
+    tooltipLeft: 0,
+    arrowOffset: 50,
+    showArrowTop: true
   },
 
   onLoad() {
@@ -212,11 +216,45 @@ Page({
     const day = e.currentTarget.dataset.day;
     if (!day || day.isEmpty) return;
 
-    this.setData({
-      selectedDay: {
-        date: day.date,
-        duration: day.duration || 0,
-        cards: day.cards || 0
+    const query = wx.createSelectorQuery();
+    query.select(`#cell-${day.day}`).boundingClientRect();
+    query.selectViewport().scrollOffset();
+    query.exec((res) => {
+      if (res[0]) {
+        const cellRect = res[0];
+        const tooltipWidth = 100;
+        const tooltipHeight = 50;
+        
+        let tooltipLeft = cellRect.left + cellRect.width / 2 - tooltipWidth / 2;
+        let tooltipTop = cellRect.top - tooltipHeight - 10;
+        let showArrowTop = true;
+
+        if (tooltipLeft < 10) {
+          tooltipLeft = 10;
+        }
+        if (tooltipLeft + tooltipWidth > wx.getSystemInfoSync().windowWidth - 10) {
+          tooltipLeft = wx.getSystemInfoSync().windowWidth - tooltipWidth - 10;
+        }
+        if (tooltipTop < 10) {
+          tooltipTop = cellRect.bottom + 10;
+          showArrowTop = false;
+        }
+
+        const cellCenterX = cellRect.left + cellRect.width / 2;
+        const arrowOffset = cellCenterX - tooltipLeft;
+
+        this.setData({
+          selectedDay: {
+            date: day.date,
+            dateStr: day.dateStr,
+            duration: day.duration || 0,
+            cards: day.cards || 0
+          },
+          tooltipTop,
+          tooltipLeft,
+          arrowOffset,
+          showArrowTop
+        });
       }
     });
   },

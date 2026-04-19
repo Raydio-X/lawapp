@@ -165,6 +165,17 @@ router.put('/profile', require('../middlewares/auth').auth, async (req, res) => 
     try {
         const { nickname, avatar, bio, phone, gender } = req.body;
         
+        if (nickname) {
+            const existingUser = await UserModel.findByNickname(nickname);
+            if (existingUser && existingUser.id !== req.user.id) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '该昵称已被使用'
+                });
+            }
+        }
+        
         const user = await UserModel.update(req.user.id, {
             nickname,
             avatar,

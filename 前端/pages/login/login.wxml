@@ -34,14 +34,6 @@
         <t-icon name="logo-wechat" size="48rpx" color="#fff" />
         <text class="btn-text">微信一键登录</text>
       </button>
-
-      <!-- 游客模式 -->
-      <button 
-        class="guest-btn"
-        bindtap="onGuestLogin"
-      >
-        <text class="btn-text">游客模式浏览</text>
-      </button>
     </view>
   </view>
 
@@ -54,12 +46,7 @@
         color="{{hasAgreed ? '#0052D9' : '#ccc'}}"
       />
     </view>
-    <text class="agreement-text">
-      登录即代表您同意
-      <text class="link" bindtap="showUserAgreement">《用户协议》</text>
-      和
-      <text class="link" bindtap="showPrivacyPolicy">《隐私政策》</text>
-    </text>
+    <text class="agreement-text">登录即代表您同意<text class="link" bindtap="showUserAgreement">《用户协议》</text>和<text class="link" bindtap="showPrivacyPolicy">《隐私政策》</text></text>
   </view>
 
   <!-- 底部信息 -->
@@ -71,13 +58,16 @@
   <t-toast id="t-toast" />
   
   <!-- 协议弹窗 -->
-  <t-dialog
-    visible="{{showAgreementDialog}}"
-    title="{{agreementTitle}}"
-    content="{{agreementContent}}"
-    confirm-btn="我知道了"
-    bind:confirm="closeAgreementDialog"
-  />
+  <t-popup visible="{{showAgreementDialog}}" placement="center" bind:visible-change="closeAgreementDialog">
+    <view class="agreement-popup">
+      <view class="agreement-popup-header">
+        <text class="agreement-popup-title">{{agreementTitle}}</text>
+        <t-icon name="close" size="40rpx" color="#999" bind:tap="closeAgreementDialog" />
+      </view>
+      <view class="agreement-popup-content">{{agreementContent}}</view>
+      <view class="agreement-popup-footer" bindtap="closeAgreementDialog">我知道了</view>
+    </view>
+  </t-popup>
 
   <!-- 测试登录弹窗 -->
   <t-popup visible="{{showTestLogin}}" placement="center">

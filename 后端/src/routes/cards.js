@@ -1,5 +1,9 @@
 const express = require('express');
+const multer = require('multer');
+const xlsx = require('xlsx');
+const path = require('path');
 const CardModel = require('../models/Card');
+const ChapterModel = require('../models/Chapter');
 const StudyModel = require('../models/Study');
 const CommentModel = require('../models/Comment');
 const FavoriteModel = require('../models/Favorite');
@@ -8,6 +12,19 @@ const MasteryModel = require('../models/Mastery');
 const { auth, optionalAuth } = require('../middlewares/auth');
 
 const router = express.Router();
+
+const upload = multer({
+    dest: path.join(__dirname, '../../uploads/temp/'),
+    fileFilter: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        if (ext === '.xlsx' || ext === '.xls') {
+            cb(null, true);
+        } else {
+            cb(new Error('只支持 .xlsx 和 .xls 格式的文件'));
+        }
+    },
+    limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 router.get('/', optionalAuth, async (req, res) => {
     try {
@@ -83,6 +100,161 @@ router.get('/search', async (req, res) => {
             success: false,
             code: 500,
             message: '搜索失败'
+        });
+    }
+});
+
+router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '请上传文件'
+            });
+        }
+
+        const { library_id } = req.body;
+        if (!library_id) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '请选择目标知识库'
+            });
+        }
+
+        const workbook = xlsx.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+
+        if (rows.length < 2) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '文件中没有数据行'
+            });
+        }
+
+        const dataRows = rows.slice(1);
+        const cards = [];
+        const errors = [];
+
+        for (let i = 0; i < dataRows.length; i++) {
+            const row = dataRows[i];
+            const question = row[0] ? String(row[0]).trim() : '';
+            const answer = row[1] ? String(row[1]).trim() : '';
+            const chapterName = row[2] ? String(row[2]).trim() : '';
+
+            if (!question && !answer) continue;
+
+            if (!question || !answer) {
+                errors.push({
+                    row: i + 2,
+                    message: `第${i + 2}行：问题和答案不能为空`
+                });
+                continue;
+            }
+
+            cards.push({ question, answer, chapterName });
+        }
+
+        if (cards.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: errors.length > 0
+                    ? `解析失败：${errors.map(e => e.message).join('；')}`
+                    : '文件中没有有效的卡片数据'
+            });
+        }
+
+        const preview = req.body.preview === 'true' || req.body.preview === true;
+
+        if (preview) {
+            return res.json({
+                success: true,
+                data: {
+                    cards: cards.map((c, i) => ({
+                        index: i + 1,
+                        question: c.question,
+                        answer: c.answer,
+                        chapterName: c.chapterName || ''
+                    })),
+                    total: cards.length,
+                    errors: errors
+                }
+            });
+        }
+
+        const chapterMap = {};
+        const existingChapters = await ChapterModel.getList(library_id);
+        existingChapters.forEach(ch => {
+            chapterMap[ch.name] = ch.id;
+        });
+
+        let importedCount = 0;
+        const importErrors = [];
+
+        for (let i = 0; i < cards.length; i++) {
+            const card = cards[i];
+            try {
+                let chapterId = null;
+                if (card.chapterName) {
+                    if (chapterMap[card.chapterName]) {
+                        chapterId = chapterMap[card.chapterName];
+                    } else {
+                        const newChapter = await ChapterModel.create({
+                            library_id,
+                            name: card.chapterName,
+                            sort_order: Object.keys(chapterMap).length,
+                            level: 1
+                        });
+                        chapterMap[card.chapterName] = newChapter.id;
+                        chapterId = newChapter.id;
+                    }
+                }
+
+                await CardModel.create({
+                    library_id: parseInt(library_id),
+                    chapter_id: chapterId,
+                    question: card.question,
+                    answer: card.answer,
+                    tags: [],
+                    created_by: req.user.id,
+                    is_public: 0
+                });
+                importedCount++;
+            } catch (err) {
+                importErrors.push({
+                    row: i + 2,
+                    question: card.question,
+                    message: err.message || '导入失败'
+                });
+            }
+        }
+
+        const fs = require('fs');
+        try { fs.unlinkSync(req.file.path); } catch (e) {}
+
+        res.json({
+            success: true,
+            data: {
+                count: importedCount,
+                total: cards.length,
+                errors: importErrors
+            }
+        });
+    } catch (error) {
+        console.error('Batch import error:', error);
+        if (req.file) {
+            const fs = require('fs');
+            try { fs.unlinkSync(req.file.path); } catch (e) {}
+        }
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: error.message || '批量导入失败'
         });
     }
 });
@@ -224,6 +396,34 @@ router.delete('/:id', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '删除卡片失败'
+        });
+    }
+});
+
+router.post('/batch-move', auth, async (req, res) => {
+    try {
+        const { cardIds, chapterId } = req.body;
+
+        if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '请选择要移动的卡片'
+            });
+        }
+
+        const result = await CardModel.batchUpdateChapter(cardIds, chapterId || null, req.user.id);
+
+        res.json({
+            success: true,
+            data: { count: result.count }
+        });
+    } catch (error) {
+        console.error('Batch move cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '批量移动卡片失败'
         });
     }
 });

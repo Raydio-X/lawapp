@@ -3,6 +3,7 @@
     "pages/login/login",
     "pages/home/home",
     "pages/home/hotCards/hotCards",
+    "pages/home/search/search",
     "pages/study/index",
     "pages/study/select",
     "pages/study/cards/cards",

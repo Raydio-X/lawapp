@@ -11,7 +11,6 @@
         />
         <view class="user-detail">
           <text class="user-name">{{userInfo.nickName || '法硕考生'}}</text>
-          <text class="user-bio">{{userInfo.bio || '法硕备考中，每天进步一点点'}}</text>
         </view>
       </view>
       <view class="user-edit" bindtap="onEditProfile">
@@ -118,12 +117,30 @@
         <t-icon slot="left-icon" name="star" size="44rpx" color="#FFAD1F" />
         <view slot="note" class="custom-badge" wx:if="{{stats.favoriteCount > 0}}">{{stats.favoriteCount}}</view>
       </t-cell>
+      <t-cell 
+        title="消息中心" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="message"
+      >
+        <t-icon slot="left-icon" name="notification" size="44rpx" color="#0052D9" />
+      </t-cell>
     </t-cell-group>
   </view>
 
   <!-- 其他功能 -->
   <view class="menu-section">
     <t-cell-group>
+      <t-cell 
+        title="我的成就" 
+        hover 
+        arrow
+        bindtap="onMenuTap"
+        data-menu="achievement"
+      >
+        <t-icon slot="left-icon" name="certificate" size="44rpx" color="#E37324" />
+      </t-cell>
       <t-cell 
         title="学习计划" 
         hover 
@@ -134,13 +151,13 @@
         <t-icon slot="left-icon" name="calendar" size="44rpx" color="#00A870" />
       </t-cell>
       <t-cell 
-        title="设置" 
+        title="激活中心" 
         hover 
         arrow
         bindtap="onMenuTap"
-        data-menu="settings"
+        data-menu="activation"
       >
-        <t-icon slot="left-icon" name="setting" size="44rpx" color="#999" />
+        <t-icon slot="left-icon" name="link" size="44rpx" color="#7B61FF" />
       </t-cell>
     </t-cell-group>
   </view>
@@ -165,4 +182,35 @@
 
   <!-- 底部占位 -->
   <view class="bottom-placeholder"></view>
+
+  <!-- 学习计划弹窗 -->
+  <view class="plan-popup" wx:if="{{showPlanPicker}}" bindtap="onClosePlanPicker">
+    <view class="plan-picker-container" catchtap="preventClose">
+      <view class="plan-picker-header">
+        <text class="plan-picker-title">设置每日学习目标</text>
+        <view class="plan-picker-close" bindtap="onClosePlanPicker">
+          <t-icon name="close" size="32rpx" color="#999" />
+        </view>
+      </view>
+      
+      <view class="plan-picker-body">
+        <picker-view 
+          class="plan-picker-view" 
+          value="{{pickerValue}}" 
+          bindchange="onPickerChange"
+          indicator-style="height: 88rpx;"
+        >
+          <picker-view-column>
+            <view class="picker-item" wx:for="{{cardCountOptions}}" wx:key="*this">
+              {{item}} 张
+            </view>
+          </picker-view-column>
+        </picker-view>
+      </view>
+      
+      <view class="plan-picker-footer">
+        <view class="plan-picker-btn confirm" bindtap="onConfirmPlan">确定</view>
+      </view>
+    </view>
+  </view>
 </view>

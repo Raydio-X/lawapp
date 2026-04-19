@@ -209,11 +209,24 @@ const upload = (url, filePath, options = {}) => {
           } catch (e) {
             resolve({ data: res.data });
           }
+        } else if (res.statusCode === 401) {
+          wx.removeStorageSync(TOKEN_KEY);
+          wx.removeStorageSync('userInfo');
+          wx.showToast({ title: '登录已过期，请重新登录', icon: 'none' });
+          setTimeout(() => { wx.redirectTo({ url: '/pages/login/login' }); }, 1500);
+          reject(new Error('登录已过期'));
         } else {
-          reject(new Error('上传失败'));
+          try {
+            const data = JSON.parse(res.data);
+            reject(new Error(data.message || `上传失败 (${res.statusCode})`));
+          } catch (e) {
+            reject(new Error(`上传失败 (${res.statusCode})`));
+          }
         }
       },
-      fail: reject
+      fail: (err) => {
+        reject(new Error(err.errMsg || '网络请求失败'));
+      }
     });
   });
 };
@@ -292,6 +305,11 @@ const libraryAPI = {
   // 获取分类列表
   getCategories: () => {
     return get('/libraries/categories');
+  },
+
+  // 搜索知识库
+  search: (keyword, params = {}) => {
+    return get('/libraries/search', { keyword, ...params });
   },
 
   // 收藏/取消收藏
@@ -407,6 +425,17 @@ const cardAPI = {
   // 获取待复习卡片数量
   getReviewCount: () => {
     return get('/cards/review/count');
+  },
+
+  batchImport: (filePath, formData) => {
+    return upload('/cards/batch-import', filePath, {
+      name: 'file',
+      formData: formData || {}
+    });
+  },
+
+  batchMove: (cardIds, chapterId) => {
+    return post('/cards/batch-move', { cardIds, chapterId });
   }
 };
 
@@ -500,6 +529,10 @@ const studyAPI = {
 
   getTodayStudyTime: (options = {}) => {
     return get('/study/today-time', {}, { showLoading: false, ...options });
+  },
+
+  updateDailyGoal: (goal) => {
+    return put('/study/daily-goal', { goal });
   }
 };
 

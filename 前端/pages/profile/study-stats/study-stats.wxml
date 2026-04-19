@@ -33,9 +33,10 @@
       <view class="heatmap-grid">
         <block wx:for="{{heatmapDays}}" wx:key="day">
           <view 
-            class="heatmap-cell {{item.level}} {{item.isToday ? 'today' : ''}}" 
+            class="heatmap-cell {{item.level}} {{item.isToday ? 'today' : ''}} {{selectedDay && selectedDay.dateStr === item.dateStr ? 'selected' : ''}}" 
             bindtap="onCellTap"
             data-day="{{item}}"
+            id="cell-{{item.day}}"
           >
             <text class="cell-day" wx:if="{{!item.isEmpty}}">{{item.day}}</text>
           </view>
@@ -71,41 +72,13 @@
     ></radar-chart>
   </view>
 
-  <!-- 选中日期详情 - 新设计 -->
-  <view class="day-detail-popup" wx:if="{{selectedDay}}" bindtap="onCloseDetail">
-    <view class="day-detail-card" catchtap="preventClose">
-      <view class="detail-header">
-        <text class="detail-date">{{selectedDay.date}}</text>
-        <view class="detail-close" bindtap="onCloseDetail">
-          <t-icon name="close" size="32rpx" color="#999" />
-        </view>
-      </view>
-      
-      <view class="detail-body">
-        <view class="detail-stat">
-          <view class="detail-stat-icon">
-            <t-icon name="time" size="48rpx" color="#0052D9" />
-          </view>
-          <view class="detail-stat-info">
-            <text class="detail-stat-value">{{selectedDay.duration}}</text>
-            <text class="detail-stat-unit">分钟</text>
-          </view>
-          <text class="detail-stat-label">学习时长</text>
-        </view>
-        
-        <view class="detail-divider"></view>
-        
-        <view class="detail-stat">
-          <view class="detail-stat-icon">
-            <t-icon name="view-module" size="48rpx" color="#0052D9" />
-          </view>
-          <view class="detail-stat-info">
-            <text class="detail-stat-value">{{selectedDay.cards}}</text>
-            <text class="detail-stat-unit">张</text>
-          </view>
-          <text class="detail-stat-label">学习卡片</text>
-        </view>
-      </view>
+  <!-- 选中日期标签 -->
+  <view class="tooltip-mask" wx:if="{{selectedDay}}" bindtap="onCloseDetail"></view>
+  <view class="day-tooltip {{showArrowTop ? '' : 'arrow-bottom'}}" wx:if="{{selectedDay}}" style="top: {{tooltipTop}}px; left: {{tooltipLeft}}px;">
+    <view class="tooltip-content">
+      <text class="tooltip-date">{{selectedDay.date}}</text>
+      <text class="tooltip-duration">学习 {{selectedDay.duration}} 分钟</text>
     </view>
+    <view class="tooltip-arrow" style="left: {{arrowOffset}}px;"></view>
   </view>
 </view>

@@ -77,6 +77,39 @@ router.get('/recommended', async (req, res) => {
     }
 });
 
+router.get('/search', optionalAuth, async (req, res) => {
+    try {
+        const { keyword, page, pageSize } = req.query;
+
+        if (!keyword) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '搜索关键词不能为空'
+            });
+        }
+
+        const result = await LibraryModel.getList({
+            keyword,
+            page: parseInt(page) || 1,
+            pageSize: parseInt(pageSize) || 10,
+            userId: req.user?.id
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Search libraries error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '搜索失败'
+        });
+    }
+});
+
 router.get('/categories', async (req, res) => {
     try {
         const categories = await LibraryModel.getCategories();

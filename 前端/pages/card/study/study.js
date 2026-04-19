@@ -75,14 +75,52 @@ Page({
     try {
       if (this.data.libraryId === 'hot_cards') {
         await this.loadHotCards(cardId, index);
-      } else {
+      } else if (this.data.libraryId) {
         await this.loadLibraryCards(cardId, index);
+      } else if (cardId) {
+        await this.loadSingleCard(cardId);
+      } else {
+        wx.showToast({ title: '参数错误', icon: 'none' });
+        setTimeout(() => wx.navigateBack(), 1500);
       }
     } catch (error) {
       console.error('加载卡片失败:', error);
       wx.showToast({ title: error.message || '加载失败', icon: 'none' });
     } finally {
       this.setData({ loading: false });
+    }
+  },
+
+  async loadSingleCard(cardId) {
+    try {
+      const res = await cardAPI.getDetail(cardId);
+      if (res.success && res.data) {
+        const card = res.data;
+        const cardList = [{
+          id: card.id,
+          question: card.question,
+          answer: card.answer,
+          tags: card.tags || [],
+          learned: card.is_learned || false,
+          studyCount: card.study_count || 0
+        }];
+
+        this.setData({
+          cardList: cardList,
+          totalCards: 1,
+          currentIndex: 0,
+          currentCard: cardList[0],
+          answerRevealed: false,
+          libraryName: card.library_name || '卡片详情'
+        });
+
+        wx.setNavigationBarTitle({ title: '卡片详情' });
+        this.loadComments(card.id);
+        this.checkFavorite(card.id);
+      }
+    } catch (error) {
+      console.error('加载卡片详情失败:', error);
+      throw error;
     }
   },
 

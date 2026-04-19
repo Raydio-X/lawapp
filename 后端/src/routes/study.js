@@ -1,5 +1,6 @@
 const express = require('express');
 const StudyModel = require('../models/Study');
+const UserModel = require('../models/User');
 const { auth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -251,6 +252,34 @@ router.get('/today-time', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '获取今日学习时间失败'
+        });
+    }
+});
+
+router.put('/daily-goal', auth, async (req, res) => {
+    try {
+        const { goal } = req.body;
+        
+        if (!goal || goal < 10 || goal > 70) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '每日目标必须在10-70之间'
+            });
+        }
+
+        await UserModel.updateDailyGoal(req.user.id, goal);
+
+        res.json({
+            success: true,
+            data: { dailyGoal: goal }
+        });
+    } catch (error) {
+        console.error('Update daily goal error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '设置每日目标失败'
         });
     }
 });

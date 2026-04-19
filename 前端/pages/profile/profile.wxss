@@ -43,11 +43,6 @@
   color: #fff;
 }
 
-.user-bio {
-  font-size: 26rpx;
-  color: rgba(255, 255, 255, 0.8);
-}
-
 .user-edit {
   width: 64rpx;
   height: 64rpx;
@@ -369,4 +364,98 @@
 /* 底部占位 */
 .bottom-placeholder {
   height: 48rpx;
+}
+
+/* 学习计划弹窗 */
+.plan-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.plan-picker-container {
+  width: 100%;
+  background: #fff;
+  border-radius: 32rpx 32rpx 0 0;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.plan-picker-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 32rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.plan-picker-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+.plan-picker-close {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 50%;
+}
+
+.plan-picker-body {
+  padding: 24rpx 0;
+}
+
+.plan-picker-view {
+  height: 400rpx;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  color: #333;
+}
+
+.plan-picker-footer {
+  display: flex;
+  justify-content: center;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+}
+
+.plan-picker-btn {
+  width: 45%;
+  height: 75rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 500;
+}
+
+.plan-picker-btn.confirm {
+  background: #0052D9;
+  color: #fff;
 }

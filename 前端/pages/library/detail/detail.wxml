@@ -31,85 +31,108 @@
     </view>
   </view>
 
-  <!-- 区域二：章节目录（树形结构） -->
+  <!-- 区域二：章节目录（时间线风格） -->
   <view class="catalog-section">
     <view class="catalog-header">
-      <text class="catalog-title">章节目录</text>
+      <view class="catalog-title-row">
+        <view class="catalog-title-icon">
+          <t-icon name="view-list" size="36rpx" color="#0052D9" />
+        </view>
+        <text class="catalog-title">章节目录</text>
+      </view>
     </view>
 
-    <!-- 章节树形列表 -->
-    <view class="chapter-tree">
+    <view class="chapter-timeline">
       <view 
-        class="chapter-tree-item {{item.expanded ? 'expanded' : ''}}" 
+        class="chapter-timeline-node {{item.expanded ? 'expanded' : ''}} {{selectedChapterIndex === chapterIndex && selectedChildIndex === -1 && selectedGrandChildIndex === -1 ? 'active' : ''}}" 
         wx:for="{{chapters}}" 
         wx:key="id"
         wx:for-item="chapter"
         wx:for-index="chapterIndex"
       >
-        <!-- 一级：章节标题 -->
-        <view 
-          class="chapter-tree-header {{selectedChapterIndex === chapterIndex && selectedChildIndex === -1 && selectedGrandChildIndex === -1 ? 'active' : ''}}"
-          bindtap="onChapterTap"
-          data-index="{{chapterIndex}}"
-        >
-          <view class="chapter-tree-title-wrap">
-            <t-icon 
-              wx:if="{{chapter.children && chapter.children.length > 0}}"
-              name="{{chapter.expanded ? 'caret-up-small' : 'caret-down-small'}}" 
-              size="36rpx" 
-              color="{{selectedChapterIndex === chapterIndex ? '#fff' : '#666'}}" 
-            />
-            <view class="chapter-tree-placeholder" wx:else></view>
-            <text class="chapter-tree-title">{{chapter.title}}</text>
+        <view class="timeline-track">
+          <view class="timeline-dot-wrap" bindtap="onChapterTap" data-index="{{chapterIndex}}">
+            <view class="timeline-dot"></view>
           </view>
-          <view class="chapter-tree-stats">
-            <text class="chapter-tree-count">{{chapter.cards.length}}张</text>
-            <text class="chapter-tree-progress">{{chapter.learnedCount}}/{{chapter.cards.length}}</text>
-          </view>
+          <view class="timeline-line"></view>
         </view>
 
-        <!-- 二级：子章节列表（展开时显示） -->
-        <view class="section-tree-list" wx:if="{{chapter.expanded && chapter.children && chapter.children.length > 0}}">
+        <view class="timeline-content">
           <view 
-            class="section-tree-item {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === -1 ? 'active' : ''}}"
-            wx:for="{{chapter.children}}" 
-            wx:for-item="childChapter"
-            wx:for-index="childIndex"
-            wx:key="id"
+            class="chapter-card {{selectedChapterIndex === chapterIndex && selectedChildIndex === -1 && selectedGrandChildIndex === -1 ? 'active' : ''}}"
+            bindtap="onChapterTap"
+            data-index="{{chapterIndex}}"
           >
-            <view 
-              class="section-tree-header"
-              bindtap="onChildChapterTap"
-              data-chapter-index="{{chapterIndex}}"
-              data-child-index="{{childIndex}}"
-            >
-              <view class="section-tree-dot"></view>
-              <text class="section-tree-title-text">{{childChapter.title}}</text>
-              <text class="section-tree-count">{{childChapter.cards.length}}张</text>
-              <t-icon 
-                wx:if="{{childChapter.children && childChapter.children.length > 0}}"
-                name="{{childChapter.expanded ? 'caret-up-small' : 'caret-down-small'}}" 
-                size="28rpx" 
-                color="#666" 
-              />
+            <view class="chapter-card-main">
+              <view class="chapter-card-left">
+                <text class="chapter-card-title">{{chapter.title}}</text>
+              </view>
+              <view class="chapter-card-right">
+                <view class="chapter-progress-bar">
+                  <view class="chapter-progress-fill" style="width: {{chapter.cards.length > 0 ? (chapter.learnedCount / chapter.cards.length * 100) : 0}}%;"></view>
+                </view>
+                <text class="chapter-card-progress-text">{{chapter.learnedCount}}/{{chapter.cards.length}}</text>
+                <t-icon 
+                  wx:if="{{chapter.children && chapter.children.length > 0}}"
+                  name="{{chapter.expanded ? 'caret-up-small' : 'caret-down-small'}}" 
+                  size="28rpx" 
+                  color="#999" 
+                />
+              </view>
             </view>
-            
-            <!-- 三级：孙子章节列表 -->
-            <view class="grandchild-tree-list" wx:if="{{childChapter.expanded && childChapter.children && childChapter.children.length > 0}}">
-              <view 
-                class="grandchild-tree-item {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === grandChildIndex ? 'active' : ''}}"
-                wx:for="{{childChapter.children}}" 
-                wx:for-item="grandChildChapter"
-                wx:for-index="grandChildIndex"
-                wx:key="id"
-                bindtap="onGrandChildChapterTap"
-                data-chapter-index="{{chapterIndex}}"
-                data-child-index="{{childIndex}}"
-                data-grandchild-index="{{grandChildIndex}}"
-              >
-                <view class="grandchild-tree-dot"></view>
-                <text class="grandchild-tree-title-text">{{grandChildChapter.title}}</text>
-                <text class="grandchild-tree-count">{{grandChildChapter.cards.length}}张</text>
+          </view>
+
+          <view class="section-timeline" wx:if="{{chapter.expanded && chapter.children && chapter.children.length > 0}}">
+            <view 
+              class="section-timeline-node {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === -1 ? 'active' : ''}}"
+              wx:for="{{chapter.children}}" 
+              wx:for-item="childChapter"
+              wx:for-index="childIndex"
+              wx:key="id"
+            >
+              <view class="section-track">
+                <view class="section-dot-wrap">
+                  <view class="section-dot"></view>
+                </view>
+                <view class="section-line"></view>
+              </view>
+
+              <view class="section-content">
+                <view 
+                  class="section-card {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === -1 ? 'active' : ''}}"
+                  bindtap="onChildChapterTap"
+                  data-chapter-index="{{chapterIndex}}"
+                  data-child-index="{{childIndex}}"
+                >
+                  <text class="section-card-title">{{childChapter.title}}</text>
+                  <view class="section-card-meta">
+                    <text class="section-card-count">{{childChapter.cards.length}}张</text>
+                    <t-icon 
+                      wx:if="{{childChapter.children && childChapter.children.length > 0}}"
+                      name="{{childChapter.expanded ? 'caret-up-small' : 'caret-down-small'}}" 
+                      size="24rpx" 
+                      color="#bbb" 
+                    />
+                  </view>
+                </view>
+
+                <view class="grandchild-list" wx:if="{{childChapter.expanded && childChapter.children && childChapter.children.length > 0}}">
+                  <view 
+                    class="grandchild-item {{selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === grandChildIndex ? 'active' : ''}}"
+                    wx:for="{{childChapter.children}}" 
+                    wx:for-item="grandChildChapter"
+                    wx:for-index="grandChildIndex"
+                    wx:key="id"
+                    bindtap="onGrandChildChapterTap"
+                    data-chapter-index="{{chapterIndex}}"
+                    data-child-index="{{childIndex}}"
+                    data-grandchild-index="{{grandChildIndex}}"
+                  >
+                    <view class="grandchild-dot"></view>
+                    <text class="grandchild-title">{{grandChildChapter.title}}</text>
+                    <text class="grandchild-count">{{grandChildChapter.cards.length}}张</text>
+                  </view>
+                </view>
               </view>
             </view>
           </view>
