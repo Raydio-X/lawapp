@@ -1,0 +1,134 @@
+<view class="container" style="padding-top: {{navBarHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <text class="nav-title">社区</text>
+    </view>
+  </view>
+  <view class="search-section" style="top: {{navBarHeight}}px;">
+    <view class="search-box">
+      <t-icon name="search" size="40rpx" color="#999" />
+      <input 
+        class="search-input" 
+        placeholder="搜索知识卡片 / 知识库" 
+        placeholder-class="placeholder"
+        bindinput="onSearchInput"
+        bindconfirm="onSearchConfirm"
+        value="{{searchValue}}"
+      />
+      <t-icon wx:if="{{searchValue}}" name="close-circle-filled" size="40rpx" color="#ccc" bindtap="clearSearch" />
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">热门卡片</text>
+      <view class="more-link" bindtap="goToMoreCards">
+        <text>查看更多</text>
+        <t-icon name="chevron-right" size="28rpx" color="#999" />
+      </view>
+    </view>
+    <scroll-view class="hot-cards-scroll" scroll-x="true" show-scrollbar="false">
+      <view class="hot-cards-list">
+        <view 
+          class="hot-card" 
+          wx:for="{{hotCards}}" 
+          wx:key="id"
+          bindtap="onCardTap"
+          data-index="{{index}}"
+          data-type="hot"
+        >
+          <view class="hot-card-content">
+            <view class="hot-card-title">{{item.title}}</view>
+            <view class="hot-card-tags">
+              <t-tag 
+                wx:for="{{item.tags}}" 
+                wx:for-item="tag" 
+                wx:key="*this"
+                theme="primary" 
+                variant="light"
+                size="small"
+              >{{tag}}</t-tag>
+            </view>
+          </view>
+          <view class="hot-card-footer">
+            <view class="like-count {{item.liked ? 'liked' : ''}}" catchtap="onLikeCard" data-index="{{index}}" data-id="{{item.id}}">
+              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
+              <text>{{item.likes}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <view class="section library-section">
+    <view class="section-header">
+      <text class="section-title">优质知识库</text>
+      <view class="filter-tabs">
+        <view 
+          class="filter-tab {{currentFilter === 'all' ? 'active' : ''}}" 
+          bindtap="onFilterChange"
+          data-filter="all"
+        >全部</view>
+        <view 
+          class="filter-tab {{currentFilter === 'civil' ? 'active' : ''}}" 
+          bindtap="onFilterChange"
+          data-filter="civil"
+        >民法</view>
+        <view 
+          class="filter-tab {{currentFilter === 'criminal' ? 'active' : ''}}" 
+          bindtap="onFilterChange"
+          data-filter="criminal"
+        >刑法</view>
+      </view>
+    </view>
+    <view class="library-grid">
+      <view 
+        class="library-card" 
+        wx:for="{{libraries}}" 
+        wx:key="id"
+        bindtap="onLibraryTap"
+        data-index="{{index}}"
+      >
+        <view class="library-card-header">
+          <view class="library-icon">
+            <t-icon name="folder" size="48rpx" color="#0052D9" />
+          </view>
+        </view>
+        <view class="library-card-body">
+          <text class="library-name">{{item.name}}</text>
+          <view class="library-tags">
+            <t-tag theme="primary" variant="light" size="small">{{item.subject}}</t-tag>
+          </view>
+        </view>
+        <view class="library-card-footer">
+          <view class="stat-item">
+            <t-icon name="file" size="28rpx" color="#999" />
+            <text>{{item.cardCount}}张卡片</text>
+          </view>
+          <view class="stat-item fav-stat {{item.isFavorited ? 'favorited' : ''}}" catchtap="onFavoriteLibrary" data-index="{{index}}" data-id="{{item.id}}">
+            <t-icon name="{{item.isFavorited ? 'star-filled' : 'star'}}" size="28rpx" color="{{item.isFavorited ? '#FAAD14' : '#999'}}" />
+            <text class="fav-text">{{item.favorites || 0}}收藏</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-placeholder"></view>
+
+  <view class="admin-tab-bar">
+    <view class="tab-item active" bindtap="onSwitchTab" data-tab="{{0}}">
+      <t-icon name="home" size="44rpx" color="#0052D9" />
+      <text class="tab-text active-text">社区</text>
+    </view>
+    <view class="tab-item" bindtap="onSwitchTab" data-tab="{{1}}">
+      <t-icon name="setting" size="44rpx" color="#999" />
+      <text class="tab-text">管理</text>
+    </view>
+    <view class="tab-item" bindtap="onLogout">
+      <t-icon name="poweroff" size="44rpx" color="#999" />
+      <text class="tab-text">退出</text>
+    </view>
+  </view>
+</view>

@@ -39,6 +39,16 @@ Page({
   },
 
   navigateToTarget() {
+    const userInfo = wx.getStorageSync('userInfo');
+    const isAdmin = userInfo && userInfo.role === 'admin';
+
+    if (isAdmin) {
+      wx.reLaunch({
+        url: '/pages/admin/community/community'
+      });
+      return;
+    }
+
     if (this.redirectUrl) {
       if (this.redirectUrl.includes('/pages/home/home') || 
           this.redirectUrl.includes('/pages/create/create') || 
@@ -102,9 +112,12 @@ Page({
         const { token, userInfo: serverUserInfo } = response.data;
         
         wx.setStorageSync('access_token', token);
-        wx.setStorageSync('userInfo', serverUserInfo || {
-          nickname: userProfile.nickName,
-          avatarUrl: userProfile.avatarUrl
+        wx.setStorageSync('userInfo', {
+          id: serverUserInfo.id,
+          nickName: serverUserInfo.nickname || userProfile.nickName,
+          avatarUrl: serverUserInfo.avatar || userProfile.avatarUrl,
+          bio: serverUserInfo.bio,
+          role: serverUserInfo.role || 'user'
         });
         wx.removeStorageSync('isGuest');
 
@@ -158,9 +171,12 @@ Page({
         const { token, userInfo: serverUserInfo } = response.data;
         
         wx.setStorageSync('access_token', token);
-        wx.setStorageSync('userInfo', serverUserInfo || {
-          nickname: userProfile.nickName,
-          avatarUrl: userProfile.avatarUrl
+        wx.setStorageSync('userInfo', {
+          id: serverUserInfo.id,
+          nickName: serverUserInfo.nickname || userProfile.nickName,
+          avatarUrl: serverUserInfo.avatar || userProfile.avatarUrl,
+          bio: serverUserInfo.bio,
+          role: serverUserInfo.role || 'user'
         });
         wx.removeStorageSync('isGuest');
 
@@ -272,9 +288,11 @@ Page({
         
         wx.setStorageSync('access_token', token);
         wx.setStorageSync('userInfo', {
+          id: serverUserInfo.id,
           nickName: serverUserInfo.nickname,
           avatarUrl: serverUserInfo.avatar,
-          bio: serverUserInfo.bio
+          bio: serverUserInfo.bio,
+          role: serverUserInfo.role || 'user'
         });
         wx.removeStorageSync('isGuest');
 

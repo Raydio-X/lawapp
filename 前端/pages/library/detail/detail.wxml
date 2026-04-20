@@ -142,7 +142,7 @@
   </view>
 
   <!-- 区域三：选中章节的卡片列表 -->
-  <view class="cards-section" wx:if="{{selectedChapter}}">
+  <view class="cards-section" id="cards-section" wx:if="{{selectedChapter}}">
     <view class="cards-header">
       <text class="cards-title">{{selectedChapter.title}}</text>
       <text class="cards-subtitle">

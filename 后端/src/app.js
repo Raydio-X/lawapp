@@ -10,6 +10,7 @@ const studyRoutes = require('./routes/study');
 const commentRoutes = require('./routes/comments');
 const favoriteRoutes = require('./routes/favorites');
 const examRoutes = require('./routes/exam');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 
@@ -30,7 +31,8 @@ app.get('/', (req, res) => {
             study: '/api/study',
             comments: '/api/comments',
             favorites: '/api/favorites',
-            exam: '/api/exam'
+            exam: '/api/exam',
+            admin: '/api/admin'
         }
     });
 });
@@ -59,6 +61,7 @@ app.use('/api/study', studyRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/exam', examRoutes);
+app.use('/api/admin', adminRoutes);
 
 app.use((err, req, res, next) => {
     console.error('Error:', err);

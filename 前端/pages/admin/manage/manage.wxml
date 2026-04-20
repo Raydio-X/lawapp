@@ -1,0 +1,311 @@
+<wxs module="utils">
+module.exports = {
+  contains: function(arr, val) {
+    if (!arr || !arr.length) return false;
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i] === val) return true;
+    }
+    return false;
+  }
+}
+</wxs>
+
+<view class="container" style="padding-top: {{navBarHeight}}px;">
+  <view class="custom-nav" style="padding-top: {{statusBarHeight}}px;">
+    <view class="nav-content">
+      <text class="nav-title">管理</text>
+    </view>
+  </view>
+  <view class="tab-bar" style="top: {{navBarHeight}}px;">
+    <view class="tab-item {{activeTab === 'stats' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="stats">
+      <t-icon name="chart-bar" size="36rpx" color="{{activeTab === 'stats' ? '#0052D9' : '#999'}}" />
+      <text>概览</text>
+    </view>
+    <view class="tab-item {{activeTab === 'libraries' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="libraries">
+      <t-icon name="folder" size="36rpx" color="{{activeTab === 'libraries' ? '#0052D9' : '#999'}}" />
+      <text>知识库</text>
+    </view>
+    <view class="tab-item {{activeTab === 'cards' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="cards">
+      <t-icon name="file" size="36rpx" color="{{activeTab === 'cards' ? '#0052D9' : '#999'}}" />
+      <text>卡片</text>
+    </view>
+    <view class="tab-item {{activeTab === 'comments' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="comments">
+      <t-icon name="chat" size="36rpx" color="{{activeTab === 'comments' ? '#0052D9' : '#999'}}" />
+      <text>评论</text>
+    </view>
+  </view>
+
+  <!-- 概览统计 -->
+  <view class="content" wx:if="{{activeTab === 'stats'}}">
+    <view class="stats-grid">
+      <view class="stat-card">
+        <view class="stat-icon blue">
+          <t-icon name="folder" size="48rpx" color="#0052D9" />
+        </view>
+        <view class="stat-info">
+          <text class="stat-value">{{stats.totalLibraries}}</text>
+          <text class="stat-label">知识库总数</text>
+        </view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-icon green">
+          <t-icon name="file" size="48rpx" color="#52c41a" />
+        </view>
+        <view class="stat-info">
+          <text class="stat-value">{{stats.totalCards}}</text>
+          <text class="stat-label">卡片总数</text>
+        </view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-icon orange">
+          <t-icon name="user" size="48rpx" color="#fa8c16" />
+        </view>
+        <view class="stat-info">
+          <text class="stat-value">{{stats.totalUsers}}</text>
+          <text class="stat-label">用户总数</text>
+        </view>
+      </view>
+      <view class="stat-card">
+        <view class="stat-icon red">
+          <t-icon name="chat" size="48rpx" color="#f5222d" />
+        </view>
+        <view class="stat-info">
+          <text class="stat-value">{{stats.totalComments}}</text>
+          <text class="stat-label">评论总数</text>
+        </view>
+      </view>
+    </view>
+    <view class="stats-detail">
+      <view class="detail-row">
+        <text class="detail-label">公开知识库</text>
+        <text class="detail-value">{{stats.publicLibraries}} / {{stats.totalLibraries}}</text>
+      </view>
+      <view class="detail-row">
+        <text class="detail-label">公开卡片</text>
+        <text class="detail-value">{{stats.publicCards}} / {{stats.totalCards}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 知识库管理 -->
+  <view class="content" wx:if="{{activeTab === 'libraries'}}">
+    <view class="search-bar">
+      <input class="search-input" placeholder="搜索知识库" value="{{libraryKeyword}}" bindinput="onLibrarySearchInput" bindconfirm="onLibrarySearch" />
+      <view class="add-btn" bindtap="onShowCreateLibrary">
+        <t-icon name="add" size="36rpx" color="#fff" />
+        <text>新建</text>
+      </view>
+    </view>
+    <view class="list">
+      <view class="list-item" wx:for="{{libraries}}" wx:key="id">
+        <view class="item-main">
+          <view class="item-header">
+            <text class="item-title">{{item.name}}</text>
+          </view>
+          <view class="item-meta">
+            <text class="meta-text">{{item.card_count || 0}}张卡片</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">{{item.creator_name || '未知'}}</text>
+          </view>
+          <view class="item-tags">
+            <t-tag theme="{{item.is_public ? 'success' : 'warning'}}" variant="light" size="small">{{item.is_public ? '公开' : '私有'}}</t-tag>
+            <t-tag wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" theme="primary" variant="light" size="small">{{tag}}</t-tag>
+          </view>
+        </view>
+        <view class="item-actions" wx:if="{{item.created_by === currentUserId}}">
+          <view class="action-btn edit" catchtap="onEditLibrary" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="edit" size="32rpx" color="#0052D9" />
+          </view>
+          <view class="action-btn delete" catchtap="onDeleteLibrary" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="delete" size="32rpx" color="#f5222d" />
+          </view>
+        </view>
+      </view>
+      <view class="load-more" wx:if="{{libraryHasMore}}" bindtap="loadMoreLibraries">
+        <text>加载更多</text>
+      </view>
+      <view class="empty-tip" wx:if="{{libraries.length === 0}}">
+        <text>暂无知识库</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 卡片管理 -->
+  <view class="content" wx:if="{{activeTab === 'cards'}}">
+    <view class="search-bar">
+      <input class="search-input" placeholder="搜索卡片" value="{{cardKeyword}}" bindinput="onCardSearchInput" bindconfirm="onCardSearch" />
+      <view class="add-btn" bindtap="onShowCreateCard" wx:if="{{!isBatchSelectMode}}">
+        <t-icon name="add" size="36rpx" color="#fff" />
+        <text>新建</text>
+      </view>
+    </view>
+    <view class="filter-row">
+      <view class="filter-chip {{cardFilterPublic === '' ? 'active' : ''}}" bindtap="onCardFilterChange" data-filter="">全部</view>
+      <view class="filter-chip {{cardFilterPublic === '1' ? 'active' : ''}}" bindtap="onCardFilterChange" data-filter="1">公开</view>
+      <view class="filter-chip {{cardFilterPublic === '0' ? 'active' : ''}}" bindtap="onCardFilterChange" data-filter="0">私有</view>
+    </view>
+    
+    <!-- 批量操作工具栏 -->
+    <view class="batch-toolbar" wx:if="{{cards.length > 0}}">
+      <view class="batch-toggle-btn {{isBatchSelectMode ? 'active' : ''}}" bindtap="onToggleBatchSelect">
+        <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#0052D9' : '#666'}}" />
+        <text>{{isBatchSelectMode ? '取消选择' : '批量管理'}}</text>
+      </view>
+      <view class="batch-actions" wx:if="{{isBatchSelectMode}}">
+        <view class="select-all-btn" bindtap="onSelectAllCards">
+          <text>{{isAllSelected ? '取消全选' : '全选'}}</text>
+        </view>
+        <view class="move-btn {{selectedCardIds.length > 0 ? '' : 'disabled'}}" bindtap="onShowChapterPicker">
+          <t-icon name="folder-move" size="32rpx" color="{{selectedCardIds.length > 0 ? '#0052D9' : '#ccc'}}" />
+          <text>移动到章节</text>
+        </view>
+      </view>
+    </view>
+    
+    <!-- 已选择数量提示 -->
+    <view class="selected-count-bar" wx:if="{{isBatchSelectMode && selectedCardIds.length > 0}}">
+      <text>已选择 {{selectedCardIds.length}} 张卡片</text>
+    </view>
+    
+    <view class="list">
+      <view class="list-item card-item {{isBatchSelectMode && utils.contains(selectedCardIds, item.id) ? 'selected' : ''}}" wx:for="{{cards}}" wx:key="id">
+        <view class="item-main" bindtap="{{isBatchSelectMode && item.created_by === currentUserId ? 'onSelectCard' : ''}}" data-id="{{item.id}}">
+          <view class="select-checkbox" wx:if="{{isBatchSelectMode && item.created_by === currentUserId}}">
+            <t-icon name="{{utils.contains(selectedCardIds, item.id) ? 'check-circle-filled' : 'circle'}}" size="40rpx" color="{{utils.contains(selectedCardIds, item.id) ? '#0052D9' : '#ccc'}}" />
+          </view>
+          <view class="item-content">
+            <view class="item-header">
+              <text class="item-title card-title-text">{{item.question}}</text>
+            </view>
+            <view class="item-meta">
+              <text class="meta-text">{{item.library_name || '未知知识库'}}</text>
+              <text class="meta-divider">·</text>
+              <text class="meta-text">{{item.like_count || 0}}赞</text>
+              <text class="meta-divider">·</text>
+              <text class="meta-text">{{item.study_count || 0}}次学习</text>
+            </view>
+            <view class="card-tags">
+              <t-tag theme="{{item.is_public ? 'success' : 'warning'}}" variant="light" size="small">{{item.is_public ? '公开' : '私有'}}</t-tag>
+              <t-tag wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" theme="primary" variant="light" size="small">{{tag}}</t-tag>
+            </view>
+          </view>
+        </view>
+        <view class="item-actions" wx:if="{{!isBatchSelectMode && item.created_by === currentUserId}}">
+          <view class="action-btn edit" catchtap="onEditCard" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="edit" size="32rpx" color="#0052D9" />
+          </view>
+          <view class="action-btn delete" catchtap="onDeleteCard" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="delete" size="32rpx" color="#f5222d" />
+          </view>
+        </view>
+      </view>
+      <view class="load-more" wx:if="{{cardHasMore}}" bindtap="loadMoreCards">
+        <text>加载更多</text>
+      </view>
+      <view class="empty-tip" wx:if="{{cards.length === 0}}">
+        <text>暂无卡片</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 评论管理 -->
+  <view class="content" wx:if="{{activeTab === 'comments'}}">
+    <view class="search-bar">
+      <input class="search-input" placeholder="搜索评论" value="{{commentKeyword}}" bindinput="onCommentSearchInput" bindconfirm="onCommentSearch" />
+    </view>
+    <view class="list">
+      <view class="list-item comment-item" wx:for="{{comments}}" wx:key="id">
+        <view class="item-main">
+          <view class="comment-header">
+            <text class="comment-user">{{item.nickname || '匿名用户'}}</text>
+            <text class="comment-time">{{item.created_at}}</text>
+          </view>
+          <text class="comment-content">{{item.content}}</text>
+          <view class="comment-meta">
+            <text class="meta-text">评论卡片: {{item.card_question || '未知'}}</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text">{{item.like_count || 0}}赞</text>
+          </view>
+        </view>
+        <view class="item-actions">
+          <view class="action-btn delete" catchtap="onDeleteComment" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="delete" size="32rpx" color="#f5222d" />
+          </view>
+        </view>
+      </view>
+      <view class="load-more" wx:if="{{commentHasMore}}" bindtap="loadMoreComments">
+        <text>加载更多</text>
+      </view>
+      <view class="empty-tip" wx:if="{{comments.length === 0}}">
+        <text>暂无评论</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-placeholder"></view>
+
+  <!-- 底部Tab -->
+  <view class="admin-tab-bar">
+    <view class="tab-bar-item" bindtap="onSwitchToCommunity">
+      <t-icon name="home" size="44rpx" color="#999" />
+      <text class="tab-bar-text">社区</text>
+    </view>
+    <view class="tab-bar-item active">
+      <t-icon name="setting" size="44rpx" color="#0052D9" />
+      <text class="tab-bar-text active-text">管理</text>
+    </view>
+    <view class="tab-bar-item" bindtap="onLogout">
+      <t-icon name="poweroff" size="44rpx" color="#999" />
+      <text class="tab-bar-text">退出</text>
+    </view>
+  </view>
+
+  <!-- 删除确认 -->
+  <t-dialog
+    id="t-dialog"
+    title="删除确认"
+    content="确定要删除吗？此操作不可恢复。"
+    confirm-btn="确定删除"
+    cancel-btn="取消"
+    bind:confirm="onConfirmDelete"
+    bind:cancel="onCancelDelete"
+    visible="{{showDeleteConfirm}}"
+  />
+
+  <!-- 章节选择弹窗 -->
+  <t-popup 
+    visible="{{showChapterPicker}}" 
+    bind:visible-change="onCloseChapterPicker"
+    placement="bottom"
+  >
+    <view class="chapter-picker-popup">
+      <view class="chapter-picker-header">
+        <text class="chapter-picker-title">选择目标章节</text>
+        <view class="chapter-picker-close" bindtap="onCloseChapterPicker">
+          <t-icon name="close" size="40rpx" color="#999" />
+        </view>
+      </view>
+      <view class="chapter-picker-list">
+        <view 
+          class="chapter-picker-item {{targetChapterId === item.id ? 'selected' : ''}}"
+          wx:for="{{chapterPickerList}}" 
+          wx:key="id"
+          bindtap="onSelectChapter"
+          data-id="{{item.id}}"
+        >
+          <view class="chapter-picker-name" style="padding-left: {{item.level * 20}}rpx;">
+            <view class="chapter-level-indicator" wx:if="{{item.level > 0}}">
+              <text>{{item.level}}级</text>
+            </view>
+            <text>{{item.name}}</text>
+          </view>
+          <t-icon wx:if="{{targetChapterId === item.id}}" name="check" size="36rpx" color="#0052D9" />
+        </view>
+      </view>
+      <view class="chapter-picker-footer">
+        <view class="chapter-picker-btn cancel" bindtap="onCloseChapterPicker">取消</view>
+        <view class="chapter-picker-btn confirm" bindtap="onConfirmMoveCards">确认移动</view>
+      </view>
+    </view>
+  </t-popup>
+</view>

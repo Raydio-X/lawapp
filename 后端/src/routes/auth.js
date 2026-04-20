@@ -93,7 +93,7 @@ router.post('/test-login', async (req, res) => {
             }
 
             const token = jwt.sign(
-                { id: user.id, openid: user.openid },
+                { id: user.id, openid: user.openid, role: 'user' },
                 process.env.JWT_SECRET || 'your_jwt_secret_key',
                 { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
             );
@@ -106,7 +106,39 @@ router.post('/test-login', async (req, res) => {
                         id: user.id,
                         nickname: user.nickname,
                         avatar: user.avatar,
-                        bio: user.bio
+                        bio: user.bio,
+                        role: 'user'
+                    }
+                }
+            });
+        } else if (account === 'admin' && password === 'admin666') {
+            let user = await UserModel.findByOpenid('admin_account');
+            
+            if (!user) {
+                user = await UserModel.create({
+                    openid: 'admin_account',
+                    nickname: '管理员',
+                    avatar: '',
+                    bio: '系统管理员'
+                });
+            }
+
+            const token = jwt.sign(
+                { id: user.id, openid: user.openid, role: 'admin' },
+                process.env.JWT_SECRET || 'your_jwt_secret_key',
+                { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+            );
+
+            res.json({
+                success: true,
+                data: {
+                    token,
+                    userInfo: {
+                        id: user.id,
+                        nickname: user.nickname,
+                        avatar: user.avatar,
+                        bio: user.bio,
+                        role: 'admin'
                     }
                 }
             });

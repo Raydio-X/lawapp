@@ -4,7 +4,8 @@
  */
 
 // API 基础配置
-const API_BASE_URL = 'http://47.97.108.0:3000/api';
+//const API_BASE_URL = 'http://47.97.108.0:3000/api';
+const API_BASE_URL = 'http://localhost:3000/api';
 
 const TOKEN_KEY = 'access_token';
 
@@ -603,6 +604,52 @@ const examAPI = {
   }
 };
 
+const adminAPI = {
+  getStats: () => {
+    return get('/admin/stats');
+  },
+
+  getLibraries: (params = {}) => {
+    return get('/admin/libraries', params);
+  },
+
+  createLibrary: (data) => {
+    return post('/admin/libraries', data);
+  },
+
+  updateLibrary: (id, data) => {
+    return put(`/admin/libraries/${id}`, data);
+  },
+
+  deleteLibrary: (id) => {
+    return del(`/admin/libraries/${id}`);
+  },
+
+  getCards: (params = {}) => {
+    return get('/admin/cards', params);
+  },
+
+  createCard: (data) => {
+    return post('/admin/cards', data);
+  },
+
+  updateCard: (id, data) => {
+    return put(`/admin/cards/${id}`, data);
+  },
+
+  deleteCard: (id) => {
+    return del(`/admin/cards/${id}`);
+  },
+
+  getComments: (params = {}) => {
+    return get('/admin/comments', params);
+  },
+
+  deleteComment: (id) => {
+    return del(`/admin/comments/${id}`);
+  }
+};
+
 module.exports = {
   request,
   get,
@@ -618,5 +665,6 @@ module.exports = {
   studyAPI,
   commentAPI,
   favoriteAPI,
-  examAPI
+  examAPI,
+  adminAPI
 };

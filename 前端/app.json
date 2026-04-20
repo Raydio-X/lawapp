@@ -17,7 +17,11 @@
     "pages/profile/favorites/favorites",
     "pages/profile/study-stats/study-stats",
     "pages/library/detail/detail",
-    "pages/card/study/study"
+    "pages/card/study/study",
+    "pages/admin/community/community",
+    "pages/admin/manage/manage",
+    "pages/admin/libraryForm/libraryForm",
+    "pages/admin/cardForm/cardForm"
   ],
   "tabBar": {
     "color":"#999999",

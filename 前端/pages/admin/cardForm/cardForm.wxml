@@ -1,0 +1,139 @@
+<view class="container">
+  <view class="form-section">
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">所属知识库</text>
+        <text class="label-required">*</text>
+      </view>
+      <view class="picker-wrapper" bindtap="onSelectLibrary">
+        <view class="picker-content {{selectedLibrary ? 'selected' : ''}}">
+          <text>{{selectedLibrary ? selectedLibrary.name : '请选择知识库'}}</text>
+        </view>
+        <t-icon name="chevron-right" size="32rpx" color="#ccc" />
+      </view>
+    </view>
+
+    <view class="form-item" wx:if="{{selectedLibrary}}">
+      <view class="form-label">
+        <text class="label-text">所属章节</text>
+      </view>
+      <view class="picker-wrapper" bindtap="onSelectChapter">
+        <view class="picker-content {{selectedChapter ? 'selected' : ''}}">
+          <text>{{selectedChapter ? selectedChapter.name : '请选择章节（可选）'}}</text>
+        </view>
+        <t-icon name="chevron-right" size="32rpx" color="#ccc" />
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">题目 / 问题</text>
+        <text class="label-required">*</text>
+      </view>
+      <view class="textarea-wrapper">
+        <textarea
+          class="form-textarea"
+          placeholder="请输入题目或问题，例如：正当防卫的构成要件有哪些？"
+          placeholder-class="placeholder"
+          bindinput="onQuestionInput"
+          value="{{question}}"
+          maxlength="500"
+          auto-height
+        />
+        <view class="char-count">{{question.length}}/500</view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">答案 / 解析</text>
+        <text class="label-required">*</text>
+      </view>
+      <view class="textarea-wrapper">
+        <textarea
+          class="form-textarea answer-textarea"
+          placeholder="请输入答案或解析内容，支持换行"
+          placeholder-class="placeholder"
+          bindinput="onAnswerInput"
+          value="{{answer}}"
+          maxlength="2000"
+          auto-height
+        />
+        <view class="char-count">{{answer.length}}/2000</view>
+      </view>
+    </view>
+
+    <view class="form-item">
+      <view class="form-label">
+        <text class="label-text">标签</text>
+        <text class="label-optional">最多3个</text>
+      </view>
+      <view class="tags-input-container">
+        <view class="tags-list-horizontal">
+          <view class="tag-item-horizontal" wx:for="{{tagList}}" wx:key="index">
+            <input 
+              class="tag-input-horizontal" 
+              value="{{item}}" 
+              bindinput="onTagInput" 
+              data-index="{{index}}"
+              placeholder="标签{{index + 1}}"
+              maxlength="10"
+            />
+            <view class="tag-remove-horizontal" catchtap="onRemoveTag" data-index="{{index}}">
+              <t-icon name="close" size="24rpx" color="#999" />
+            </view>
+          </view>
+          <view class="tag-add-btn-horizontal" wx:if="{{tagList.length < 3}}" bindtap="onAddTag">
+            <t-icon name="add" size="28rpx" color="#0052D9" />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <view class="btn-group">
+      <t-button 
+        theme="default" 
+        size="large" 
+        block
+        bindtap="onCancel"
+      >取消</t-button>
+      <t-button 
+        theme="primary" 
+        size="large" 
+        block
+        bindtap="onSubmit"
+        disabled="{{!canSubmit}}"
+      >{{isEdit ? '保存修改' : '创建卡片'}}</t-button>
+    </view>
+  </view>
+
+  <t-picker
+    visible="{{showLibraryPicker}}"
+    value="{{selectedLibraryIndex}}"
+    data-key="library"
+    title="选择知识库"
+    confirm-btn="确定"
+    cancel-btn="取消"
+    bindpick="onLibraryPick"
+    bindconfirm="onLibraryConfirm"
+    bindcancel="onPickerCancel"
+  >
+    <t-picker-item options="{{libraryOptions}}"></t-picker-item>
+  </t-picker>
+
+  <t-picker
+    visible="{{showChapterPicker}}"
+    value="{{selectedChapterIndex}}"
+    data-key="chapter"
+    title="选择章节"
+    confirm-btn="确定"
+    cancel-btn="取消"
+    bindpick="onChapterPick"
+    bindconfirm="onChapterConfirm"
+    bindcancel="onPickerCancel"
+  >
+    <t-picker-item options="{{chapterOptions}}"></t-picker-item>
+  </t-picker>
+</view>

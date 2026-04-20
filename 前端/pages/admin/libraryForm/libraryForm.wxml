@@ -1,0 +1,118 @@
+<view class="container">
+  <view class="form-section">
+    <view class="section-title">基本信息</view>
+    
+    <view class="form-item">
+      <text class="form-label">知识库名称 <text class="required">*</text></text>
+      <input 
+        class="form-input" 
+        placeholder="例如：2024法硕刑法总则" 
+        value="{{libraryName}}"
+        bindinput="onInputName"
+        maxlength="50"
+      />
+      <text class="form-count">{{libraryName.length}}/50</text>
+    </view>
+
+    <view class="form-item">
+      <text class="form-label">标签 <text class="form-label-tip">最多3个</text></text>
+      <view class="tags-input-container">
+        <view class="tags-list-horizontal">
+          <view class="tag-item-horizontal" wx:for="{{tags}}" wx:key="index">
+            <input 
+              class="tag-input-horizontal" 
+              value="{{item}}" 
+              bindinput="onTagInput" 
+              data-index="{{index}}"
+              placeholder="标签{{index + 1}}"
+              maxlength="10"
+            />
+            <view class="tag-remove-horizontal" catchtap="onRemoveTag" data-index="{{index}}">
+              <t-icon name="close" size="24rpx" color="#999" />
+            </view>
+          </view>
+          <view class="tag-add-btn-horizontal" wx:if="{{tags.length < 3}}" bindtap="onAddTag">
+            <t-icon name="add" size="28rpx" color="#0052D9" />
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="form-section">
+    <view class="section-header">
+      <text class="section-title">大纲目录</text>
+      <text class="section-tip">可选，创建后可在知识库详情页编辑</text>
+    </view>
+
+    <view class="outline-container">
+      <view class="outline-list" wx:if="{{outline.length > 0}}">
+        <view 
+          class="outline-item {{item.level > 1 ? 'sub-item' : ''}} {{dragIndex === index ? 'dragging' : ''}}"
+          wx:for="{{outline}}" 
+          wx:key="id"
+          data-index="{{index}}"
+          data-level="{{item.level}}"
+          bindtouchstart="onTouchStart"
+          catchtouchmove="onTouchMove"
+          bindtouchend="onTouchEnd"
+        >
+          <view class="outline-drag-handle">
+            <t-icon name="move" size="32rpx" color="#ccc" />
+          </view>
+          <view class="outline-main outline-level-{{item.level}}">
+            <view class="outline-level-indicator">
+              <text>{{item.level}}级</text>
+            </view>
+            <view class="outline-content">
+              <input 
+                class="outline-input" 
+                value="{{item.title}}" 
+                bindinput="onOutlineInput" 
+                data-index="{{index}}"
+                placeholder="输入标题"
+                maxlength="100"
+              />
+            </view>
+          </view>
+          <view class="outline-actions">
+            <view class="action-btn" catchtap="onDeleteOutline" data-index="{{index}}">
+              <t-icon name="close" size="36rpx" color="#999" />
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <view class="outline-empty" wx:else>
+        <t-icon name="folder" size="64rpx" color="#ddd" />
+        <text>暂无大纲，点击下方按钮添加</text>
+      </view>
+
+      <view class="outline-add-btn" bindtap="onAddOutline">
+        <t-icon name="add" size="36rpx" color="#0052D9" />
+        <text>添加标题</text>
+      </view>
+    </view>
+
+    <view class="outline-tips">
+      <text>提示：长按拖动可排序，左右滑动可改变标题层级</text>
+    </view>
+  </view>
+
+  <view class="bottom-placeholder"></view>
+</view>
+
+<view class="bottom-bar">
+  <view class="btn-cancel" bindtap="onCancel">取消</view>
+  <view class="btn-submit" bindtap="onSubmit">{{isEdit ? '保存修改' : '创建知识库'}}</view>
+</view>
+
+<t-dialog
+  id="t-dialog"
+  title="提示"
+  content="确定要放弃创建吗？"
+  confirm-btn="确定"
+  cancel-btn="取消"
+  bind:confirm="onConfirmCancel"
+  visible="{{showCancelDialog}}"
+/>

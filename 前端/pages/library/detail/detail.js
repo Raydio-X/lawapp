@@ -286,6 +286,22 @@ Page({
     this.setData(updateData);
   },
 
+  scrollToCardsSection() {
+    setTimeout(() => {
+      wx.createSelectorQuery()
+        .select('#cards-section')
+        .boundingClientRect((rect) => {
+          if (rect) {
+            wx.pageScrollTo({
+              scrollTop: rect.top - 20,
+              duration: 300
+            });
+          }
+        })
+        .exec();
+    }, 100);
+  },
+
   onChapterTap(e) {
     const index = e.currentTarget.dataset.index;
     const chapters = this.data.chapters;
@@ -311,7 +327,9 @@ Page({
       updateData.chapters = chapters;
     }
 
-    this.setData(updateData);
+    this.setData(updateData, () => {
+      this.scrollToCardsSection();
+    });
   },
 
   onChildChapterTap(e) {
@@ -332,7 +350,9 @@ Page({
       updateData.chapters = chapters;
     }
 
-    this.setData(updateData);
+    this.setData(updateData, () => {
+      this.scrollToCardsSection();
+    });
   },
 
   onGrandChildChapterTap(e) {
@@ -347,6 +367,8 @@ Page({
       selectedChildIndex: childIndex,
       selectedGrandChildIndex: grandChildIndex,
       selectedChapter: grandChildChapter
+    }, () => {
+      this.scrollToCardsSection();
     });
   },
 
