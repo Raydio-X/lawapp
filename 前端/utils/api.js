@@ -359,8 +359,11 @@ const cardAPI = {
   },
 
   // 获取热门卡片
-  getHotCards: (limit = 10) => {
-    return get('/cards/hot', { limit }, { showLoading: false });
+  getHotCards: (limit = 10, page = null, pageSize = null) => {
+    const params = { limit };
+    if (page) params.page = page;
+    if (pageSize) params.pageSize = pageSize;
+    return get('/cards/hot', params, { showLoading: false });
   },
 
   // 搜索卡片
@@ -650,6 +653,32 @@ const adminAPI = {
   }
 };
 
+const messageAPI = {
+  getList: (params = {}) => {
+    return get('/messages', params);
+  },
+
+  getUnreadCount: () => {
+    return get('/messages/unread-count', {}, { showLoading: false });
+  },
+
+  markAsRead: (id) => {
+    return put(`/messages/${id}/read`);
+  },
+
+  markAllAsRead: () => {
+    return put('/messages/read-all');
+  },
+
+  delete: (id) => {
+    return del(`/messages/${id}`);
+  },
+
+  broadcast: (data) => {
+    return post('/messages/broadcast', data);
+  }
+};
+
 module.exports = {
   request,
   get,
@@ -666,5 +695,6 @@ module.exports = {
   commentAPI,
   favoriteAPI,
   examAPI,
-  adminAPI
+  adminAPI,
+  messageAPI
 };

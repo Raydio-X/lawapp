@@ -119,35 +119,6 @@
   margin-top: 4rpx;
 }
 
-.stats-detail {
-  background-color: #fff;
-  border-radius: 20rpx;
-  padding: 24rpx 28rpx;
-  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
-}
-
-.detail-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16rpx 0;
-}
-
-.detail-row:not(:last-child) {
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.detail-label {
-  font-size: 28rpx;
-  color: #666;
-}
-
-.detail-value {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 500;
-}
-
 .search-bar {
   display: flex;
   gap: 16rpx;
@@ -352,6 +323,27 @@
   padding: 80rpx 32rpx;
   color: #999;
   font-size: 28rpx;
+}
+
+.empty-batch-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 32rpx;
+  background-color: #fff;
+  margin: 24rpx;
+  border-radius: 16rpx;
+}
+
+.empty-batch-tip text {
+  color: #666;
+  font-size: 28rpx;
+}
+
+.empty-batch-subtip {
+  margin-top: 16rpx;
+  color: #999;
+  font-size: 24rpx;
 }
 
 .bottom-placeholder {
@@ -716,4 +708,86 @@
 .chapter-picker-btn.confirm {
   background-color: #0052D9;
   color: #fff;
+}
+
+/* 热门卡片样式 */
+.hot-cards-header {
+  padding: 16rpx 24rpx;
+  background-color: #fffaf5;
+  border-bottom: 1rpx solid #ffe8d6;
+}
+
+.hot-cards-tip {
+  font-size: 24rpx;
+  color: #ff6b35;
+}
+
+.hot-card-item .item-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.hot-badge {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx 12rpx;
+  background: linear-gradient(135deg, #ff6b35 0%, #ff8c42 100%);
+  border-radius: 16rpx;
+  flex-shrink: 0;
+}
+
+.hot-badge text {
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
+.hot-stat {
+  color: #ff6b35 !important;
+  font-weight: 500;
+}
+
+/* 消息发布入口 */
+.broadcast-entry {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 28rpx 32rpx;
+  margin-top: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.04);
+}
+
+.broadcast-entry:active {
+  background-color: #f9f9f9;
+}
+
+.broadcast-entry-icon {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  background-color: rgba(0, 82, 217, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+}
+
+.broadcast-entry-content {
+  flex: 1;
+}
+
+.broadcast-entry-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8rpx;
+}
+
+.broadcast-entry-desc {
+  font-size: 26rpx;
+  color: #999;
 }

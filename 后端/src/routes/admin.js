@@ -4,6 +4,7 @@ const CardModel = require('../models/Card');
 const CommentModel = require('../models/Comment');
 const ChapterModel = require('../models/Chapter');
 const UserModel = require('../models/User');
+const MessageModel = require('../models/message');
 const { adminAuth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -177,8 +178,10 @@ router.get('/cards', adminAuth, async (req, res) => {
             values.push(parseInt(is_public));
         }
         if (is_hot === '1') {
+            sql += ' AND c.is_hot = 1';
             sql += ' ORDER BY c.like_count DESC, c.study_count DESC';
         } else {
+            sql += ' AND (c.is_hot = 0 OR c.is_hot IS NULL)';
             sql += ' ORDER BY c.created_at DESC';
         }
 
@@ -191,6 +194,11 @@ router.get('/cards', adminAuth, async (req, res) => {
         if (is_public !== undefined && is_public !== '') {
             countSql += ' AND is_public = ?';
             countValues.push(parseInt(is_public));
+        }
+        if (is_hot === '1') {
+            countSql += ' AND is_hot = 1';
+        } else {
+            countSql += ' AND (is_hot = 0 OR is_hot IS NULL)';
         }
 
         const [countRows] = await require('../config/database').execute(countSql, countValues);
@@ -265,20 +273,25 @@ router.delete('/cards/:id', adminAuth, async (req, res) => {
 
 router.post('/cards', adminAuth, async (req, res) => {
     try {
-        const { library_id, chapter_id, question, answer, tags, is_public } = req.body;
+        let { library_id, chapter_id, question, answer, tags, is_public, is_hot } = req.body;
 
-        if (!library_id || !question || !answer) {
-            return res.status(400).json({ success: false, code: 400, message: '知识库ID、问题和答案不能为空' });
+        if (!question || !answer) {
+            return res.status(400).json({ success: false, code: 400, message: '问题和答案不能为空' });
+        }
+
+        if (!is_hot && !library_id) {
+            return res.status(400).json({ success: false, code: 400, message: '知识库ID不能为空' });
         }
 
         const card = await CardModel.create({
-            library_id,
-            chapter_id,
+            library_id: library_id || null,
+            chapter_id: chapter_id || null,
             question,
             answer,
             tags,
             created_by: req.user.id,
-            is_public: is_public !== undefined ? is_public : 1
+            is_public: is_public !== undefined ? is_public : 1,
+            is_hot: is_hot ? 1 : 0
         });
 
         res.status(201).json({ success: true, data: card });
@@ -339,10 +352,34 @@ router.get('/comments', adminAuth, async (req, res) => {
 router.delete('/comments/:id', adminAuth, async (req, res) => {
     try {
         const db = require('../config/database');
+
+        const [commentRows] = await db.execute(
+            'SELECT * FROM comments WHERE id = ?',
+            [req.params.id]
+        );
+
+        if (commentRows.length === 0) {
+            return res.status(404).json({ success: false, code: 404, message: '评论不存在' });
+        }
+
+        const comment = commentRows[0];
+
         const [result] = await db.execute('DELETE FROM comments WHERE id = ?', [req.params.id]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ success: false, code: 404, message: '评论不存在' });
+        }
+
+        try {
+            await MessageModel.create({
+                user_id: comment.user_id,
+                title: '评论违规通知',
+                content: `您在卡片中发表的评论"${comment.content.length > 50 ? comment.content.substring(0, 50) + '...' : comment.content}"因违反社区规范已被管理员删除，请遵守社区规则，文明发言。`,
+                type: 'violation',
+                sender_id: req.user.id
+            });
+        } catch (msgErr) {
+            console.error('Send violation notification error:', msgErr);
         }
 
         res.json({ success: true, message: '删除成功' });

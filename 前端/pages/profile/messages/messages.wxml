@@ -1,0 +1,66 @@
+<view class="container">
+  <view class="header">
+    <text class="header-title">消息中心</text>
+    <view class="header-action" bindtap="onMarkAllRead" wx:if="{{messages.length > 0}}">
+      <t-icon name="check-circle" size="32rpx" color="#0052D9" />
+      <text class="header-action-text">全部已读</text>
+    </view>
+  </view>
+
+  <view class="message-list">
+    <view class="message-item {{item.is_read ? '' : 'unread'}}" wx:for="{{messages}}" wx:key="id" bindtap="onMessageTap" data-id="{{item.id}}" data-index="{{index}}">
+      <view class="message-icon-wrap">
+        <view class="message-icon {{item.type === 'violation' ? 'violation' : item.type === 'announcement' ? 'announcement' : 'system'}}" wx:if="{{item.type !== 'violation'}}">
+          <t-icon name="{{item.type === 'announcement' ? 'notification' : 'info-circle'}}" size="40rpx" color="#fff" />
+        </view>
+        <t-icon wx:if="{{item.type === 'violation'}}" name="error-circle" size="48rpx" color="#f5222d" />
+        <view class="unread-dot" wx:if="{{!item.is_read}}"></view>
+      </view>
+      <view class="message-content">
+        <view class="message-header">
+          <text class="message-title">{{item.title}}</text>
+          <text class="message-time">{{item.created_at}}</text>
+        </view>
+        <text class="message-text">{{item.content}}</text>
+        <view class="message-type-tag">
+          <text class="type-tag {{item.type}}">{{item.type === 'violation' ? '违规通知' : item.type === 'announcement' ? '系统公告' : '系统消息'}}</text>
+        </view>
+      </view>
+      <view class="message-delete" catchtap="onDeleteMessage" data-id="{{item.id}}" data-index="{{index}}">
+        <t-icon name="delete" size="28rpx" color="#ccc" />
+      </view>
+    </view>
+
+    <view class="load-more" wx:if="{{hasMore}}" bindtap="loadMore">
+      <text>加载更多</text>
+    </view>
+
+    <view class="empty-state" wx:if="{{messages.length === 0 && !loading}}">
+      <t-icon name="notification" size="96rpx" color="#ddd" />
+      <text class="empty-text">暂无消息</text>
+      <text class="empty-subtext">您的消息列表为空</text>
+    </view>
+  </view>
+</view>
+
+<t-popup visible="{{showDetail}}" bind:visible-change="onDetailClose" placement="bottom">
+  <view class="detail-popup" wx:if="{{currentMessage}}">
+    <view class="detail-header">
+      <view class="detail-icon {{currentMessage.type === 'violation' ? 'violation' : currentMessage.type === 'announcement' ? 'announcement' : 'system'}}" wx:if="{{currentMessage.type !== 'violation'}}">
+        <t-icon name="{{currentMessage.type === 'announcement' ? 'notification' : 'info-circle'}}" size="48rpx" color="#fff" />
+      </view>
+      <t-icon wx:if="{{currentMessage.type === 'violation'}}" name="error-circle" size="64rpx" color="#f5222d" />
+      <text class="detail-title">{{currentMessage.title}}</text>
+      <view class="detail-meta">
+        <text class="detail-type">{{currentMessage.type === 'violation' ? '违规通知' : currentMessage.type === 'announcement' ? '系统公告' : '系统消息'}}</text>
+        <text class="detail-time">{{currentMessage.created_at}}</text>
+      </view>
+    </view>
+    <view class="detail-content">
+      <text class="detail-text">{{currentMessage.content}}</text>
+    </view>
+    <view class="detail-footer">
+      <view class="detail-btn" bindtap="onDetailClose">关闭</view>
+    </view>
+  </view>
+</t-popup>

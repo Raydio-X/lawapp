@@ -332,6 +332,22 @@
   color: #999;
 }
 
+.badge-number {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  background-color: #f5222d;
+  color: #fff;
+  font-size: 20rpx;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8rpx;
+  overflow: hidden;
+  margin-bottom: 8rpx;
+}
+
 /* 菜单项右侧内容 */
 .menu-section .t-cell__right {
   display: flex;

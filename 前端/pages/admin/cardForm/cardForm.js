@@ -1,9 +1,10 @@
-const { adminAPI, chapterAPI } = require('../../../utils/api');
+const { adminAPI, chapterAPI, cardAPI } = require('../../../utils/api');
 
 Page({
   data: {
     cardId: null,
     isEdit: false,
+    isHot: false,
     question: '',
     answer: '',
     tagList: [],
@@ -24,13 +25,33 @@ Page({
     chapters: [],
     
     loading: false,
-    canSubmit: false
+    canSubmit: false,
+
+    showBatchImport: false,
+    batchStep: 1,
+    batchLibraryId: null,
+    batchLibraryName: '',
+    batchFileName: '',
+    batchFilePath: '',
+    batchCards: [],
+    batchImporting: false,
+    batchImportSuccess: false,
+    batchImportCount: 0,
+    batchImportError: ''
   },
 
   onLoad(options) {
+    if (options.isHot === '1') {
+      this.setData({ isHot: true });
+      wx.setNavigationBarTitle({ title: '创建热门卡片' });
+    }
     if (options.id) {
       this.setData({ cardId: parseInt(options.id), isEdit: true });
-      wx.setNavigationBarTitle({ title: '编辑卡片' });
+      if (!this.data.isHot) {
+        wx.setNavigationBarTitle({ title: '编辑卡片' });
+      } else {
+        wx.setNavigationBarTitle({ title: '编辑热门卡片' });
+      }
     }
     if (options.question) {
       this.setData({ question: decodeURIComponent(options.question) });
@@ -44,7 +65,12 @@ Page({
       });
     }
     
-    this.loadLibraries();
+    if (this.data.isHot) {
+      this.setData({ loading: false });
+      this.checkCanSubmit();
+    } else {
+      this.loadLibraries();
+    }
   },
 
   async loadLibraries() {
@@ -55,6 +81,12 @@ Page({
         await this.loadCardDetail();
       }
       
+      if (this.data.isHot) {
+        this.setData({ loading: false });
+        this.checkCanSubmit();
+        return;
+      }
+
       const res = await adminAPI.getLibraries({ page: 1, pageSize: 100, own_only: 1 });
       if (res.success && res.data) {
         const libraries = res.data.list || [];
@@ -300,8 +332,8 @@ Page({
   },
 
   checkCanSubmit() {
-    const { question, answer, selectedLibrary } = this.data;
-    const canSubmit = question.trim() && answer.trim() && selectedLibrary;
+    const { question, answer, selectedLibrary, isHot } = this.data;
+    const canSubmit = question.trim() && answer.trim() && (isHot || selectedLibrary);
     this.setData({ canSubmit });
   },
 
@@ -319,7 +351,7 @@ Page({
   },
 
   async onSubmit() {
-    const { isEdit, cardId, question, answer, selectedLibrary, selectedChapter, tagList } = this.data;
+    const { isEdit, cardId, question, answer, selectedLibrary, selectedChapter, tagList, isHot } = this.data;
 
     if (!question.trim()) {
       wx.showToast({ title: '请输入题目', icon: 'none' });
@@ -331,7 +363,7 @@ Page({
       return;
     }
 
-    if (!selectedLibrary) {
+    if (!isHot && !selectedLibrary) {
       wx.showToast({ title: '请选择知识库', icon: 'none' });
       return;
     }
@@ -342,12 +374,13 @@ Page({
       const validTags = tagList.filter(tag => tag.trim());
       
       const cardData = {
-        library_id: selectedLibrary.id,
+        library_id: selectedLibrary ? selectedLibrary.id : null,
         chapter_id: selectedChapter ? selectedChapter.id : null,
         question: question.trim(),
         answer: answer.trim(),
         tags: validTags,
-        is_public: 1
+        is_public: 1,
+        is_hot: isHot ? 1 : 0
       };
 
       let result;
@@ -371,5 +404,182 @@ Page({
     } finally {
       this.setData({ loading: false });
     }
-  }
+  },
+
+  onBatchImport() {
+    if (this.data.libraries.length === 0) {
+      wx.showModal({
+        title: '提示',
+        content: '请先创建知识库',
+        showCancel: false
+      });
+      return;
+    }
+    this.setData({
+      showBatchImport: true,
+      batchStep: 1,
+      batchLibraryId: null,
+      batchLibraryName: '',
+      batchFileName: '',
+      batchFilePath: '',
+      batchCards: [],
+      batchImporting: false,
+      batchImportSuccess: false,
+      batchImportCount: 0,
+      batchImportError: ''
+    });
+  },
+
+  onCloseBatchImport() {
+    this.setData({ showBatchImport: false });
+    if (this.data.batchImportSuccess) {
+      wx.navigateBack();
+    }
+  },
+
+  onSelectBatchLibrary(e) {
+    const { id, name } = e.currentTarget.dataset;
+    this.setData({
+      batchLibraryId: id,
+      batchLibraryName: name
+    });
+  },
+
+  onBatchNext() {
+    const { batchStep, batchLibraryId, batchFileName } = this.data;
+    if (batchStep === 1 && !batchLibraryId) return;
+    if (batchStep === 2 && !batchFileName) return;
+    this.setData({ batchStep: batchStep + 1 });
+  },
+
+  onBatchPrev() {
+    const { batchStep } = this.data;
+    if (batchStep > 1) {
+      this.setData({ batchStep: batchStep - 1 });
+    }
+  },
+
+  onChooseFile() {
+    wx.chooseMessageFile({
+      count: 1,
+      type: 'file',
+      extension: ['xlsx', 'xls'],
+      success: (res) => {
+        const file = res.tempFiles[0];
+        this.setData({
+          batchFileName: file.name,
+          batchFilePath: file.path
+        });
+      },
+      fail: () => {
+        wx.showToast({ title: '已取消选择', icon: 'none' });
+      }
+    });
+  },
+
+  onDownloadTemplate() {
+    wx.showLoading({ title: '下载中...' });
+    
+    wx.downloadFile({
+      url: 'https://your-domain.com/templates/batch-import-template.xlsx',
+      success: (res) => {
+        wx.hideLoading();
+        if (res.statusCode === 200) {
+          wx.openDocument({
+            filePath: res.tempFilePath,
+            showMenu: true,
+            success: () => {
+              wx.showToast({ title: '下载成功', icon: 'success' });
+            },
+            fail: () => {
+              wx.showToast({ title: '打开失败', icon: 'none' });
+            }
+          });
+        } else {
+          this.showTemplateGuide();
+        }
+      },
+      fail: () => {
+        wx.hideLoading();
+        this.showTemplateGuide();
+      }
+    });
+  },
+
+  showTemplateGuide() {
+    wx.showModal({
+      title: '模板格式说明',
+      content: '请按以下格式创建Excel文件：\n\nA列 - 问题\nB列 - 答案\nC列 - 章节（可选）\n\n第一行为表头，数据从第二行开始',
+      showCancel: false,
+      confirmText: '知道了'
+    });
+  },
+
+  async onBatchParse() {
+    const { batchFilePath, batchLibraryId } = this.data;
+    if (!batchFilePath) return;
+
+    wx.showLoading({ title: '解析中...' });
+
+    try {
+      const res = await cardAPI.batchImport(batchFilePath, {
+        library_id: String(batchLibraryId),
+        preview: 'true'
+      });
+
+      wx.hideLoading();
+
+      if (res.success && res.data && res.data.cards) {
+        this.setData({
+          batchCards: res.data.cards,
+          batchStep: 3
+        });
+      } else {
+        wx.showToast({ title: res.message || '解析失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.hideLoading();
+      console.error('解析文件失败:', error);
+      wx.showToast({ title: error.message || '解析失败', icon: 'none' });
+    }
+  },
+
+  async onBatchConfirmImport() {
+    if (this.data.batchImporting) return;
+
+    this.setData({ batchImporting: true });
+
+    try {
+      const res = await cardAPI.batchImport(this.data.batchFilePath, {
+        library_id: String(this.data.batchLibraryId),
+        preview: 'false'
+      });
+
+      if (res.success) {
+        this.setData({
+          batchImporting: false,
+          batchImportSuccess: true,
+          batchImportCount: res.data.count || this.data.batchCards.length,
+          batchStep: 4
+        });
+      } else {
+        this.setData({
+          batchImporting: false,
+          batchImportSuccess: false,
+          batchImportError: res.message || '导入失败',
+          batchStep: 4
+        });
+      }
+    } catch (error) {
+      console.error('批量导入失败:', error);
+      this.setData({
+        batchImporting: false,
+        batchImportSuccess: false,
+        batchImportError: error.message || '导入失败',
+        batchStep: 4
+      });
+    }
+  },
+
+  preventTouchMove() {}
 });

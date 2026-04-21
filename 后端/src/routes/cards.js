@@ -55,8 +55,13 @@ router.get('/', optionalAuth, async (req, res) => {
 
 router.get('/hot', optionalAuth, async (req, res) => {
     try {
-        const { limit } = req.query;
-        const cards = await CardModel.getHotCards(parseInt(limit) || 10, req.user?.id);
+        const { limit, page, pageSize } = req.query;
+        const cards = await CardModel.getHotCards(
+            parseInt(limit) || 10, 
+            req.user?.id,
+            parseInt(page) || null,
+            parseInt(pageSize) || null
+        );
 
         res.json({
             success: true,

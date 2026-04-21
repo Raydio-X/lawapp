@@ -125,6 +125,7 @@
         data-menu="message"
       >
         <t-icon slot="left-icon" name="notification" size="44rpx" color="#0052D9" />
+        <view slot="note" class="badge-number" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
       </t-cell>
     </t-cell-group>
   </view>

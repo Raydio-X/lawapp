@@ -1,4 +1,4 @@
-const { authAPI, studyAPI, libraryAPI, favoriteAPI } = require('../../utils/api');
+const { authAPI, studyAPI, libraryAPI, favoriteAPI, messageAPI } = require('../../utils/api');
 
 Page({
   data: {
@@ -26,6 +26,7 @@ Page({
     },
     goalPercent: 0,
     loading: false,
+    unreadCount: 0,
     showPlanPicker: false,
     cardCountOptions: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
     pickerValue: [8],
@@ -110,7 +111,8 @@ Page({
       await Promise.all([
         this.loadUserInfo(),
         this.loadStats(),
-        this.loadStudyProgress()
+        this.loadStudyProgress(),
+        this.loadUnreadCount()
       ]);
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -240,6 +242,17 @@ Page({
     }
   },
 
+  async loadUnreadCount() {
+    try {
+      const res = await messageAPI.getUnreadCount();
+      if (res.success && res.data) {
+        this.setData({ unreadCount: res.data.count || 0 });
+      }
+    } catch (error) {
+      console.error('获取未读消息数失败:', error);
+    }
+  },
+
   onEditProfile() {
     wx.showActionSheet({
       itemList: ['修改昵称', '更换头像'],
@@ -336,6 +349,9 @@ Page({
         break;
       case 'favorite':
         wx.navigateTo({ url: '/pages/profile/favorites/favorites' });
+        break;
+      case 'message':
+        wx.navigateTo({ url: '/pages/profile/messages/messages' });
         break;
       case 'plan':
         this.showPlanPickerPopup();

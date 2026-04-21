@@ -21,7 +21,9 @@
     "pages/admin/community/community",
     "pages/admin/manage/manage",
     "pages/admin/libraryForm/libraryForm",
-    "pages/admin/cardForm/cardForm"
+    "pages/admin/cardForm/cardForm",
+    "pages/admin/broadcast/broadcast",
+    "pages/profile/messages/messages"
   ],
   "tabBar": {
     "color":"#999999",

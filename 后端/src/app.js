@@ -11,6 +11,7 @@ const commentRoutes = require('./routes/comments');
 const favoriteRoutes = require('./routes/favorites');
 const examRoutes = require('./routes/exam');
 const adminRoutes = require('./routes/admin');
+const messageRoutes = require('./routes/messages');
 
 const app = express();
 
@@ -32,7 +33,8 @@ app.get('/', (req, res) => {
             comments: '/api/comments',
             favorites: '/api/favorites',
             exam: '/api/exam',
-            admin: '/api/admin'
+            admin: '/api/admin',
+            messages: '/api/messages'
         }
     });
 });
@@ -62,6 +64,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/favorites', favoriteRoutes);
 app.use('/api/exam', examRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/messages', messageRoutes);
 
 app.use((err, req, res, next) => {
     console.error('Error:', err);

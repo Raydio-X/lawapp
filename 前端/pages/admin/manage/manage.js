@@ -1,5 +1,5 @@
 const { adminAPI } = require('../../../utils/api');
-const { cardAPI, chapterAPI } = require('../../../utils/api');
+const { cardAPI, chapterAPI, messageAPI } = require('../../../utils/api');
 
 Page({
   data: {
@@ -26,6 +26,7 @@ Page({
     cardKeyword: '',
     cardFilterPublic: '',
 
+    allCards: [],
     isBatchSelectMode: false,
     selectedCardIds: [],
     showChapterPicker: false,
@@ -38,10 +39,19 @@ Page({
     commentHasMore: true,
     commentKeyword: '',
 
+    hotCards: [],
+    hotCardPage: 1,
+    hotCardHasMore: true,
+    hotCardKeyword: '',
+
     showDeleteConfirm: false,
     deleteType: '',
     deleteId: null,
     deleteName: '',
+    cancelBtnConfig: {
+      content: '取消',
+      style: 'color: #333;'
+    },
 
     currentUserId: null
   },
@@ -104,7 +114,12 @@ Page({
 
   onSwitchTab(e) {
     const tab = e.currentTarget.dataset.tab;
-    this.setData({ activeTab: tab });
+    this.setData({ 
+      activeTab: tab,
+      isBatchSelectMode: false,
+      selectedCardIds: [],
+      isAllSelected: false
+    });
     this.loadCurrentTabData();
   },
 
@@ -116,6 +131,8 @@ Page({
       this.loadLibraries(callback);
     } else if (activeTab === 'cards') {
       this.loadCards(callback);
+    } else if (activeTab === 'hotCards') {
+      this.loadHotCards(callback);
     } else if (activeTab === 'comments') {
       this.loadComments(callback);
     } else if (callback) {
@@ -173,13 +190,44 @@ Page({
       const res = await adminAPI.getCards(params);
       if (res.success && res.data) {
         const list = res.data.list || [];
+        const allCards = this.data.cardPage === 1 ? list : [...this.data.allCards, ...list];
+        const currentUserId = this.data.currentUserId;
+        const displayCards = this.data.isBatchSelectMode 
+          ? allCards.filter(c => c.created_by === currentUserId)
+          : allCards;
+        
         this.setData({
-          cards: this.data.cardPage === 1 ? list : [...this.data.cards, ...list],
+          allCards: allCards,
+          cards: displayCards,
           cardHasMore: list.length >= 20
         });
       }
     } catch (error) {
       console.error('加载卡片失败:', error);
+    }
+    if (callback) callback();
+  },
+
+  async loadHotCards(callback) {
+    try {
+      const params = {
+        page: this.data.hotCardPage,
+        pageSize: 20,
+        is_hot: '1'
+      };
+      if (this.data.hotCardKeyword) {
+        params.keyword = this.data.hotCardKeyword;
+      }
+      const res = await adminAPI.getCards(params);
+      if (res.success && res.data) {
+        const list = res.data.list || [];
+        this.setData({
+          hotCards: this.data.hotCardPage === 1 ? list : [...this.data.hotCards, ...list],
+          hotCardHasMore: list.length >= 20
+        });
+      }
+    } catch (error) {
+      console.error('加载热门卡片失败:', error);
     }
     if (callback) callback();
   },
@@ -224,13 +272,13 @@ Page({
   },
 
   onCardSearch() {
-    this.setData({ cardPage: 1 });
+    this.setData({ cardPage: 1, allCards: [] });
     this.loadCards();
   },
 
   onCardFilterChange(e) {
     const filter = e.currentTarget.dataset.filter;
-    this.setData({ cardFilterPublic: filter, cardPage: 1 });
+    this.setData({ cardFilterPublic: filter, cardPage: 1, allCards: [] });
     this.loadCards();
   },
 
@@ -241,6 +289,39 @@ Page({
   onCommentSearch() {
     this.setData({ commentPage: 1 });
     this.loadComments();
+  },
+
+  onHotCardSearchInput(e) {
+    this.setData({ hotCardKeyword: e.detail.value });
+  },
+
+  onHotCardSearch() {
+    this.setData({ hotCardPage: 1 });
+    this.loadHotCards();
+  },
+
+  onShowCreateHotCard() {
+    wx.navigateTo({
+      url: '/pages/admin/cardForm/cardForm?isHot=1'
+    });
+  },
+
+  onEditHotCard(e) {
+    const { id } = e.currentTarget.dataset;
+    wx.navigateTo({
+      url: `/pages/admin/cardForm/cardForm?id=${id}&isHot=1`
+    });
+  },
+
+  onDeleteHotCard(e) {
+    const { id, index } = e.currentTarget.dataset;
+    const card = this.data.hotCards[index];
+    this.setData({
+      showDeleteConfirm: true,
+      deleteType: 'hotCard',
+      deleteId: id,
+      deleteName: card.question
+    });
   },
 
   onEditLibrary(e) {
@@ -258,9 +339,15 @@ Page({
   },
 
   onToggleBatchSelect() {
-    const { isBatchSelectMode } = this.data;
+    const { isBatchSelectMode, allCards, currentUserId } = this.data;
+    const newMode = !isBatchSelectMode;
+    const displayCards = newMode 
+      ? allCards.filter(c => c.created_by === currentUserId)
+      : allCards;
+    
     this.setData({
-      isBatchSelectMode: !isBatchSelectMode,
+      isBatchSelectMode: newMode,
+      cards: displayCards,
       selectedCardIds: [],
       isAllSelected: false
     });
@@ -268,25 +355,23 @@ Page({
 
   onSelectCard(e) {
     const { id } = e.currentTarget.dataset;
-    const { selectedCardIds, cards, currentUserId } = this.data;
+    const { selectedCardIds, cards } = this.data;
     const index = selectedCardIds.indexOf(id);
     if (index > -1) {
       selectedCardIds.splice(index, 1);
     } else {
       selectedCardIds.push(id);
     }
-    const myCards = cards.filter(c => c.created_by === currentUserId);
-    const isAllSelected = selectedCardIds.length === myCards.length && myCards.length > 0;
+    const isAllSelected = selectedCardIds.length === cards.length && cards.length > 0;
     this.setData({ selectedCardIds: [...selectedCardIds], isAllSelected });
   },
 
   onSelectAllCards() {
-    const { cards, selectedCardIds, currentUserId, isAllSelected } = this.data;
-    const myCards = cards.filter(c => c.created_by === currentUserId);
+    const { cards, isAllSelected } = this.data;
     if (isAllSelected) {
       this.setData({ selectedCardIds: [], isAllSelected: false });
     } else {
-      this.setData({ selectedCardIds: myCards.map(c => c.id), isAllSelected: true });
+      this.setData({ selectedCardIds: cards.map(c => c.id), isAllSelected: true });
     }
   },
 
@@ -359,7 +444,9 @@ Page({
           showChapterPicker: false,
           isBatchSelectMode: false,
           selectedCardIds: [],
-          isAllSelected: false
+          isAllSelected: false,
+          cardPage: 1,
+          allCards: []
         });
         
         this.loadCards();
@@ -418,7 +505,7 @@ Page({
       let res;
       if (deleteType === 'library') {
         res = await adminAPI.deleteLibrary(deleteId);
-      } else if (deleteType === 'card') {
+      } else if (deleteType === 'card' || deleteType === 'hotCard') {
         res = await adminAPI.deleteCard(deleteId);
       } else if (deleteType === 'comment') {
         res = await adminAPI.deleteComment(deleteId);
@@ -481,9 +568,21 @@ Page({
     this.loadCards();
   },
 
+  loadMoreHotCards() {
+    if (!this.data.hotCardHasMore) return;
+    this.setData({ hotCardPage: this.data.hotCardPage + 1 });
+    this.loadHotCards();
+  },
+
   loadMoreComments() {
     if (!this.data.commentHasMore) return;
     this.setData({ commentPage: this.data.commentPage + 1 });
     this.loadComments();
+  },
+
+  onGoToBroadcast() {
+    wx.navigateTo({
+      url: '/pages/admin/broadcast/broadcast'
+    });
   }
 });

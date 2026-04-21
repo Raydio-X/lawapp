@@ -83,22 +83,25 @@ class CardModel {
 
     static async create(data) {
         const [result] = await db.execute(
-            'INSERT INTO cards (library_id, chapter_id, question, answer, tags, created_by, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO cards (library_id, chapter_id, question, answer, tags, created_by, is_public, is_hot) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [
-                data.library_id,
+                data.library_id || null,
                 data.chapter_id || null,
                 data.question,
                 data.answer,
                 JSON.stringify(data.tags || []),
                 data.created_by,
-                data.is_public !== undefined ? data.is_public : 1
+                data.is_public !== undefined ? data.is_public : 1,
+                data.is_hot !== undefined ? data.is_hot : 0
             ]
         );
         
-        await db.execute(
-            'UPDATE libraries SET card_count = (SELECT COUNT(*) FROM cards WHERE library_id = ?) WHERE id = ?',
-            [data.library_id, data.library_id]
-        );
+        if (data.library_id) {
+            await db.execute(
+                'UPDATE libraries SET card_count = (SELECT COUNT(*) FROM cards WHERE library_id = ?) WHERE id = ?',
+                [data.library_id, data.library_id]
+            );
+        }
         
         return this.findById(result.insertId);
     }
@@ -127,6 +130,10 @@ class CardModel {
             fields.push('is_public = ?');
             values.push(data.is_public);
         }
+        if (data.is_hot !== undefined) {
+            fields.push('is_hot = ?');
+            values.push(data.is_hot);
+        }
 
         if (fields.length === 0) return this.findById(id);
 
@@ -142,26 +149,35 @@ class CardModel {
         const card = await this.findById(id);
         if (card) {
             await db.execute('DELETE FROM cards WHERE id = ?', [id]);
-            await db.execute(
-                'UPDATE libraries SET card_count = (SELECT COUNT(*) FROM cards WHERE library_id = ?) WHERE id = ?',
-                [card.library_id, card.library_id]
-            );
+            if (card.library_id) {
+                await db.execute(
+                    'UPDATE libraries SET card_count = (SELECT COUNT(*) FROM cards WHERE library_id = ?) WHERE id = ?',
+                    [card.library_id, card.library_id]
+                );
+            }
         }
     }
 
-    static async getHotCards(limit = 10, userId = null) {
-        const [rows] = await db.execute(
-            `SELECT c.*, l.name as library_name, l.subject,
+    static async getHotCards(limit = 10, userId = null, page = null, pageSize = null) {
+        let sql = `SELECT c.*, l.name as library_name, l.subject,
              (SELECT COUNT(*) FROM user_likes ul WHERE ul.target_type = 'card' AND ul.target_id = c.id AND ul.user_id = ?) as is_liked,
              (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'card' AND f.target_id = c.id AND f.user_id = ?) as is_favorited,
              (SELECT mastered FROM card_mastery cm WHERE cm.card_id = c.id AND cm.user_id = ?) as is_learned
              FROM cards c 
              LEFT JOIN libraries l ON c.library_id = l.id 
-             WHERE c.is_public = 1 
-             ORDER BY c.study_count DESC, c.like_count DESC 
-             LIMIT ${parseInt(limit)}`,
-            [userId || 0, userId || 0, userId || 0]
-        );
+             WHERE c.is_public = 1 AND c.is_hot = 1
+             ORDER BY c.study_count DESC, c.like_count DESC`;
+        
+        let params = [userId || 0, userId || 0, userId || 0];
+        
+        if (page && pageSize) {
+            const offset = (page - 1) * pageSize;
+            sql += ` LIMIT ${parseInt(pageSize)} OFFSET ${parseInt(offset)}`;
+        } else {
+            sql += ` LIMIT ${parseInt(limit)}`;
+        }
+        
+        const [rows] = await db.execute(sql, params);
         return rows.map(row => ({
             ...row,
             tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),

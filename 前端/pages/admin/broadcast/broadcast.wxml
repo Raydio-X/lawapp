@@ -1,0 +1,45 @@
+<view class="container">
+  <view class="form-section">
+    <view class="form-header">
+      <t-icon name="notification" size="48rpx" color="#0052D9" />
+      <text class="form-title">发布通知</text>
+    </view>
+    <text class="form-desc">向所有用户发送消息通知</text>
+  </view>
+
+  <view class="form-card">
+    <view class="form-field">
+      <text class="field-label">通知标题</text>
+      <input 
+        class="field-input" 
+        placeholder="请输入通知标题" 
+        value="{{title}}" 
+        bindinput="onTitleInput"
+        maxlength="50"
+      />
+      <text class="field-count">{{title.length || 0}}/50</text>
+    </view>
+
+    <view class="form-field">
+      <text class="field-label">通知内容</text>
+      <textarea 
+        class="field-textarea" 
+        placeholder="请输入通知内容" 
+        value="{{content}}" 
+        bindinput="onContentInput"
+        maxlength="500"
+      />
+      <text class="field-count">{{content.length || 0}}/500</text>
+    </view>
+  </view>
+
+  <view class="form-tips">
+    <t-icon name="info-circle" size="28rpx" color="#fa8c16" />
+    <text>通知将发送给所有注册用户</text>
+  </view>
+
+  <view class="form-actions">
+    <view class="action-btn cancel" bindtap="onCancel">取消</view>
+    <view class="action-btn confirm" bindtap="onSend">发送通知</view>
+  </view>
+</view>

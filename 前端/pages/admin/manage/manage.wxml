@@ -29,6 +29,10 @@ module.exports = {
       <t-icon name="file" size="36rpx" color="{{activeTab === 'cards' ? '#0052D9' : '#999'}}" />
       <text>卡片</text>
     </view>
+    <view class="tab-item {{activeTab === 'hotCards' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="hotCards">
+      <t-icon name="bookmark-checked" size="36rpx" color="{{activeTab === 'hotCards' ? '#0052D9' : '#999'}}" />
+      <text>热门卡片</text>
+    </view>
     <view class="tab-item {{activeTab === 'comments' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="comments">
       <t-icon name="chat" size="36rpx" color="{{activeTab === 'comments' ? '#0052D9' : '#999'}}" />
       <text>评论</text>
@@ -75,15 +79,17 @@ module.exports = {
         </view>
       </view>
     </view>
-    <view class="stats-detail">
-      <view class="detail-row">
-        <text class="detail-label">公开知识库</text>
-        <text class="detail-value">{{stats.publicLibraries}} / {{stats.totalLibraries}}</text>
+
+    <!-- 消息发布入口 -->
+    <view class="broadcast-entry" bindtap="onGoToBroadcast">
+      <view class="broadcast-entry-icon">
+        <t-icon name="notification-add" size="48rpx" color="#0052D9" />
       </view>
-      <view class="detail-row">
-        <text class="detail-label">公开卡片</text>
-        <text class="detail-value">{{stats.publicCards}} / {{stats.totalCards}}</text>
+      <view class="broadcast-entry-content">
+        <text class="broadcast-entry-title">发布通知</text>
+        <text class="broadcast-entry-desc">向所有用户发送消息通知</text>
       </view>
+      <t-icon name="chevron-right" size="40rpx" color="#ccc" />
     </view>
   </view>
 
@@ -146,12 +152,12 @@ module.exports = {
     </view>
     
     <!-- 批量操作工具栏 -->
-    <view class="batch-toolbar" wx:if="{{cards.length > 0}}">
+    <view class="batch-toolbar" wx:if="{{cards.length > 0 || isBatchSelectMode}}">
       <view class="batch-toggle-btn {{isBatchSelectMode ? 'active' : ''}}" bindtap="onToggleBatchSelect">
         <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#0052D9' : '#666'}}" />
         <text>{{isBatchSelectMode ? '取消选择' : '批量管理'}}</text>
       </view>
-      <view class="batch-actions" wx:if="{{isBatchSelectMode}}">
+      <view class="batch-actions" wx:if="{{isBatchSelectMode && cards.length > 0}}">
         <view class="select-all-btn" bindtap="onSelectAllCards">
           <text>{{isAllSelected ? '取消全选' : '全选'}}</text>
         </view>
@@ -166,11 +172,17 @@ module.exports = {
     <view class="selected-count-bar" wx:if="{{isBatchSelectMode && selectedCardIds.length > 0}}">
       <text>已选择 {{selectedCardIds.length}} 张卡片</text>
     </view>
+
+    <!-- 批量管理模式下无卡片的提示 -->
+    <view class="empty-batch-tip" wx:if="{{isBatchSelectMode && cards.length === 0}}">
+      <text>您还没有创建任何卡片</text>
+      <text class="empty-batch-subtip">请先创建卡片后再进行批量管理</text>
+    </view>
     
     <view class="list">
       <view class="list-item card-item {{isBatchSelectMode && utils.contains(selectedCardIds, item.id) ? 'selected' : ''}}" wx:for="{{cards}}" wx:key="id">
-        <view class="item-main" bindtap="{{isBatchSelectMode && item.created_by === currentUserId ? 'onSelectCard' : ''}}" data-id="{{item.id}}">
-          <view class="select-checkbox" wx:if="{{isBatchSelectMode && item.created_by === currentUserId}}">
+        <view class="item-main" bindtap="{{isBatchSelectMode ? 'onSelectCard' : ''}}" data-id="{{item.id}}">
+          <view class="select-checkbox" wx:if="{{isBatchSelectMode}}">
             <t-icon name="{{utils.contains(selectedCardIds, item.id) ? 'check-circle-filled' : 'circle'}}" size="40rpx" color="{{utils.contains(selectedCardIds, item.id) ? '#0052D9' : '#ccc'}}" />
           </view>
           <view class="item-content">
@@ -202,8 +214,54 @@ module.exports = {
       <view class="load-more" wx:if="{{cardHasMore}}" bindtap="loadMoreCards">
         <text>加载更多</text>
       </view>
-      <view class="empty-tip" wx:if="{{cards.length === 0}}">
+      <view class="empty-tip" wx:if="{{cards.length === 0 && !isBatchSelectMode}}">
         <text>暂无卡片</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 热门卡片管理 -->
+  <view class="content" wx:if="{{activeTab === 'hotCards'}}">
+    <view class="search-bar">
+      <input class="search-input" placeholder="搜索热门卡片" value="{{hotCardKeyword}}" bindinput="onHotCardSearchInput" bindconfirm="onHotCardSearch" />
+      <view class="add-btn" bindtap="onShowCreateHotCard">
+        <t-icon name="add" size="36rpx" color="#fff" />
+        <text>新建</text>
+      </view>
+    </view>
+    <view class="hot-cards-header">
+      <text class="hot-cards-tip">按点赞数和学习次数排序</text>
+    </view>
+    <view class="list">
+      <view class="list-item hot-card-item" wx:for="{{hotCards}}" wx:key="id">
+        <view class="item-main">
+          <view class="item-header">
+            <text class="item-title card-title-text">{{item.question}}</text>
+          </view>
+          <view class="item-meta">
+            <text class="meta-text hot-stat">{{item.like_count || 0}}赞</text>
+            <text class="meta-divider">·</text>
+            <text class="meta-text hot-stat">{{item.study_count || 0}}次学习</text>
+          </view>
+          <view class="card-tags">
+            <t-tag theme="{{item.is_public ? 'success' : 'warning'}}" variant="light" size="small">{{item.is_public ? '公开' : '私有'}}</t-tag>
+            <t-tag wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this" theme="primary" variant="light" size="small">{{tag}}</t-tag>
+          </view>
+        </view>
+        <view class="item-actions" wx:if="{{item.created_by === currentUserId}}">
+          <view class="action-btn edit" catchtap="onEditHotCard" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="edit" size="32rpx" color="#0052D9" />
+          </view>
+          <view class="action-btn delete" catchtap="onDeleteHotCard" data-id="{{item.id}}" data-index="{{index}}">
+            <t-icon name="delete" size="32rpx" color="#f5222d" />
+          </view>
+        </view>
+      </view>
+      <view class="load-more" wx:if="{{hotCardHasMore}}" bindtap="loadMoreHotCards">
+        <text>加载更多</text>
+      </view>
+      <view class="empty-tip" wx:if="{{hotCards.length === 0}}">
+        <text>暂无热门卡片</text>
       </view>
     </view>
   </view>
@@ -266,7 +324,7 @@ module.exports = {
     title="删除确认"
     content="确定要删除吗？此操作不可恢复。"
     confirm-btn="确定删除"
-    cancel-btn="取消"
+    cancel-btn="{{cancelBtnConfig}}"
     bind:confirm="onConfirmDelete"
     bind:cancel="onCancelDelete"
     visible="{{showDeleteConfirm}}"

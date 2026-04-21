@@ -1,0 +1,7 @@
+{
+  "navigationBarTitleText": "发布通知",
+  "usingComponents": {
+    "t-icon": "tdesign-miniprogram/icon/icon",
+    "t-textarea": "tdesign-miniprogram/textarea/textarea"
+  }
+}

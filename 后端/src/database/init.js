@@ -31,6 +31,7 @@ async function initDatabase() {
                 bio VARCHAR(200) DEFAULT '',
                 phone VARCHAR(20) DEFAULT '',
                 gender TINYINT DEFAULT 0,
+                daily_goal INT DEFAULT 50,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_openid (openid)
@@ -88,7 +89,7 @@ async function initDatabase() {
         await connection.query(`
             CREATE TABLE cards (
                 id INT PRIMARY KEY AUTO_INCREMENT,
-                library_id INT NOT NULL,
+                library_id INT,
                 chapter_id INT,
                 question TEXT NOT NULL,
                 answer TEXT NOT NULL,
@@ -98,12 +99,14 @@ async function initDatabase() {
                 like_count INT DEFAULT 0,
                 study_count INT DEFAULT 0,
                 is_public TINYINT DEFAULT 1,
+                is_hot TINYINT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_library_id (library_id),
                 INDEX idx_chapter_id (chapter_id),
                 INDEX idx_created_by (created_by),
-                FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE CASCADE,
+                INDEX idx_is_hot (is_hot),
+                FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE SET NULL,
                 FOREIGN KEY (chapter_id) REFERENCES chapters(id) ON DELETE SET NULL,
                 FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
@@ -246,6 +249,27 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created study_time_records table');
+
+        await connection.query(`
+            CREATE TABLE messages (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                title VARCHAR(200) NOT NULL DEFAULT '',
+                content TEXT NOT NULL,
+                type ENUM('system', 'violation', 'announcement') DEFAULT 'system',
+                is_read TINYINT(1) DEFAULT 0,
+                sender_id INT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_type (type),
+                INDEX idx_is_read (is_read),
+                INDEX idx_created_at (created_at),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                FOREIGN KEY (sender_id) REFERENCES users(id) ON DELETE SET NULL
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created messages table');
 
         console.log('Database and tables created successfully!');
     } catch (error) {
