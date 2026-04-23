@@ -45,10 +45,10 @@
           placeholder-class="placeholder"
           bindinput="onQuestionInput"
           value="{{question}}"
-          maxlength="500"
+          maxlength="100"
           auto-height
         />
-        <view class="char-count">{{question.length}}/500</view>
+        <view class="char-count">{{question.length}}/100</view>
       </view>
     </view>
 
@@ -64,10 +64,10 @@
           placeholder-class="placeholder"
           bindinput="onAnswerInput"
           value="{{answer}}"
-          maxlength="2000"
+          maxlength="500"
           auto-height
         />
-        <view class="char-count">{{answer.length}}/2000</view>
+        <view class="char-count">{{answer.length}}/500</view>
       </view>
     </view>
 

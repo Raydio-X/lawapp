@@ -9,9 +9,9 @@
         placeholder="例如：2024法硕刑法总则" 
         value="{{libraryName}}"
         bindinput="onInputName"
-        maxlength="50"
+        maxlength="20"
       />
-      <text class="form-count">{{libraryName.length}}/50</text>
+      <text class="form-count">{{libraryName.length}}/20</text>
     </view>
 
     <view class="form-item row">

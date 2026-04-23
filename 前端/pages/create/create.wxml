@@ -163,7 +163,7 @@ module.exports = {
             value="{{editLibraryName}}" 
             bindinput="onLibraryNameInput" 
             placeholder="请输入知识库名称"
-            maxlength="50"
+            maxlength="20"
           />
         </view>
         <view class="edit-info-item">

@@ -1,85 +1,104 @@
 <view class="container">
-  <view class="form-section">
-    <view class="form-item">
-      <view class="form-label">
-        <text class="label-text">所属知识库</text>
-        <text class="label-required">*</text>
+  <view class="header-decoration"></view>
+  
+  <view class="form-card">
+    <view class="card-header">
+      <view class="header-icon">
+        <t-icon name="edit-1" size="40rpx" color="#fff" />
       </view>
-      <view class="picker-wrapper" bindtap="onSelectLibrary">
-        <view class="picker-content {{selectedLibrary ? 'selected' : ''}}">
-          <text>{{selectedLibrary ? selectedLibrary.name : '请选择知识库'}}</text>
+      <view class="header-text">
+        <text class="header-title">{{isEdit ? '编辑卡片' : '创建新卡片'}}</text>
+        <text class="header-subtitle">记录知识点，构建你的法律知识体系</text>
+      </view>
+    </view>
+
+    <view class="form-body">
+      <view class="form-item">
+        <view class="form-label">
+          <view class="label-icon library">
+            <t-icon name="folder" size="28rpx" color="#fff" />
+          </view>
+          <text class="label-text">所属知识库</text>
+          <text class="label-required">*</text>
         </view>
-        <t-icon name="chevron-right" size="32rpx" color="#ccc" />
-      </view>
-    </view>
-
-    <view class="form-item" wx:if="{{selectedLibrary}}">
-      <view class="form-label">
-        <text class="label-text">所属章节</text>
-        <text class="label-required">*</text>
-      </view>
-      <view class="picker-wrapper" bindtap="onSelectChapter">
-        <view class="picker-content {{selectedChapter ? 'selected' : ''}}">
-          <text>{{selectedChapter ? selectedChapter.name : '请选择章节'}}</text>
+        <view class="picker-card" bindtap="onSelectLibrary">
+          <text class="picker-value {{selectedLibrary ? 'active' : ''}}">{{selectedLibrary ? selectedLibrary.name : '选择知识库'}}</text>
+          <t-icon name="chevron-right" size="32rpx" color="#c0c4cc" />
         </view>
-        <t-icon name="chevron-right" size="32rpx" color="#ccc" />
       </view>
-    </view>
 
-    <view class="form-item">
-      <view class="form-label">
-        <text class="label-text">题目 / 问题</text>
-        <text class="label-required">*</text>
+      <view class="form-item" wx:if="{{selectedLibrary}}">
+        <view class="form-label">
+          <view class="label-icon chapter">
+            <t-icon name="view-list" size="28rpx" color="#fff" />
+          </view>
+          <text class="label-text">所属章节</text>
+        </view>
+        <view class="picker-card" bindtap="onSelectChapter">
+          <text class="picker-value {{selectedChapter ? 'active' : ''}}">{{selectedChapter ? selectedChapter.name : '选择章节（可选）'}}</text>
+          <t-icon name="chevron-right" size="32rpx" color="#c0c4cc" />
+        </view>
       </view>
-      <view class="textarea-wrapper">
-        <textarea
-          class="form-textarea"
-          placeholder="请输入题目或问题，例如：正当防卫的构成要件有哪些？"
-          placeholder-class="placeholder"
-          bindinput="onQuestionInput"
-          value="{{question}}"
-          maxlength="500"
-          auto-height
-        />
-        <view class="char-count">{{question.length}}/500</view>
-      </view>
-    </view>
 
-    <view class="form-item">
-      <view class="form-label">
-        <text class="label-text">答案 / 解析</text>
-        <text class="label-required">*</text>
+      <view class="divider"></view>
+
+      <view class="form-item">
+        <view class="form-label">
+          <view class="label-icon question">
+            <t-icon name="help-circle" size="28rpx" color="#fff" />
+          </view>
+          <text class="label-text">题目</text>
+          <text class="label-required">*</text>
+        </view>
+        <view class="textarea-card question-card">
+          <textarea
+            class="form-textarea"
+            placeholder="输入法律问题或考点..."
+            placeholder-class="placeholder"
+            bindinput="onQuestionInput"
+            value="{{question}}"
+            maxlength="100"
+            auto-height
+          />
+          <view class="textarea-footer">
+            <text class="hint-text">简洁明了，突出核心考点</text>
+            <text class="char-count">{{question.length}}/100</text>
+          </view>
+        </view>
       </view>
-      <view class="textarea-wrapper">
-        <textarea
-          class="form-textarea answer-textarea"
-          placeholder="请输入答案或解析内容，支持换行"
-          placeholder-class="placeholder"
-          bindinput="onAnswerInput"
-          value="{{answer}}"
-          maxlength="2000"
-          auto-height
-        />
-        <view class="char-count">{{answer.length}}/2000</view>
+
+      <view class="form-item">
+        <view class="form-label">
+          <view class="label-icon answer">
+            <t-icon name="article" size="28rpx" color="#fff" />
+          </view>
+          <text class="label-text">答案</text>
+          <text class="label-required">*</text>
+        </view>
+        <view class="textarea-card answer-card">
+          <textarea
+            class="form-textarea answer-textarea"
+            placeholder="输入答案解析，支持分点作答..."
+            placeholder-class="placeholder"
+            bindinput="onAnswerInput"
+            value="{{answer}}"
+            maxlength="500"
+            auto-height
+          />
+          <view class="textarea-footer">
+            <text class="hint-text">详细解析，加深理解记忆</text>
+            <text class="char-count">{{answer.length}}/500</text>
+          </view>
+        </view>
       </view>
     </view>
   </view>
 
   <view class="footer">
-    <view class="btn-group">
-      <t-button 
-        theme="default" 
-        size="large" 
-        block
-        bindtap="onCancel"
-      >取消</t-button>
-      <t-button 
-        theme="primary" 
-        size="large" 
-        block
-        bindtap="onSubmit"
-        disabled="{{!canSubmit}}"
-      >{{isEdit ? '保存修改' : '创建卡片'}}</t-button>
+    <view class="btn-cancel" bindtap="onCancel">取消</view>
+    <view class="btn-submit {{canSubmit ? '' : 'disabled'}}" bindtap="onSubmit">
+      <t-icon name="check" size="32rpx" color="#fff" />
+      <text>{{isEdit ? '保存修改' : '创建卡片'}}</text>
     </view>
   </view>
 

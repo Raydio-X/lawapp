@@ -1,101 +1,215 @@
 .container {
   min-height: 100vh;
-  background-color: #f5f6fa;
-  padding-bottom: 240rpx;
+  background: linear-gradient(180deg, #f0f4f8 0%, #f8fafc 100%);
+  padding: 32rpx;
+  padding-bottom: 200rpx;
   box-sizing: border-box;
 }
 
-/* 表单区域 */
-.form-section {
-  background-color: #fff;
-  padding: 32rpx;
+.header-decoration {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 280rpx;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 50%, #3a7ca5 100%);
+  border-radius: 0 0 60rpx 60rpx;
+  z-index: 0;
+}
+
+.form-card {
+  position: relative;
+  z-index: 1;
+  background: #ffffff;
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: 0 8rpx 40rpx rgba(30, 58, 95, 0.12);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  padding: 36rpx 32rpx;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+  margin: 24rpx;
+  border-radius: 16rpx;
+}
+
+.header-icon {
+  width: 72rpx;
+  height: 72rpx;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 24rpx;
+}
+
+.header-text {
+  flex: 1;
+}
+
+.header-title {
+  display: block;
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: 1rpx;
+}
+
+.header-subtitle {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 8rpx;
+}
+
+.form-body {
+  padding: 16rpx 32rpx 32rpx;
 }
 
 .form-item {
-  margin-bottom: 40rpx;
+  margin-bottom: 36rpx;
 }
 
 .form-item:last-child {
   margin-bottom: 0;
 }
 
-/* 表单标签 */
 .form-label {
   display: flex;
   align-items: center;
-  margin-bottom: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.label-icon {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+}
+
+.label-icon.library {
+  background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
+}
+
+.label-icon.chapter {
+  background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%);
+}
+
+.label-icon.question {
+  background: linear-gradient(135deg, #f0ad4e 0%, #ec971f 100%);
+}
+
+.label-icon.answer {
+  background: linear-gradient(135deg, #5bc0de 0%, #31b0d5 100%);
 }
 
 .label-text {
   font-size: 30rpx;
   font-weight: 600;
-  color: #333;
+  color: #2c3e50;
 }
 
 .label-required {
-  font-size: 30rpx;
-  color: #e34d59;
+  font-size: 28rpx;
+  color: #e74c3c;
   margin-left: 8rpx;
 }
 
-.label-optional {
-  font-size: 26rpx;
-  color: #999;
-  margin-left: 8rpx;
+.divider {
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, #e8ecf0, transparent);
+  margin: 32rpx 0;
 }
 
-/* 选择器样式 */
-.picker-wrapper {
+.picker-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24rpx 32rpx;
-  background-color: #f8f9fa;
+  padding: 28rpx 32rpx;
+  background: #f8fafc;
   border-radius: 16rpx;
-  border: 2rpx solid #e8e8e8;
+  border: 2rpx solid #e8ecf0;
+  transition: all 0.3s ease;
 }
 
-.picker-content {
-  flex: 1;
+.picker-card:active {
+  background: #f0f4f8;
+  border-color: #1e3a5f;
+}
+
+.picker-value {
   font-size: 30rpx;
-  color: #999;
+  color: #95a5a6;
 }
 
-.picker-content.selected {
-  color: #333;
+.picker-value.active {
+  color: #2c3e50;
+  font-weight: 500;
 }
 
-/* 文本域样式 */
-.textarea-wrapper {
-  position: relative;
-  background-color: #f8f9fa;
+.textarea-card {
+  background: #f8fafc;
   border-radius: 16rpx;
-  border: 2rpx solid #e8e8e8;
+  border: 2rpx solid #e8ecf0;
   padding: 24rpx;
+  transition: all 0.3s ease;
+}
+
+.textarea-card:focus-within {
+  border-color: #1e3a5f;
+  background: #ffffff;
+  box-shadow: 0 4rpx 20rpx rgba(30, 58, 95, 0.08);
+}
+
+.question-card {
+  border-left: 6rpx solid #f0ad4e;
+}
+
+.answer-card {
+  border-left: 6rpx solid #5bc0de;
 }
 
 .form-textarea {
   width: 100%;
-  min-height: 160rpx;
+  min-height: 120rpx;
   font-size: 30rpx;
-  line-height: 1.6;
-  color: #333;
+  line-height: 1.7;
+  color: #2c3e50;
 }
 
 .answer-textarea {
-  min-height: 240rpx;
+  min-height: 200rpx;
 }
 
 .placeholder {
   font-size: 30rpx;
-  color: #bbb;
+  color: #bdc3c7;
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #e8ecf0;
+}
+
+.hint-text {
+  font-size: 24rpx;
+  color: #95a5a6;
 }
 
 .char-count {
-  text-align: right;
   font-size: 24rpx;
-  color: #999;
-  margin-top: 12rpx;
+  color: #95a5a6;
+  font-weight: 500;
 }
 
 .footer {
@@ -103,55 +217,52 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #fff;
-  padding: 24rpx 32rpx;
-  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -4rpx 20rpx rgba(0, 0, 0, 0.05);
-}
-
-.footer-tips {
-  display: flex;
-  align-items: center;
-  gap: 8rpx;
-  margin-bottom: 20rpx;
-  font-size: 26rpx;
-  color: #999;
-}
-
-.btn-group {
   display: flex;
   gap: 24rpx;
+  padding: 24rpx 32rpx;
+  padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
+  background: #ffffff;
+  box-shadow: 0 -4rpx 24rpx rgba(30, 58, 95, 0.08);
 }
 
-.btn-group t-button {
+.btn-cancel {
   flex: 1;
-}
-
-.picker-header {
+  height: 88rpx;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 24rpx 32rpx;
-  background-color: #fff;
-  border-bottom: 2rpx solid #f0f0f0;
+  justify-content: center;
+  font-size: 30rpx;
+  color: #7f8c8d;
+  background: #f8fafc;
+  border-radius: 16rpx;
+  border: 2rpx solid #e8ecf0;
 }
 
-.picker-title {
+.btn-cancel:active {
+  background: #e8ecf0;
+}
+
+.btn-submit {
+  flex: 2;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: #ffffff;
+  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a87 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 16rpx rgba(30, 58, 95, 0.3);
 }
 
-.picker-btn {
-  font-size: 30rpx;
-  padding: 8rpx 16rpx;
+.btn-submit:active {
+  opacity: 0.9;
+  transform: scale(0.98);
 }
 
-.picker-btn.confirm {
-  color: #0052D9;
-  font-weight: 500;
-}
-
-.picker-btn.cancel {
-  color: #999;
+.btn-submit.disabled {
+  background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
+  box-shadow: none;
 }
