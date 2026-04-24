@@ -86,7 +86,7 @@ module.exports = {
         step="5" 
         value="{{duration}}" 
         block-size="24"
-        activeColor="#0052D9"
+        activeColor="#3B82F6"
         backgroundColor="#E7E7E7"
         bindchange="onDurationChange"
       />
@@ -107,16 +107,16 @@ module.exports = {
         bindtap="onModeChange" 
         data-mode="random"
       >
-        <t-icon name="shuffle" size="40rpx" color="{{examMode === 'random' ? '#0052D9' : '#999'}}" />
+        <t-icon name="shuffle" size="40rpx" color="{{examMode === 'random' ? '#3B82F6' : '#999'}}" />
         <text class="mode-name">随机出题</text>
-        <text class="mode-desc">从选中知识库随机抽取</text>
+        <text class="mode-desc">从选中知识库随机抽题</text>
       </view>
       <view 
         class="mode-option {{examMode === 'sequential' ? 'active' : ''}}" 
         bindtap="onModeChange" 
         data-mode="sequential"
       >
-        <t-icon name="order" size="40rpx" color="{{examMode === 'sequential' ? '#0052D9' : '#999'}}" />
+        <t-icon name="order" size="40rpx" color="{{examMode === 'sequential' ? '#3B82F6' : '#999'}}" />
         <text class="mode-name">顺序出题</text>
         <text class="mode-desc">按知识库顺序出题</text>
       </view>

@@ -66,7 +66,7 @@ module.exports = {
     <view class="quick-action-grid">
       <view class="quick-action-item {{smartImportDisabled ? 'disabled' : ''}}" bindtap="onSmartImport">
         <view class="quick-action-icon smart-icon">
-          <t-icon name="bulletpoint" size="40rpx" color="{{smartImportDisabled ? '#ccc' : '#0052D9'}}" />
+          <t-icon name="bulletpoint" size="40rpx" color="{{smartImportDisabled ? '#ccc' : '#3B82F6'}}" />
         </view>
         <text class="quick-action-text">智能导入</text>
         <view class="coming-soon-tag" wx:if="{{smartImportDisabled}}">即将开放</view>
@@ -97,7 +97,7 @@ module.exports = {
         data-index="{{index}}"
       >
         <view class="library-item-icon">
-          <t-icon name="folder" size="48rpx" color="#0052D9" />
+          <t-icon name="folder" size="48rpx" color="#3B82F6" />
         </view>
         <view class="library-item-content">
           <text class="library-item-name">{{item.name}}</text>
@@ -222,7 +222,7 @@ module.exports = {
         </view>
 
         <view class="outline-add-btn" bindtap="onAddOutline">
-          <t-icon name="add" size="36rpx" color="#0052D9" />
+          <t-icon name="add" size="36rpx" color="#3B82F6" />
           <text>添加标题</text>
         </view>
       </view>
@@ -239,7 +239,7 @@ module.exports = {
         <view class="cards-manage-toolbar" wx:if="{{editCards.length > 0}}">
           <view class="toolbar-left">
             <view class="batch-toggle-btn {{isBatchSelectMode ? 'active' : ''}}" bindtap="onToggleBatchSelect">
-              <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#0052D9' : '#666'}}" />
+              <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#3B82F6' : '#666'}}" />
               <text>{{isBatchSelectMode ? '取消选择' : '批量管理'}}</text>
             </view>
           </view>
@@ -248,7 +248,7 @@ module.exports = {
               <text>{{selectedCardIds.length === editCards.length ? '取消全选' : '全选'}}</text>
             </view>
             <view class="move-btn {{selectedCardIds.length > 0 ? '' : 'disabled'}}" bindtap="onShowChapterPicker">
-              <t-icon name="folder-move" size="32rpx" color="{{selectedCardIds.length > 0 ? '#0052D9' : '#ccc'}}" />
+              <t-icon name="folder-move" size="32rpx" color="{{selectedCardIds.length > 0 ? '#3B82F6' : '#ccc'}}" />
               <text>移动到章节</text>
             </view>
           </view>
@@ -271,7 +271,7 @@ module.exports = {
             </view>
             <view class="cards-manage-actions" wx:if="{{!isBatchSelectMode}}">
               <view class="cards-manage-btn edit" catchtap="onEditCard" data-id="{{item.id}}" data-index="{{index}}">
-                <t-icon name="edit" size="36rpx" color="#0052D9" />
+                <t-icon name="edit" size="36rpx" color="#3B82F6" />
               </view>
               <view class="cards-manage-btn delete" catchtap="onDeleteCard" data-id="{{item.id}}" data-index="{{index}}">
                 <t-icon name="delete" size="36rpx" color="#e34d59" />
@@ -286,7 +286,7 @@ module.exports = {
         </view>
 
         <view class="cards-manage-add-btn" bindtap="onAddCard" wx:if="{{!isBatchSelectMode}}">
-          <t-icon name="add" size="36rpx" color="#0052D9" />
+          <t-icon name="add" size="36rpx" color="#3B82F6" />
           <text>添加卡片</text>
         </view>
       </view>
@@ -321,7 +321,7 @@ module.exports = {
           </view>
           <text>{{item.name}}</text>
         </view>
-        <t-icon wx:if="{{targetChapterId === item.id}}" name="check" size="36rpx" color="#0052D9" />
+        <t-icon wx:if="{{targetChapterId === item.id}}" name="check" size="36rpx" color="#3B82F6" />
       </view>
     </view>
     <view class="chapter-picker-footer">
@@ -360,7 +360,7 @@ module.exports = {
   <view class="delete-confirm-popup">
     <view class="delete-confirm-title">删除确认</view>
     <view class="delete-confirm-content">
-      <text>确定要删除"{{deleteItem.title || '此标题'}}"吗？{{deleteItem.childCount > 0 ? '将同时删除其下的 ' + deleteItem.childCount + ' 个子标题，' : ''}}该标题下的卡片也将被删除，此操作不可恢复。</text>
+      <text>确定要删除"{{deleteItem.title || '此标题'}}"吗？{{deleteItem.childCount > 0 ? '将同时删除其下的 ' + deleteItem.childCount + ' 个子标题。' : ''}}该标题下的卡片也将被删除，此操作不可恢复。</text>
     </view>
     <view class="delete-confirm-actions">
       <view class="delete-btn cancel" bindtap="onCancelDelete">取消</view>
@@ -458,10 +458,10 @@ module.exports = {
         <view class="batch-template-info">
           <text class="batch-template-row"><text class="col-a">A列</text><text class="col-b">问题</text></text>
           <text class="batch-template-row"><text class="col-a">B列</text><text class="col-b">答案</text></text>
-          <text class="batch-template-row"><text class="col-a">C列(可选)</text><text class="col-b">章节</text></text>
+          <text class="batch-template-row"><text class="col-a">C列</text><text class="col-b">章节（可选）</text></text>
         </view>
         <view class="batch-download-template" bindtap="onDownloadTemplate">
-          <t-icon name="download" size="28rpx" color="#0052D9" />
+          <t-icon name="download" size="28rpx" color="#3B82F6" />
           <text>下载模板</text>
         </view>
       </view>

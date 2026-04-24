@@ -38,7 +38,7 @@
 
 .cancel-btn {
   font-size: 28rpx;
-  color: #0052D9;
+  color: #3B82F6;
   white-space: nowrap;
   padding: 8rpx 4rpx;
 }
@@ -92,7 +92,7 @@
   font-weight: 600;
   border-radius: 8rpx;
   background-color: #e8f4ff;
-  color: #0052D9;
+  color: #3B82F6;
   flex-shrink: 0;
   padding: 0 8rpx;
   margin-top: 6rpx;
@@ -195,7 +195,7 @@
 
 .lib-subject {
   font-size: 22rpx;
-  color: #0052D9;
+  color: #3B82F6;
   background-color: #e8f4ff;
   padding: 2rpx 12rpx;
   border-radius: 6rpx;
@@ -224,7 +224,7 @@
   text-align: center;
   padding: 24rpx;
   font-size: 26rpx;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .no-more {

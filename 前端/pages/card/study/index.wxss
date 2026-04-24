@@ -30,7 +30,7 @@
 
 .card-number {
   font-size: 28rpx;
-  color: #0052D9;
+  color: #3B82F6;
   font-weight: 600;
   background: rgba(0, 82, 217, 0.1);
   padding: 8rpx 20rpx;
@@ -51,7 +51,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0052D9 0%, #336FE3 100%);
+  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 4rpx;
   transition: width 0.3s ease;
 }
@@ -78,7 +78,7 @@
   overflow: hidden;
 }
 
-/* 答案隐藏状态 */
+/* 答案隐藏状�?*/
 .answer-hidden {
   display: flex;
   flex-direction: column;
@@ -96,7 +96,7 @@
   display: flex;
   align-items: center;
   gap: 16rpx;
-  background: linear-gradient(135deg, #0052D9 0%, #336FE3 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   color: #fff;
   font-size: 32rpx;
   font-weight: 600;
@@ -111,7 +111,7 @@
   box-shadow: 0 4rpx 12rpx rgba(0, 82, 217, 0.2);
 }
 
-/* 答案展开状态 */
+/* 答案展开状�?*/
 .answer-revealed {
   padding: 32rpx;
   opacity: 0;
@@ -204,7 +204,7 @@
   transform: scale(0.95);
 }
 
-/* 模块三：评论互动区 */
+/* 模块三：评论互动�?*/
 .comment-section {
   background-color: #fff;
   border-radius: 24rpx;
@@ -260,7 +260,7 @@
 .comment-avatar {
   width: 72rpx;
   height: 72rpx;
-  background: linear-gradient(135deg, #0052D9 0%, #336FE3 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -315,7 +315,7 @@
   margin-top: 16rpx;
 }
 
-/* 评论输入框 */
+/* 评论输入�?*/
 .comment-input-section {
   display: flex;
   gap: 16rpx;
@@ -349,7 +349,7 @@
 }
 
 .send-btn.active {
-  background: linear-gradient(135deg, #0052D9 0%, #336FE3 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
 }
 
 .send-btn:active {
@@ -361,7 +361,7 @@
   height: 32rpx;
 }
 
-/* 模块四：学习导航栏 */
+/* 模块四：学习导航�?*/
 .study-nav-bar {
   position: fixed;
   bottom: 0;
@@ -390,7 +390,7 @@
 
 .nav-btn text {
   font-size: 28rpx;
-  color: #0052D9;
+  color: #3B82F6;
   font-weight: 600;
 }
 

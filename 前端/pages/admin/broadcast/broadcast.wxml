@@ -1,7 +1,7 @@
 <view class="container">
   <view class="form-section">
     <view class="form-header">
-      <t-icon name="notification" size="48rpx" color="#0052D9" />
+      <t-icon name="notification" size="48rpx" color="#3B82F6" />
       <text class="form-title">发布通知</text>
     </view>
     <text class="form-desc">向所有用户发送消息通知</text>

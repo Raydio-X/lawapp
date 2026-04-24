@@ -1,7 +1,7 @@
 <view class="container">
   <!-- 提示信息 -->
   <view class="tips-bar">
-    <t-icon name="info-circle" size="32rpx" color="#0052D9" />
+    <t-icon name="info-circle" size="32rpx" color="#3B82F6" />
     <text class="tips-text">请选择要学习的知识库，可多选</text>
   </view>
 

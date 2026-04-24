@@ -1,14 +1,12 @@
-/* 全局容器 */
 .container {
   min-height: 100vh;
-  background-color: #f5f6fa;
+  background-color: #FFFFFF;
   padding-bottom: calc(48rpx + constant(safe-area-inset-bottom));
   padding-bottom: calc(48rpx + env(safe-area-inset-bottom));
 }
 
-/* 用户信息区 */
 .user-section {
-  background: linear-gradient(135deg, #0052D9 0%, #336FE3 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   padding: 48rpx 32rpx 32rpx;
   border-radius: 0 0 40rpx 40rpx;
   margin-bottom: 24rpx;
@@ -57,7 +55,6 @@
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* 数据统计 */
 .stats-section {
   display: flex;
   justify-content: space-around;
@@ -97,7 +94,6 @@
   background-color: rgba(255, 255, 255, 0.2);
 }
 
-/* 今日学习 */
 .today-section {
   background-color: #fff;
   margin: 24rpx 32rpx;
@@ -116,15 +112,14 @@
 .section-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: #1E293B;
 }
 
 .section-more {
   font-size: 26rpx;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
-/* 核心数据卡片 */
 .core-stats {
   display: flex;
   background: linear-gradient(135deg, #f8faff 0%, #f0f5ff 100%);
@@ -166,12 +161,12 @@
 .core-stat-value {
   font-size: 30rpx;
   font-weight: 700;
-  color: #333;
+  color: #1E293B;
 }
 
 .core-stat-label {
   font-size: 24rpx;
-  color: #999;
+  color: #64748B;
 }
 
 .core-stat-divider {
@@ -181,7 +176,6 @@
   margin: 0 16rpx;
 }
 
-/* 今日目标 */
 .goal-card {
   background: linear-gradient(135deg, #f0f7ff 0%, #e8f4ff 100%);
   border-radius: 16rpx;
@@ -199,18 +193,18 @@
 .goal-title {
   font-size: 28rpx;
   font-weight: 600;
-  color: #333;
+  color: #1E293B;
 }
 
 .goal-progress {
   font-size: 28rpx;
   font-weight: 600;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .goal-bar {
   height: 16rpx;
-  background-color: rgba(0, 82, 217, 0.15);
+  background-color: rgba(59, 130, 246, 0.15);
   border-radius: 8rpx;
   overflow: hidden;
   margin-bottom: 12rpx;
@@ -218,17 +212,16 @@
 
 .goal-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0052D9 0%, #336FE3 100%);
+  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 8rpx;
   transition: width 0.3s ease;
 }
 
 .goal-hint {
   font-size: 24rpx;
-  color: #666;
+  color: #64748B;
 }
 
-/* 学习数据网格 */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -236,7 +229,7 @@
 }
 
 .grid-item {
-  background-color: #f8f9fc;
+  background-color: #F8FAFC;
   border-radius: 16rpx;
   padding: 24rpx;
   display: flex;
@@ -248,12 +241,12 @@
 .grid-value {
   font-size: 32rpx;
   font-weight: 700;
-  color: #333;
+  color: #1E293B;
 }
 
 .grid-label {
   font-size: 24rpx;
-  color: #999;
+  color: #64748B;
 }
 
 .grid-tag {
@@ -265,22 +258,22 @@
 
 .grid-tag.good {
   background-color: #e8f7ed;
-  color: #00a870;
+  color: #10B981;
 }
 
 .grid-tag.normal {
   background-color: #fff7e8;
-  color: #fa8c16;
+  color: #F59E0B;
 }
 
 .grid-tag.improve {
   background-color: #ffebe8;
-  color: #e34d59;
+  color: #EF4444;
 }
 
 .grid-tag.review {
   background-color: #f0e8ff;
-  color: #7b61ff;
+  color: #8B5CF6;
 }
 
 .grid-trend {
@@ -290,14 +283,13 @@
 }
 
 .grid-trend.up {
-  color: #00a870;
+  color: #10B981;
 }
 
 .grid-trend.down {
-  color: #e34d59;
+  color: #EF4444;
 }
 
-/* 菜单区域 */
 .menu-section {
   margin: 24rpx 32rpx;
   background-color: #fff;
@@ -319,24 +311,23 @@
   margin-top: -9rpx;
 }
 
-/* 自定义数字标签 */
 .custom-badge {
   font-size: 28rpx;
   font-weight: 500;
-  color: #999;
+  color: #64748B;
   margin-right: 8rpx;
   margin-top: -6rpx;
 }
 
 .custom-badge.wrong {
-  color: #999;
+  color: #64748B;
 }
 
 .badge-number {
   width: 36rpx;
   height: 36rpx;
   border-radius: 50%;
-  background-color: #f5222d;
+  background-color: #EF4444;
   color: #fff;
   font-size: 20rpx;
   font-weight: 700;
@@ -348,14 +339,12 @@
   margin-bottom: 8rpx;
 }
 
-/* 菜单项右侧内容 */
 .menu-section .t-cell__right {
   display: flex;
   align-items: center;
   flex-direction: row;
 }
 
-/* 退出登录区域 */
 .logout-section {
   margin-top: 48rpx;
 }
@@ -365,24 +354,21 @@
 }
 
 .logout-section .t-cell__title {
-  color: #E34D59;
+  color: #EF4444;
   text-align: center;
 }
 
-/* 版本信息 */
 .version-info {
   text-align: center;
   padding: 48rpx 0;
   font-size: 24rpx;
-  color: #ccc;
+  color: #94A3B8;
 }
 
-/* 底部占位 */
 .bottom-placeholder {
   height: 48rpx;
 }
 
-/* 学习计划弹窗 */
 .plan-popup {
   position: fixed;
   top: 0;
@@ -418,13 +404,13 @@
   justify-content: space-between;
   align-items: center;
   padding: 32rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #E2E8F0;
 }
 
 .plan-picker-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: #1E293B;
 }
 
 .plan-picker-close {
@@ -433,7 +419,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: #F8FAFC;
   border-radius: 50%;
 }
 
@@ -450,7 +436,7 @@
   align-items: center;
   justify-content: center;
   font-size: 36rpx;
-  color: #333;
+  color: #1E293B;
 }
 
 .plan-picker-footer {
@@ -472,6 +458,6 @@
 }
 
 .plan-picker-btn.confirm {
-  background: #0052D9;
+  background: #3B82F6;
   color: #fff;
 }

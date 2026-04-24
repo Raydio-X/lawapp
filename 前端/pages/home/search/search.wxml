@@ -4,7 +4,7 @@
       <t-icon name="search" size="40rpx" color="#999" />
       <input 
         class="search-input" 
-        placeholder="搜索知识卡片 / 知识库" 
+        placeholder="搜索知识卡片 / 知识库"
         placeholder-class="placeholder"
         bindinput="onSearchInput"
         bindconfirm="onSearchConfirm"
@@ -89,7 +89,7 @@
           data-id="{{item.id}}"
         >
           <view class="lib-icon">
-            <t-icon name="folder" size="48rpx" color="#0052D9" />
+            <t-icon name="folder" size="48rpx" color="#3B82F6" />
           </view>
           <view class="lib-info">
             <text class="lib-name">{{item.name}}</text>

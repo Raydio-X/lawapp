@@ -1,7 +1,7 @@
 <view class="container">
   <!-- 批量导入入口 -->
   <view class="batch-import-entry" bindtap="onBatchImport" wx:if="{{!isEdit && !isHot}}">
-    <t-icon name="upload" size="36rpx" color="#0052D9" />
+    <t-icon name="upload" size="36rpx" color="#3B82F6" />
     <text class="batch-import-text">批量导入卡片</text>
     <t-icon name="chevron-right" size="28rpx" color="#ccc" />
   </view>
@@ -92,7 +92,7 @@
             </view>
           </view>
           <view class="tag-add-btn-horizontal" wx:if="{{tagList.length < 3}}" bindtap="onAddTag">
-            <t-icon name="add" size="28rpx" color="#0052D9" />
+            <t-icon name="add" size="28rpx" color="#3B82F6" />
           </view>
         </view>
       </view>
@@ -215,10 +215,10 @@
           <view class="batch-template-info">
             <text class="batch-template-row"><text class="col-a">A列</text><text class="col-b">问题</text></text>
             <text class="batch-template-row"><text class="col-a">B列</text><text class="col-b">答案</text></text>
-            <text class="batch-template-row"><text class="col-a">C列(可选)</text><text class="col-b">章节</text></text>
+            <text class="batch-template-row"><text class="col-a">C列（可选）</text><text class="col-b">章节</text></text>
           </view>
           <view class="batch-download-template" bindtap="onDownloadTemplate">
-            <t-icon name="download" size="28rpx" color="#0052D9" />
+            <t-icon name="download" size="28rpx" color="#3B82F6" />
             <text>下载模板</text>
           </view>
         </view>

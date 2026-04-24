@@ -1,9 +1,16 @@
 const { libraryAPI, cardAPI, isLoggedIn } = require('../../utils/api');
 
+const SUBJECT_TYPE_MAP = {
+  '民法': 'civil',
+  '刑法': 'criminal',
+  '宪法': 'constitution',
+  '行政法': 'admin'
+};
+
 Page({
   data: {
     searchValue: '',
-    currentFilter: 'all',
+    currentSort: 'hot',
     hotCards: [],
     allLibraries: [],
     libraries: [],
@@ -82,19 +89,41 @@ Page({
           id: item.id,
           name: item.name,
           subject: item.subject || item.category_name || '未分类',
+          subjectType: SUBJECT_TYPE_MAP[item.subject || item.category_name] || 'default',
           cardCount: item.card_count || 0,
           favorites: item.favorite_count || 0,
           isFavorited: Boolean(item.is_favorited),
+          createdAt: item.created_at || item.createdAt || new Date().toISOString(),
           pressed: false
         }));
+        
         this.setData({
-          allLibraries: libs,
-          libraries: libs
+          allLibraries: libs
         });
+        
+        this.sortLibraries(this.data.currentSort);
       }
     } catch (error) {
       console.error('加载知识库失败:', error);
     }
+  },
+
+  sortLibraries(sortType) {
+    const allLibraries = [...this.data.allLibraries];
+    
+    if (sortType === 'hot') {
+      allLibraries.sort((a, b) => (b.favorites || 0) - (a.favorites || 0));
+    } else if (sortType === 'new') {
+      allLibraries.sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        return timeB - timeA;
+      });
+    }
+    
+    this.setData({
+      libraries: allLibraries
+    });
   },
 
   onSearchInput(e) {
@@ -118,23 +147,12 @@ Page({
     });
   },
 
-  onFilterChange(e) {
-    const filter = e.currentTarget.dataset.filter;
-    const allLibraries = this.data.allLibraries;
-    let filteredLibraries = [];
-    
-    if (filter === 'all') {
-      filteredLibraries = allLibraries;
-    } else if (filter === 'civil') {
-      filteredLibraries = allLibraries.filter(item => item.subject === '民法');
-    } else if (filter === 'criminal') {
-      filteredLibraries = allLibraries.filter(item => item.subject === '刑法');
-    }
-    
+  onSortChange(e) {
+    const sort = e.currentTarget.dataset.sort;
     this.setData({
-      currentFilter: filter,
-      libraries: filteredLibraries
+      currentSort: sort
     });
+    this.sortLibraries(sort);
   },
 
   onCardTouchStart(e) {

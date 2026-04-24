@@ -61,7 +61,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0052D9 0%, #3366FF 100%);
+  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 4rpx;
   transition: width 0.3s ease;
 }
@@ -75,7 +75,7 @@
 .question-progress .current {
   font-size: 32rpx;
   font-weight: 700;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .question-progress .total {
@@ -115,7 +115,7 @@
 
 .question-tag {
   background: #f0f5ff;
-  color: #0052D9;
+  color: #3B82F6;
   font-size: 24rpx;
   padding: 8rpx 16rpx;
   border-radius: 8rpx;
@@ -173,7 +173,7 @@
 }
 
 .answer-input:focus {
-  border-color: #0052D9;
+  border-color: #3B82F6;
   background: #fff;
   box-shadow: 0 0 0 4rpx rgba(0, 82, 217, 0.1);
 }
@@ -210,7 +210,7 @@
 }
 
 .nav-btn.next {
-  background: linear-gradient(135deg, #0052D9 0%, #3366FF 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   color: #fff;
 }
 
@@ -314,6 +314,6 @@
 }
 
 .result-btn.review {
-  background: linear-gradient(135deg, #0052D9 0%, #3366FF 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   color: #fff;
 }

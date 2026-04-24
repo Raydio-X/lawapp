@@ -1,4 +1,3 @@
-/* 登录页面样式 */
 .login-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
@@ -11,7 +10,6 @@
   box-sizing: border-box;
 }
 
-/* 背景装饰 */
 .bg-decoration {
   position: absolute;
   top: 0;
@@ -31,7 +29,7 @@
 .circle-1 {
   width: 600rpx;
   height: 600rpx;
-  background: linear-gradient(135deg, #0052D9 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   top: -200rpx;
   right: -200rpx;
 }
@@ -39,7 +37,7 @@
 .circle-2 {
   width: 400rpx;
   height: 400rpx;
-  background: linear-gradient(135deg, #1890ff 0%, #0052D9 100%);
+  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
   bottom: 100rpx;
   left: -150rpx;
 }
@@ -47,12 +45,11 @@
 .circle-3 {
   width: 300rpx;
   height: 300rpx;
-  background: linear-gradient(135deg, #0052D9 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   bottom: -100rpx;
   right: 100rpx;
 }
 
-/* Logo区域 */
 .logo-section {
   display: flex;
   flex-direction: column;
@@ -67,24 +64,23 @@
 }
 
 .app-logo {
-  box-shadow: 0 8rpx 32rpx rgba(0, 82, 217, 0.2);
+  box-shadow: 0 8rpx 32rpx rgba(59, 130, 246, 0.2);
 }
 
 .app-name {
   font-size: 48rpx;
   font-weight: 700;
-  color: #333;
+  color: #1E293B;
   margin-bottom: 12rpx;
   letter-spacing: 4rpx;
 }
 
 .app-slogan {
   font-size: 28rpx;
-  color: #666;
+  color: #64748B;
   letter-spacing: 2rpx;
 }
 
-/* 登录区域 */
 .login-section {
   width: 100%;
   max-width: 640rpx;
@@ -102,7 +98,7 @@
   display: block;
   font-size: 40rpx;
   font-weight: 600;
-  color: #333;
+  color: #1E293B;
   text-align: center;
   margin-bottom: 12rpx;
 }
@@ -110,12 +106,11 @@
 .login-desc {
   display: block;
   font-size: 26rpx;
-  color: #999;
+  color: #64748B;
   text-align: center;
   margin-bottom: 48rpx;
 }
 
-/* 微信登录按钮 */
 .wechat-login-btn {
   display: flex;
   align-items: center;
@@ -131,8 +126,8 @@
 }
 
 .wechat-login-btn.primary {
-  background: linear-gradient(135deg, #0052D9 0%, #1890ff 100%);
-  box-shadow: 0 8rpx 24rpx rgba(0, 82, 217, 0.3);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  box-shadow: 0 8rpx 24rpx rgba(59, 130, 246, 0.3);
 }
 
 .wechat-login-btn::after {
@@ -151,7 +146,6 @@
   margin-left: 16rpx;
 }
 
-/* 协议区域 */
 .agreement-section {
   display: flex;
   align-items: center;
@@ -172,12 +166,12 @@
 
 .agreement-text {
   font-size: 24rpx;
-  color: #999;
+  color: #64748B;
   line-height: 1.6;
 }
 
 .link {
-  color: #0052D9;
+  color: #3B82F6;
   font-weight: 500;
 }
 
@@ -193,13 +187,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 32rpx;
-  border-bottom: 1rpx solid #eee;
+  border-bottom: 1rpx solid #E2E8F0;
 }
 
 .agreement-popup-title {
   font-size: 32rpx;
   font-weight: 600;
-  color: #333;
+  color: #1E293B;
 }
 
 .agreement-popup-content {
@@ -207,7 +201,7 @@
   max-height: 600rpx;
   overflow-y: auto;
   font-size: 28rpx;
-  color: #666;
+  color: #64748B;
   text-align: left;
   line-height: 1.8;
   white-space: pre-wrap;
@@ -216,13 +210,12 @@
 .agreement-popup-footer {
   padding: 24rpx 32rpx;
   text-align: center;
-  color: #0052D9;
+  color: #3B82F6;
   font-size: 28rpx;
   font-weight: 500;
-  border-top: 1rpx solid #eee;
+  border-top: 1rpx solid #E2E8F0;
 }
 
-/* 底部 */
 .footer {
   margin-top: auto;
   padding-bottom: 40rpx;
@@ -231,10 +224,9 @@
 
 .version {
   font-size: 24rpx;
-  color: #ccc;
+  color: #94A3B8;
 }
 
-/* 加载动画 */
 .loading-mask {
   position: fixed;
   top: 0;
@@ -257,10 +249,9 @@
 .loading-text {
   margin-top: 24rpx;
   font-size: 28rpx;
-  color: #666;
+  color: #64748B;
 }
 
-/* 测试登录弹窗 */
 .test-login-popup {
   width: 560rpx;
   background: #fff;
@@ -278,7 +269,7 @@
 .test-login-title {
   font-size: 36rpx;
   font-weight: 600;
-  color: #333;
+  color: #1E293B;
 }
 
 .test-login-form {
@@ -293,29 +284,29 @@
 .form-label {
   display: block;
   font-size: 28rpx;
-  color: #666;
+  color: #64748B;
   margin-bottom: 12rpx;
 }
 
 .form-input {
   width: 100%;
   height: 88rpx;
-  background: #f5f7fa;
+  background: #F8FAFC;
   border-radius: 12rpx;
   padding: 0 24rpx;
   font-size: 30rpx;
-  color: #333;
+  color: #1E293B;
   box-sizing: border-box;
 }
 
 .form-input::placeholder {
-  color: #999;
+  color: #94A3B8;
 }
 
 .test-login-btn {
   width: 100%;
   height: 88rpx;
-  background: linear-gradient(135deg, #0052D9 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 44rpx;
   border: none;
   margin-top: 16rpx;

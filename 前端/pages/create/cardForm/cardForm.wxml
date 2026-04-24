@@ -15,9 +15,6 @@
     <view class="form-body">
       <view class="form-item">
         <view class="form-label">
-          <view class="label-icon library">
-            <t-icon name="folder" size="28rpx" color="#fff" />
-          </view>
           <text class="label-text">所属知识库</text>
           <text class="label-required">*</text>
         </view>
@@ -29,9 +26,6 @@
 
       <view class="form-item" wx:if="{{selectedLibrary}}">
         <view class="form-label">
-          <view class="label-icon chapter">
-            <t-icon name="view-list" size="28rpx" color="#fff" />
-          </view>
           <text class="label-text">所属章节</text>
         </view>
         <view class="picker-card" bindtap="onSelectChapter">
@@ -44,9 +38,6 @@
 
       <view class="form-item">
         <view class="form-label">
-          <view class="label-icon question">
-            <t-icon name="help-circle" size="28rpx" color="#fff" />
-          </view>
           <text class="label-text">题目</text>
           <text class="label-required">*</text>
         </view>
@@ -69,9 +60,6 @@
 
       <view class="form-item">
         <view class="form-label">
-          <view class="label-icon answer">
-            <t-icon name="article" size="28rpx" color="#fff" />
-          </view>
           <text class="label-text">答案</text>
           <text class="label-required">*</text>
         </view>

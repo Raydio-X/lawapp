@@ -43,7 +43,7 @@
       <t-icon 
         name="{{hasAgreed ? 'check-circle-filled' : 'circle'}}" 
         size="32rpx" 
-        color="{{hasAgreed ? '#0052D9' : '#ccc'}}"
+        color="{{hasAgreed ? '#3B82F6' : '#ccc'}}"
       />
     </view>
     <text class="agreement-text">登录即代表您同意<text class="link" bindtap="showUserAgreement">《用户协议》</text>和<text class="link" bindtap="showPrivacyPolicy">《隐私政策》</text></text>

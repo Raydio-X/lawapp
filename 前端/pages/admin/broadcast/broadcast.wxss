@@ -129,7 +129,7 @@
 }
 
 .action-btn.confirm {
-  background-color: #0052D9;
+  background-color: #3B82F6;
   color: #fff;
 }
 

@@ -48,7 +48,7 @@
     <view class="core-stats">
       <view class="core-stat-item">
         <view class="core-stat-icon time-icon">
-          <t-icon name="time" size="40rpx" color="#0052D9" />
+          <t-icon name="time" size="40rpx" color="#3B82F6" />
         </view>
         <view class="core-stat-content">
           <text class="core-stat-value">{{studyProgress.totalTime}}</text>
@@ -124,7 +124,7 @@
         bindtap="onMenuTap"
         data-menu="message"
       >
-        <t-icon slot="left-icon" name="notification" size="44rpx" color="#0052D9" />
+        <t-icon slot="left-icon" name="notification" size="44rpx" color="#3B82F6" />
         <view slot="note" class="badge-number" wx:if="{{unreadCount > 0}}">{{unreadCount > 99 ? '99+' : unreadCount}}</view>
       </t-cell>
     </t-cell-group>

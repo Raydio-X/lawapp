@@ -1,5 +1,7 @@
 const { libraryAPI, chapterAPI } = require('../../../utils/api');
 
+const SUBJECTS = ['民法', '刑法', '宪法', '行政法'];
+
 Page({
   data: {
     libraryName: '',
@@ -16,6 +18,11 @@ Page({
   _lastLevelChangeTime: 0,
   _lastSortTime: 0,
   _isDragging: false,
+
+  getRandomSubject() {
+    const randomIndex = Math.floor(Math.random() * SUBJECTS.length);
+    return SUBJECTS[randomIndex];
+  },
 
   async onLoad() {
     await this.loadExistingLibraryNames();
@@ -239,9 +246,11 @@ Page({
     wx.showLoading({ title: '创建中...', mask: true });
 
     try {
+      const randomSubject = this.getRandomSubject();
+      
       const result = await libraryAPI.create({
         name: libraryName.trim(),
-        subject: '法学',
+        subject: randomSubject,
         description: '',
         is_public: isPublic ? 1 : 0
       });

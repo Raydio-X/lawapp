@@ -9,7 +9,7 @@
       <t-icon name="search" size="40rpx" color="#999" />
       <input 
         class="search-input" 
-        placeholder="搜索知识卡片 / 知识库"
+        placeholder="搜索知识卡片 / 知识库" 
         placeholder-class="placeholder"
         bindinput="onSearchInput"
         bindconfirm="onSearchConfirm"
@@ -52,7 +52,7 @@
           </view>
           <view class="hot-card-footer">
             <view class="like-count {{item.liked ? 'liked' : ''}}" catchtap="onLikeCard" data-index="{{index}}" data-id="{{item.id}}">
-              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#3B82F6' : '#999'}}" />
+              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
               <text>{{item.likes}}</text>
             </view>
           </view>
@@ -92,7 +92,7 @@
       >
         <view class="library-card-header">
           <view class="library-icon">
-            <t-icon name="folder" size="48rpx" color="#3B82F6" />
+            <t-icon name="folder" size="48rpx" color="#0052D9" />
           </view>
         </view>
         <view class="library-card-body">
@@ -119,7 +119,7 @@
 
   <view class="admin-tab-bar">
     <view class="tab-item active" bindtap="onSwitchTab" data-tab="{{0}}">
-      <t-icon name="home" size="44rpx" color="#3B82F6" />
+      <t-icon name="home" size="44rpx" color="#0052D9" />
       <text class="tab-text active-text">社区</text>
     </view>
     <view class="tab-item" bindtap="onSwitchTab" data-tab="{{1}}">

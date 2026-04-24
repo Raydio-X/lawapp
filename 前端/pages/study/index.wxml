@@ -65,7 +65,7 @@
 
     <view class="module-card" bindtap="onDifficulty">
       <view class="module-icon diff-icon">
-        <t-icon name="chart" size="44rpx" color="#0052D9" />
+        <t-icon name="chart" size="44rpx" color="#3B82F6" />
       </view>
       <view class="module-info">
         <text class="module-title">难度挑战</text>

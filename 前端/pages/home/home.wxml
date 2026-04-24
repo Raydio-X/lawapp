@@ -1,27 +1,28 @@
 <view class="container">
-  <!-- 搜索栏 -->
   <view class="search-section">
     <view class="search-box">
-      <t-icon name="search" size="40rpx" color="#999" />
+      <t-icon name="search" size="40rpx" color="#60A5FA" />
       <input 
         class="search-input" 
-        placeholder="搜索知识卡片 / 知识库" 
+        placeholder="搜索知识卡片 / 知识库"
         placeholder-class="placeholder"
         bindinput="onSearchInput"
         bindconfirm="onSearchConfirm"
         value="{{searchValue}}"
       />
-      <t-icon wx:if="{{searchValue}}" name="close-circle-filled" size="40rpx" color="#ccc" bindtap="clearSearch" />
+      <t-icon wx:if="{{searchValue}}" name="close-circle-filled" size="40rpx" color="#BFDBFE" bindtap="clearSearch" />
     </view>
   </view>
 
-  <!-- 热门卡片横向滚动 -->
-  <view class="section">
+  <view class="section hot-section">
     <view class="section-header">
-      <text class="section-title">热门卡片</text>
+      <view class="section-title-wrap">
+        <view class="section-bar"></view>
+        <text class="section-title">热门卡片</text>
+      </view>
       <view class="more-link" bindtap="goToMoreCards">
         <text>查看更多</text>
-        <t-icon name="chevron-right" size="28rpx" color="#999" />
+        <t-icon name="chevron-right" size="28rpx" color="#60A5FA" />
       </view>
     </view>
     <scroll-view class="hot-cards-scroll" scroll-x="true" show-scrollbar="false">
@@ -36,6 +37,9 @@
           data-index="{{index}}"
           data-type="hot"
         >
+          <view class="hot-card-rank" wx:if="{{index < 3}}">
+            <text>{{index + 1}}</text>
+          </view>
           <view class="hot-card-content">
             <view class="hot-card-title">{{item.title}}</view>
             <view class="hot-card-tags">
@@ -51,7 +55,7 @@
           </view>
           <view class="hot-card-footer">
             <view class="like-count {{item.liked ? 'liked' : ''}}" catchtap="onLikeCard" data-index="{{index}}" data-id="{{item.id}}">
-              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
+              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#3B82F6' : '#94A3B8'}}" />
               <text>{{item.likes}}</text>
             </view>
           </view>
@@ -60,28 +64,29 @@
     </scroll-view>
   </view>
 
-  <!-- 优质知识库 -->
   <view class="section library-section">
     <view class="section-header">
-      <text class="section-title">优质知识库</text>
-      <view class="filter-tabs">
-        <view 
-          class="filter-tab {{currentFilter === 'all' ? 'active' : ''}}" 
-          bindtap="onFilterChange"
-          data-filter="all"
-        >全部</view>
-        <view 
-          class="filter-tab {{currentFilter === 'civil' ? 'active' : ''}}" 
-          bindtap="onFilterChange"
-          data-filter="civil"
-        >民法</view>
-        <view 
-          class="filter-tab {{currentFilter === 'criminal' ? 'active' : ''}}" 
-          bindtap="onFilterChange"
-          data-filter="criminal"
-        >刑法</view>
+      <view class="section-title-wrap">
+        <view class="section-bar"></view>
+        <text class="section-title">优质知识库</text>
       </view>
     </view>
+    
+    <view class="filter-tabs">
+      <view class="filter-tabs-inner">
+        <view 
+          class="filter-tab {{currentSort === 'hot' ? 'active' : ''}}" 
+          bindtap="onSortChange"
+          data-sort="hot"
+        >最热</view>
+        <view 
+          class="filter-tab {{currentSort === 'new' ? 'active' : ''}}" 
+          bindtap="onSortChange"
+          data-sort="new"
+        >最新</view>
+      </view>
+    </view>
+
     <view class="library-grid">
       <view 
         class="library-card {{item.pressed ? 'pressed' : ''}}" 
@@ -92,31 +97,38 @@
         bindtouchend="onLibraryTouchEnd"
         data-index="{{index}}"
       >
-        <view class="library-card-header">
-          <view class="library-icon">
-            <t-icon name="folder" size="48rpx" color="#0052D9" />
+        <view class="library-card-left">
+          <view class="library-cover">
+            <view class="cover-bg cover-{{item.subjectType}}"></view>
+            <view class="cover-icon">
+              <t-icon name="book" size="44rpx" color="#fff" />
+            </view>
           </view>
         </view>
         <view class="library-card-body">
           <text class="library-name">{{item.name}}</text>
-          <view class="library-tags">
-            <t-tag theme="primary" variant="light" size="small">{{item.subject}}</t-tag>
+          <view class="library-meta">
+            <view class="meta-tag meta-{{item.subjectType}}">{{item.subject}}</view>
+            <text class="meta-dot">·</text>
+            <text class="meta-text">{{item.cardCount}}张卡片</text>
           </view>
         </view>
-        <view class="library-card-footer">
-          <view class="stat-item">
-            <t-icon name="file" size="28rpx" color="#999" />
-            <text>{{item.cardCount}}张卡片</text>
+        <view class="library-card-right">
+          <view class="fav-btn {{item.isFavorited ? 'favorited' : ''}}" catchtap="onFavoriteLibrary" data-index="{{index}}" data-id="{{item.id}}">
+            <t-icon name="{{item.isFavorited ? 'star-filled' : 'star'}}" size="36rpx" color="{{item.isFavorited ? '#F59E0B' : '#CBD5E1'}}" />
           </view>
-          <view class="stat-item fav-stat {{item.isFavorited ? 'favorited' : ''}}" catchtap="onFavoriteLibrary" data-index="{{index}}" data-id="{{item.id}}">
-            <t-icon name="{{item.isFavorited ? 'star-filled' : 'star'}}" size="28rpx" color="{{item.isFavorited ? '#FAAD14' : '#999'}}" />
-            <text class="fav-text">{{item.favorites || 0}}收藏</text>
-          </view>
+          <text class="fav-count">{{item.favorites || 0}}</text>
         </view>
       </view>
     </view>
+    
+    <view class="empty-state" wx:if="{{libraries.length === 0 && !loading}}">
+      <view class="empty-icon">
+        <t-icon name="folder-open" size="80rpx" color="#BFDBFE" />
+      </view>
+      <text class="empty-text">暂无相关知识库</text>
+    </view>
   </view>
 
-  <!-- 底部占位 -->
   <view class="bottom-placeholder"></view>
 </view>

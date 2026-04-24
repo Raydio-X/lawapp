@@ -4,7 +4,7 @@
   padding-bottom: 140rpx;
 }
 
-/* 提示栏 */
+/* 提示�?*/
 .tips-bar {
   display: flex;
   align-items: center;
@@ -15,10 +15,10 @@
 
 .tips-text {
   font-size: 26rpx;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
-/* 知识库列表 */
+/* 知识库列�?*/
 .library-list {
   padding: 20rpx 24rpx;
   display: flex;
@@ -39,7 +39,7 @@
 }
 
 .library-item.selected {
-  border-color: #0052D9;
+  border-color: #3B82F6;
   background: #f8faff;
 }
 
@@ -57,8 +57,8 @@
 }
 
 .library-item.selected .library-checkbox {
-  border-color: #0052D9;
-  background: #0052D9;
+  border-color: #3B82F6;
+  background: #3B82F6;
 }
 
 .checkbox-inner {
@@ -129,7 +129,7 @@
 }
 
 .source-tag.my text {
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .source-tag.favorite {
@@ -169,12 +169,12 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #0052D9 0%, #3366FF 100%);
+  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 4rpx;
   transition: width 0.3s;
 }
 
-/* 空状态 */
+/* 空状�?*/
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -194,7 +194,7 @@
   margin-top: 12rpx;
 }
 
-/* 底部操作栏 */
+/* 底部操作�?*/
 .bottom-bar {
   position: fixed;
   bottom: 0;
@@ -228,8 +228,8 @@
 }
 
 .select-all .checkbox-inner.checked {
-  border-color: #0052D9;
-  background: #0052D9;
+  border-color: #3B82F6;
+  background: #3B82F6;
 }
 
 .select-all text {
@@ -281,7 +281,7 @@
 }
 
 .start-btn.active {
-  background: linear-gradient(135deg, #0052D9 0%, #3366FF 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   box-shadow: 0 8rpx 24rpx rgba(0, 82, 217, 0.3);
 }
 

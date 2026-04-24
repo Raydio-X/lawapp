@@ -112,7 +112,7 @@
 <!-- 模块四：卡片切换学习导航 -->
 <view class="study-nav-bar">
   <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
-    <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#0052D9'}}" />
+    <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#3B82F6'}}" />
     <text>上一张</text>
   </view>
   
@@ -122,6 +122,6 @@
   
   <view class="nav-btn next {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
     <text>下一张</text>
-    <t-icon name="chevron-right" size="40rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#0052D9'}}" />
+    <t-icon name="chevron-right" size="40rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#3B82F6'}}" />
   </view>
 </view>

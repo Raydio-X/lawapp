@@ -83,32 +83,6 @@
   margin-bottom: 20rpx;
 }
 
-.label-icon {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 12rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 16rpx;
-}
-
-.label-icon.library {
-  background: linear-gradient(135deg, #4a90d9 0%, #357abd 100%);
-}
-
-.label-icon.chapter {
-  background: linear-gradient(135deg, #5cb85c 0%, #449d44 100%);
-}
-
-.label-icon.question {
-  background: linear-gradient(135deg, #f0ad4e 0%, #ec971f 100%);
-}
-
-.label-icon.answer {
-  background: linear-gradient(135deg, #5bc0de 0%, #31b0d5 100%);
-}
-
 .label-text {
   font-size: 30rpx;
   font-weight: 600;

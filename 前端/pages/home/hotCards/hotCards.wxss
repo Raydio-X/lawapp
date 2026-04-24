@@ -30,7 +30,7 @@
   gap: 24rpx;
 }
 
-/* 卡片项 */
+/* 卡片�?*/
 .card-item {
   background-color: #fff;
   border-radius: 24rpx;
@@ -59,7 +59,7 @@
 .card-number {
   font-size: 24rpx;
   font-weight: 600;
-  color: #0052D9;
+  color: #3B82F6;
   background: rgba(0, 82, 217, 0.1);
   padding: 8rpx 16rpx;
   border-radius: 8rpx;
@@ -115,7 +115,7 @@
 }
 
 .stat-item.like-btn.liked {
-  color: #0052D9;
+  color: #3B82F6;
   background-color: rgba(0, 82, 217, 0.1);
 }
 

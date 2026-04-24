@@ -2,7 +2,7 @@
   <view class="header">
     <text class="header-title">消息中心</text>
     <view class="header-action" bindtap="onMarkAllRead" wx:if="{{messages.length > 0}}">
-      <t-icon name="check-circle" size="32rpx" color="#0052D9" />
+      <t-icon name="check-circle" size="32rpx" color="#3B82F6" />
       <text class="header-action-text">全部已读</text>
     </view>
   </view>

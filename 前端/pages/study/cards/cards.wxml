@@ -14,7 +14,7 @@
 
   <!-- 加载状态 -->
   <view class="loading-container" wx:if="{{loading}}">
-    <t-icon name="loading" size="80rpx" color="#0052D9" />
+    <t-icon name="loading" size="80rpx" color="#3B82F6" />
     <text class="loading-text">加载中...</text>
   </view>
 
@@ -85,7 +85,7 @@
           <text class="comment-text">{{item.content}}</text>
           <view class="comment-actions">
             <view class="like-btn {{item.liked ? 'liked' : ''}}" bindtap="onLikeComment" data-index="{{index}}" data-id="{{item.id}}">
-              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="28rpx" color="{{item.liked ? '#0052D9' : '#999'}}" />
+              <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="28rpx" color="{{item.liked ? '#3B82F6' : '#999'}}" />
               <text>{{item.likeCount || 0}}</text>
             </view>
             <view class="save-card-btn" bindtap="onSaveCommentAsCard" data-index="{{index}}">
@@ -101,7 +101,7 @@
       </view>
     </scroll-view>
 
-    <!-- 评论输入框 -->
+    <!-- 评论输入栏 -->
     <view class="comment-input-section">
       <input 
         class="comment-input" 

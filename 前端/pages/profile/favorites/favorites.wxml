@@ -18,7 +18,7 @@
     >
       <view class="item-content">
         <view class="item-icon">
-          <t-icon name="{{item.type === 'library' ? 'folder' : 'file'}}" size="48rpx" color="#0052D9" />
+          <t-icon name="{{item.type === 'library' ? 'folder' : 'file'}}" size="48rpx" color="#3B82F6" />
         </view>
         <view class="item-info">
           <text class="item-name">{{item.name}}</text>

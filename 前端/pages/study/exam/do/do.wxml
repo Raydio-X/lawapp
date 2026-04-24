@@ -64,7 +64,7 @@
   <view class="result-modal" wx:if="{{showResult}}">
     <view class="result-content">
       <view class="result-header">
-        <t-icon name="time" size="100rpx" color="#0052D9" />
+        <t-icon name="time" size="100rpx" color="#3B82F6" />
         <text class="result-title">考试完成</text>
       </view>
       

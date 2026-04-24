@@ -36,7 +36,7 @@
     <view class="catalog-header">
       <view class="catalog-title-row">
         <view class="catalog-title-icon">
-          <t-icon name="view-list" size="36rpx" color="#0052D9" />
+          <t-icon name="view-list" size="36rpx" color="#3B82F6" />
         </view>
         <text class="catalog-title">章节目录</text>
       </view>

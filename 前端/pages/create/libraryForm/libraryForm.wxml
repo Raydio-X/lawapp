@@ -78,7 +78,7 @@
       </view>
 
       <view class="outline-add-btn" bindtap="onAddOutline">
-        <t-icon name="add" size="36rpx" color="#0052D9" />
+        <t-icon name="add" size="36rpx" color="#3B82F6" />
         <text>添加标题</text>
       </view>
     </view>

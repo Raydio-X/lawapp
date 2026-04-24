@@ -50,7 +50,7 @@
 }
 
 .tab-bar .tab-item.active {
-  color: #0052D9;
+  color: #3B82F6;
   background-color: rgba(0, 82, 217, 0.06);
   font-weight: 500;
 }
@@ -140,7 +140,7 @@
   display: flex;
   align-items: center;
   gap: 8rpx;
-  background: linear-gradient(135deg, #0052D9 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   color: #fff;
   padding: 0 28rpx;
   border-radius: 12rpx;
@@ -165,7 +165,7 @@
 }
 
 .filter-chip.active {
-  color: #0052D9;
+  color: #3B82F6;
   background-color: rgba(0, 82, 217, 0.1);
   font-weight: 500;
 }
@@ -314,7 +314,7 @@
 .load-more {
   text-align: center;
   padding: 24rpx;
-  color: #0052D9;
+  color: #3B82F6;
   font-size: 28rpx;
 }
 
@@ -381,7 +381,7 @@
 }
 
 .tab-bar-text.active-text {
-  color: #0052D9;
+  color: #3B82F6;
   font-weight: 500;
 }
 
@@ -466,7 +466,7 @@
 }
 
 .custom-switch.active {
-  background-color: #0052D9;
+  background-color: #3B82F6;
 }
 
 .custom-switch-dot {
@@ -514,7 +514,7 @@
   border-radius: 40rpx;
   font-size: 30rpx;
   color: #fff;
-  background: linear-gradient(135deg, #0052D9 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   font-weight: 500;
 }
 
@@ -523,7 +523,7 @@
   opacity: 0.9;
 }
 
-/* 批量操作工具栏 */
+/* 批量操作工具�?*/
 .batch-toolbar {
   display: flex;
   align-items: center;
@@ -546,7 +546,7 @@
 
 .batch-toggle-btn.active {
   background-color: #e8f3ff;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .batch-actions {
@@ -571,7 +571,7 @@
   border-radius: 8rpx;
   background-color: #e8f3ff;
   font-size: 26rpx;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .move-btn.disabled {
@@ -585,13 +585,13 @@
   border-radius: 8rpx;
   margin: 0 24rpx 16rpx;
   font-size: 26rpx;
-  color: #0052D9;
+  color: #3B82F6;
   text-align: center;
 }
 
 .list-item.selected {
   background-color: #e8f3ff !important;
-  border: 2rpx solid #0052D9 !important;
+  border: 2rpx solid #3B82F6 !important;
 }
 
 .card-item .item-main {
@@ -654,7 +654,7 @@
 
 .chapter-picker-item.selected {
   background-color: #e8f3ff;
-  color: #0052D9;
+  color: #3B82F6;
 }
 
 .chapter-picker-name {
@@ -677,7 +677,7 @@
 
 .chapter-level-indicator text {
   font-size: 22rpx;
-  color: #0052D9;
+  color: #3B82F6;
   font-weight: 500;
 }
 
@@ -706,7 +706,7 @@
 }
 
 .chapter-picker-btn.confirm {
-  background-color: #0052D9;
+  background-color: #3B82F6;
   color: #fff;
 }
 

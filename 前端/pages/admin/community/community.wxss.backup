@@ -97,7 +97,7 @@
 }
 
 .filter-tab.active {
-  color: #3B82F6;
+  color: #0052D9;
   background-color: rgba(0, 82, 217, 0.1);
   font-weight: 500;
 }
@@ -168,7 +168,7 @@
 }
 
 .like-count.liked {
-  color: #3B82F6;
+  color: #0052D9;
   background-color: rgba(0, 82, 217, 0.1);
 }
 
@@ -300,6 +300,6 @@
 }
 
 .tab-text.active-text {
-  color: #3B82F6;
+  color: #0052D9;
   font-weight: 500;
 }

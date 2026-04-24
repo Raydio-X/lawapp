@@ -18,23 +18,23 @@ module.exports = {
   </view>
   <view class="tab-bar" style="top: {{navBarHeight}}px;">
     <view class="tab-item {{activeTab === 'stats' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="stats">
-      <t-icon name="chart-bar" size="36rpx" color="{{activeTab === 'stats' ? '#0052D9' : '#999'}}" />
+      <t-icon name="chart-bar" size="36rpx" color="{{activeTab === 'stats' ? '#3B82F6' : '#999'}}" />
       <text>概览</text>
     </view>
     <view class="tab-item {{activeTab === 'libraries' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="libraries">
-      <t-icon name="folder" size="36rpx" color="{{activeTab === 'libraries' ? '#0052D9' : '#999'}}" />
+      <t-icon name="folder" size="36rpx" color="{{activeTab === 'libraries' ? '#3B82F6' : '#999'}}" />
       <text>知识库</text>
     </view>
     <view class="tab-item {{activeTab === 'cards' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="cards">
-      <t-icon name="file" size="36rpx" color="{{activeTab === 'cards' ? '#0052D9' : '#999'}}" />
+      <t-icon name="file" size="36rpx" color="{{activeTab === 'cards' ? '#3B82F6' : '#999'}}" />
       <text>卡片</text>
     </view>
     <view class="tab-item {{activeTab === 'hotCards' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="hotCards">
-      <t-icon name="bookmark-checked" size="36rpx" color="{{activeTab === 'hotCards' ? '#0052D9' : '#999'}}" />
+      <t-icon name="bookmark-checked" size="36rpx" color="{{activeTab === 'hotCards' ? '#3B82F6' : '#999'}}" />
       <text>热门卡片</text>
     </view>
     <view class="tab-item {{activeTab === 'comments' ? 'active' : ''}}" bindtap="onSwitchTab" data-tab="comments">
-      <t-icon name="chat" size="36rpx" color="{{activeTab === 'comments' ? '#0052D9' : '#999'}}" />
+      <t-icon name="chat" size="36rpx" color="{{activeTab === 'comments' ? '#3B82F6' : '#999'}}" />
       <text>评论</text>
     </view>
   </view>
@@ -44,7 +44,7 @@ module.exports = {
     <view class="stats-grid">
       <view class="stat-card">
         <view class="stat-icon blue">
-          <t-icon name="folder" size="48rpx" color="#0052D9" />
+          <t-icon name="folder" size="48rpx" color="#3B82F6" />
         </view>
         <view class="stat-info">
           <text class="stat-value">{{stats.totalLibraries}}</text>
@@ -83,7 +83,7 @@ module.exports = {
     <!-- 消息发布入口 -->
     <view class="broadcast-entry" bindtap="onGoToBroadcast">
       <view class="broadcast-entry-icon">
-        <t-icon name="notification-add" size="48rpx" color="#0052D9" />
+        <t-icon name="notification-add" size="48rpx" color="#3B82F6" />
       </view>
       <view class="broadcast-entry-content">
         <text class="broadcast-entry-title">发布通知</text>
@@ -120,7 +120,7 @@ module.exports = {
         </view>
         <view class="item-actions" wx:if="{{item.created_by === currentUserId}}">
           <view class="action-btn edit" catchtap="onEditLibrary" data-id="{{item.id}}" data-index="{{index}}">
-            <t-icon name="edit" size="32rpx" color="#0052D9" />
+            <t-icon name="edit" size="32rpx" color="#3B82F6" />
           </view>
           <view class="action-btn delete" catchtap="onDeleteLibrary" data-id="{{item.id}}" data-index="{{index}}">
             <t-icon name="delete" size="32rpx" color="#f5222d" />
@@ -154,7 +154,7 @@ module.exports = {
     <!-- 批量操作工具栏 -->
     <view class="batch-toolbar" wx:if="{{cards.length > 0 || isBatchSelectMode}}">
       <view class="batch-toggle-btn {{isBatchSelectMode ? 'active' : ''}}" bindtap="onToggleBatchSelect">
-        <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#0052D9' : '#666'}}" />
+        <t-icon name="{{isBatchSelectMode ? 'check' : 'check-circle'}}" size="32rpx" color="{{isBatchSelectMode ? '#3B82F6' : '#666'}}" />
         <text>{{isBatchSelectMode ? '取消选择' : '批量管理'}}</text>
       </view>
       <view class="batch-actions" wx:if="{{isBatchSelectMode && cards.length > 0}}">
@@ -162,7 +162,7 @@ module.exports = {
           <text>{{isAllSelected ? '取消全选' : '全选'}}</text>
         </view>
         <view class="move-btn {{selectedCardIds.length > 0 ? '' : 'disabled'}}" bindtap="onShowChapterPicker">
-          <t-icon name="folder-move" size="32rpx" color="{{selectedCardIds.length > 0 ? '#0052D9' : '#ccc'}}" />
+          <t-icon name="folder-move" size="32rpx" color="{{selectedCardIds.length > 0 ? '#3B82F6' : '#ccc'}}" />
           <text>移动到章节</text>
         </view>
       </view>
@@ -183,7 +183,7 @@ module.exports = {
       <view class="list-item card-item {{isBatchSelectMode && utils.contains(selectedCardIds, item.id) ? 'selected' : ''}}" wx:for="{{cards}}" wx:key="id">
         <view class="item-main" bindtap="{{isBatchSelectMode ? 'onSelectCard' : ''}}" data-id="{{item.id}}">
           <view class="select-checkbox" wx:if="{{isBatchSelectMode}}">
-            <t-icon name="{{utils.contains(selectedCardIds, item.id) ? 'check-circle-filled' : 'circle'}}" size="40rpx" color="{{utils.contains(selectedCardIds, item.id) ? '#0052D9' : '#ccc'}}" />
+            <t-icon name="{{utils.contains(selectedCardIds, item.id) ? 'check-circle-filled' : 'circle'}}" size="40rpx" color="{{utils.contains(selectedCardIds, item.id) ? '#3B82F6' : '#ccc'}}" />
           </view>
           <view class="item-content">
             <view class="item-header">
@@ -204,7 +204,7 @@ module.exports = {
         </view>
         <view class="item-actions" wx:if="{{!isBatchSelectMode && item.created_by === currentUserId}}">
           <view class="action-btn edit" catchtap="onEditCard" data-id="{{item.id}}" data-index="{{index}}">
-            <t-icon name="edit" size="32rpx" color="#0052D9" />
+            <t-icon name="edit" size="32rpx" color="#3B82F6" />
           </view>
           <view class="action-btn delete" catchtap="onDeleteCard" data-id="{{item.id}}" data-index="{{index}}">
             <t-icon name="delete" size="32rpx" color="#f5222d" />
@@ -250,7 +250,7 @@ module.exports = {
         </view>
         <view class="item-actions" wx:if="{{item.created_by === currentUserId}}">
           <view class="action-btn edit" catchtap="onEditHotCard" data-id="{{item.id}}" data-index="{{index}}">
-            <t-icon name="edit" size="32rpx" color="#0052D9" />
+            <t-icon name="edit" size="32rpx" color="#3B82F6" />
           </view>
           <view class="action-btn delete" catchtap="onDeleteHotCard" data-id="{{item.id}}" data-index="{{index}}">
             <t-icon name="delete" size="32rpx" color="#f5222d" />
@@ -309,7 +309,7 @@ module.exports = {
       <text class="tab-bar-text">社区</text>
     </view>
     <view class="tab-bar-item active">
-      <t-icon name="setting" size="44rpx" color="#0052D9" />
+      <t-icon name="setting" size="44rpx" color="#3B82F6" />
       <text class="tab-bar-text active-text">管理</text>
     </view>
     <view class="tab-bar-item" bindtap="onLogout">
@@ -357,7 +357,7 @@ module.exports = {
             </view>
             <text>{{item.name}}</text>
           </view>
-          <t-icon wx:if="{{targetChapterId === item.id}}" name="check" size="36rpx" color="#0052D9" />
+          <t-icon wx:if="{{targetChapterId === item.id}}" name="check" size="36rpx" color="#3B82F6" />
         </view>
       </view>
       <view class="chapter-picker-footer">
