@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 
 const authRoutes = require('./routes/auth');
 const libraryRoutes = require('./routes/libraries');
@@ -19,7 +20,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use('/icons', express.static('icons'));
+app.use('/icons', express.static(path.join(__dirname, '../icons')));
 
 app.get('/', (req, res) => {
     res.json({
