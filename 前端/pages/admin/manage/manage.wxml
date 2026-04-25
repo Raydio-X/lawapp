@@ -104,7 +104,7 @@ module.exports = {
     </view>
     <view class="list">
       <view class="list-item" wx:for="{{libraries}}" wx:key="id">
-        <view class="item-main">
+        <view class="item-main" bindtap="onViewLibrary" data-id="{{item.id}}">
           <view class="item-header">
             <text class="item-title">{{item.name}}</text>
           </view>
@@ -181,7 +181,7 @@ module.exports = {
     
     <view class="list">
       <view class="list-item card-item {{isBatchSelectMode && utils.contains(selectedCardIds, item.id) ? 'selected' : ''}}" wx:for="{{cards}}" wx:key="id">
-        <view class="item-main" bindtap="{{isBatchSelectMode ? 'onSelectCard' : ''}}" data-id="{{item.id}}">
+        <view class="item-main" bindtap="onCardItemTap" data-id="{{item.id}}">
           <view class="select-checkbox" wx:if="{{isBatchSelectMode}}">
             <t-icon name="{{utils.contains(selectedCardIds, item.id) ? 'check-circle-filled' : 'circle'}}" size="40rpx" color="{{utils.contains(selectedCardIds, item.id) ? '#3B82F6' : '#ccc'}}" />
           </view>
@@ -234,7 +234,7 @@ module.exports = {
     </view>
     <view class="list">
       <view class="list-item hot-card-item" wx:for="{{hotCards}}" wx:key="id">
-        <view class="item-main">
+        <view class="item-main" bindtap="onViewCard" data-id="{{item.id}}">
           <view class="item-header">
             <text class="item-title card-title-text">{{item.question}}</text>
           </view>
@@ -273,7 +273,7 @@ module.exports = {
     </view>
     <view class="list">
       <view class="list-item comment-item" wx:for="{{comments}}" wx:key="id">
-        <view class="item-main">
+        <view class="item-main" bindtap="onViewCommentDetail" data-index="{{index}}">
           <view class="comment-header">
             <text class="comment-user">{{item.nickname || '匿名用户'}}</text>
             <text class="comment-time">{{item.created_at}}</text>
@@ -304,10 +304,6 @@ module.exports = {
 
   <!-- 底部Tab -->
   <view class="admin-tab-bar">
-    <view class="tab-bar-item" bindtap="onSwitchToCommunity">
-      <t-icon name="home" size="44rpx" color="#999" />
-      <text class="tab-bar-text">社区</text>
-    </view>
     <view class="tab-bar-item active">
       <t-icon name="setting" size="44rpx" color="#3B82F6" />
       <text class="tab-bar-text active-text">管理</text>
@@ -363,6 +359,46 @@ module.exports = {
       <view class="chapter-picker-footer">
         <view class="chapter-picker-btn cancel" bindtap="onCloseChapterPicker">取消</view>
         <view class="chapter-picker-btn confirm" bindtap="onConfirmMoveCards">确认移动</view>
+      </view>
+    </view>
+  </t-popup>
+
+  <!-- 评论详情弹窗 -->
+  <t-popup 
+    visible="{{showCommentDetail}}" 
+    bind:visible-change="onCloseCommentDetail"
+    placement="bottom"
+  >
+    <view class="comment-detail-popup">
+      <view class="comment-detail-header">
+        <text class="comment-detail-title">评论详情</text>
+        <view class="comment-detail-close" bindtap="onCloseCommentDetail">
+          <t-icon name="close" size="40rpx" color="#999" />
+        </view>
+      </view>
+      <view class="comment-detail-content" wx:if="{{currentComment}}">
+        <view class="comment-detail-user">
+          <text class="comment-detail-nickname">{{currentComment.nickname || '匿名用户'}}</text>
+          <text class="comment-detail-time">{{currentComment.created_at}}</text>
+        </view>
+        <view class="comment-detail-text">{{currentComment.content}}</view>
+        <view class="comment-detail-card" bindtap="onViewCommentCard" data-card-id="{{currentComment.card_id}}">
+          <view class="comment-detail-card-label">评论的卡片:</view>
+          <view class="comment-detail-card-title">{{currentComment.card_question || '未知卡片'}}</view>
+          <t-icon name="chevron-right" size="32rpx" color="#ccc" />
+        </view>
+        <view class="comment-detail-stats">
+          <view class="comment-stat-item">
+            <t-icon name="thumb-up" size="32rpx" color="#94A3B8" />
+            <text>{{currentComment.like_count || 0}} 赞</text>
+          </view>
+        </view>
+      </view>
+      <view class="comment-detail-footer">
+        <view class="comment-detail-btn delete" bindtap="onDeleteCommentFromDetail">
+          <t-icon name="delete" size="32rpx" color="#f5222d" />
+          <text>删除评论</text>
+        </view>
       </view>
     </view>
   </t-popup>

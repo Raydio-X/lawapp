@@ -53,7 +53,10 @@ Page({
       style: 'color: #333;'
     },
 
-    currentUserId: null
+    currentUserId: null,
+
+    showCommentDetail: false,
+    currentComment: null
   },
 
   onLoad() {
@@ -245,7 +248,7 @@ Page({
       if (res.success && res.data) {
         const list = (res.data.list || []).map(item => ({
           ...item,
-          created_at: item.created_at ? item.created_at.split(' ')[0] : ''
+          created_at: item.created_at ? item.created_at.substring(0, 16).replace('T', ' ') : ''
         }));
         this.setData({
           comments: this.data.commentPage === 1 ? list : [...this.data.comments, ...list],
@@ -534,12 +537,6 @@ Page({
     });
   },
 
-  onSwitchToCommunity() {
-    wx.reLaunch({
-      url: '/pages/admin/community/community'
-    });
-  },
-
   onLogout() {
     wx.showModal({
       title: '提示',
@@ -584,5 +581,68 @@ Page({
     wx.navigateTo({
       url: '/pages/admin/broadcast/broadcast'
     });
+  },
+
+  onViewLibrary(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({
+      url: `/pages/library/detail/detail?id=${id}`
+    });
+  },
+
+  onViewCard(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.navigateTo({
+      url: `/pages/card/study/study?cardId=${id}`
+    });
+  },
+
+  onCardItemTap(e) {
+    if (this.data.isBatchSelectMode) {
+      this.onSelectCard(e);
+    } else {
+      this.onViewCard(e);
+    }
+  },
+
+  onViewCommentDetail(e) {
+    const index = e.currentTarget.dataset.index;
+    const comment = this.data.comments[index];
+    if (comment) {
+      this.setData({
+        showCommentDetail: true,
+        currentComment: comment
+      });
+    }
+  },
+
+  onCloseCommentDetail() {
+    this.setData({
+      showCommentDetail: false,
+      currentComment: null
+    });
+  },
+
+  onViewCommentCard(e) {
+    const cardId = e.currentTarget.dataset.cardId;
+    if (cardId) {
+      this.onCloseCommentDetail();
+      wx.navigateTo({
+        url: `/pages/card/study/study?cardId=${cardId}`
+      });
+    }
+  },
+
+  onDeleteCommentFromDetail() {
+    const comment = this.data.currentComment;
+    if (comment) {
+      this.setData({
+        showCommentDetail: false,
+        showDeleteConfirm: true,
+        deleteType: 'comment',
+        deleteId: comment.id,
+        deleteName: comment.content.substring(0, 20)
+      });
+    }
   }
 });

@@ -145,18 +145,48 @@
 .hot-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 6rpx;
-  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  bottom: 20rpx;
+  left: 16rpx;
+  width: 8rpx;
+  height: 8rpx;
+  background: rgba(59, 130, 246, 0.25);
+  border-radius: 50%;
+  pointer-events: none;
+  box-shadow: 
+    16rpx 0 0 rgba(59, 130, 246, 0.35),
+    32rpx 0 0 rgba(59, 130, 246, 0.2),
+    0 -16rpx 0 rgba(59, 130, 246, 0.2),
+    16rpx -16rpx 0 rgba(59, 130, 246, 0.3),
+    32rpx -16rpx 0 rgba(59, 130, 246, 0.15),
+    0 -32rpx 0 rgba(59, 130, 246, 0.15),
+    16rpx -32rpx 0 rgba(59, 130, 246, 0.2),
+    32rpx -32rpx 0 rgba(59, 130, 246, 0.1);
 }
 
+.hot-card::after {
+  display: none;
+}
+
+.hot-card-bar {
+  display: none;
+}
+
+.hot-card:active .hot-card-bar,
 .hot-card:active::before,
-.hot-card.pressed::before {
-  opacity: 1;
+.hot-card:active::after,
+.hot-card.pressed .hot-card-bar,
+.hot-card.pressed::before,
+.hot-card.pressed::after {
+  background: rgba(59, 130, 246, 0.45);
+  box-shadow: 
+    16rpx 0 0 rgba(59, 130, 246, 0.55),
+    32rpx 0 0 rgba(59, 130, 246, 0.4),
+    0 -16rpx 0 rgba(59, 130, 246, 0.4),
+    16rpx -16rpx 0 rgba(59, 130, 246, 0.5),
+    32rpx -16rpx 0 rgba(59, 130, 246, 0.35),
+    0 -32rpx 0 rgba(59, 130, 246, 0.35),
+    16rpx -32rpx 0 rgba(59, 130, 246, 0.4),
+    32rpx -32rpx 0 rgba(59, 130, 246, 0.3);
 }
 
 .hot-card.pressed {
@@ -200,6 +230,7 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;
+  padding-right: 50rpx;
 }
 
 .hot-card-tags {

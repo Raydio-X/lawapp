@@ -127,19 +127,18 @@
   
   <view class="nav-btn-next-card {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
     <text class="next-text">下一张</text>
-    <t-icon name="chevron-right" size="36rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#fff'}}" />
   </view>
 </view>
 
 <!-- 普通模式（随机抽题、直接点击卡片等） -->
 <view class="study-nav-bar" wx:if="{{!loading && currentCard && mode !== 'study'}}">
   <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
-    <t-icon name="chevron-left" size="40rpx" color="{{currentIndex <= 0 ? '#ccc' : '#3B82F6'}}" />
+    <t-icon name="chevron-left" size="32rpx" color="{{currentIndex <= 0 ? '#ccc' : '#3B82F6'}}" />
     <text class="nav-text">上一张</text>
   </view>
   
   <view class="nav-btn next {{currentIndex >= totalCards - 1 ? 'disabled' : ''}}" bindtap="onNextCard">
     <text class="nav-text">下一张</text>
-    <t-icon name="chevron-right" size="40rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#fff'}}" />
+    <t-icon name="chevron-right" size="32rpx" color="{{currentIndex >= totalCards - 1 ? '#ccc' : '#fff'}}" />
   </view>
 </view>

@@ -367,8 +367,9 @@
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
   box-shadow: 0 -4rpx 24rpx rgba(0, 0, 0, 0.06);
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
+  gap: 340rpx;
   z-index: 100;
 }
 
@@ -413,6 +414,7 @@
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   box-shadow: 0 8rpx 24rpx rgba(59, 130, 246, 0.3);
   transition: all 0.2s ease;
+  transform: translateY(4rpx);
 }
 
 .nav-btn-next-card.disabled {
@@ -429,6 +431,7 @@
   line-height: 36rpx;
   height: 36rpx;
   transform: translateY(-4rpx);
+  margin-left: 8rpx;
 }
 
 .nav-btn {
@@ -436,7 +439,7 @@
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 4rpx;
+
   padding: 16rpx 32rpx;
   border-radius: 48rpx;
   background: #F1F5F9;
@@ -449,11 +452,13 @@
 
 .nav-btn.prev {
   background: rgba(59, 130, 246, 0.08);
+  padding-left: 20rpx;
 }
 
 .nav-btn.next {
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   box-shadow: 0 4rpx 16rpx rgba(59, 130, 246, 0.2);
+  padding-right: 20rpx;
 }
 
 .nav-btn .nav-text {
@@ -463,7 +468,6 @@
   color: #3B82F6;
   line-height: 40rpx;
   height: 40rpx;
-  transform: translateY(-4rpx);
 }
 
 .nav-btn.next .nav-text {
@@ -473,5 +477,6 @@
 .nav-btn-prev t-icon,
 .nav-btn-next-card t-icon,
 .nav-btn t-icon {
-  transform: translateY(4rpx);
+  display: flex;
+  align-items: center;
 }

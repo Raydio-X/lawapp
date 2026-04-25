@@ -44,7 +44,7 @@ Page({
 
     if (isAdmin) {
       wx.reLaunch({
-        url: '/pages/admin/community/community'
+        url: '/pages/admin/manage/manage'
       });
       return;
     }

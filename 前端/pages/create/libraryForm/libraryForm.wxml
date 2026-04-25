@@ -73,7 +73,7 @@
       </view>
 
       <view class="outline-empty" wx:else>
-        <t-icon name="folder" size="64rpx" color="#ddd" />
+        <t-icon name="book" size="64rpx" color="#ddd" />
         <text>暂无大纲，点击下方按钮添加</text>
       </view>
 

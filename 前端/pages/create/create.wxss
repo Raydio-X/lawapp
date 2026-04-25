@@ -180,7 +180,7 @@
   font-size: 26rpx;
   color: #3B82F6;
   padding: 8rpx 20rpx;
-  border-radius: 20rpx;
+  border-radius: 8rpx;
   background: rgba(59, 130, 246, 0.08);
 }
 
@@ -273,7 +273,7 @@
 .action-text {
   font-size: 26rpx;
   padding: 8rpx 20rpx;
-  border-radius: 16rpx;
+  border-radius: 8rpx;
 }
 
 .action-text.edit {
@@ -295,7 +295,7 @@
   color: #fff;
   background: #E34D59;
   padding: 8rpx 20rpx;
-  border-radius: 16rpx;
+  border-radius: 8rpx;
 }
 
 /* 空状态 */
@@ -495,20 +495,21 @@
 }
 
 .outline-level-indicator {
-  width: 48rpx;
-  height: 48rpx;
-  border-radius: 8rpx;
-  background: #3B82F6;
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 56rpx;
+  height: 40rpx;
+  padding: 0 12rpx;
+  background-color: #e8f4ff;
+  border-radius: 8rpx;
   margin-right: 12rpx;
-  flex-shrink: 0;
 }
 
 .outline-level-indicator text {
   font-size: 22rpx;
-  color: #fff;
+  color: #3B82F6;
+  font-weight: 500;
 }
 
 .outline-content {

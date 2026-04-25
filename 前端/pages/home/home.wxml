@@ -37,6 +37,7 @@
           data-index="{{index}}"
           data-type="hot"
         >
+          <view class="hot-card-bar"></view>
           <view class="hot-card-rank" wx:if="{{index < 3}}">
             <text>{{index + 1}}</text>
           </view>

@@ -1,6 +1,17 @@
 <view class="container">
   <!-- 用户信息区 -->
   <view class="user-section">
+    <!-- 装饰光晕 -->
+    <view class="glow glow-1"></view>
+    <view class="glow glow-2"></view>
+    <view class="glow glow-3"></view>
+    
+    <!-- 装饰星星 -->
+    <view class="star star-1">✦</view>
+    <view class="star star-2">✧</view>
+    <view class="star star-3">✦</view>
+    <view class="star star-4">✧</view>
+    
     <view class="user-card">
       <view class="user-info">
         <t-avatar 
@@ -14,7 +25,7 @@
         </view>
       </view>
       <view class="user-edit" bindtap="onEditProfile">
-        <t-icon name="edit" size="32rpx" color="#999" />
+        <t-icon name="edit" size="32rpx" color="#fff" />
       </view>
     </view>
 
@@ -24,12 +35,10 @@
         <text class="stat-number">{{stats.libraryCount}}</text>
         <text class="stat-label">知识库</text>
       </view>
-      <view class="stat-divider"></view>
       <view class="stat-item" bindtap="onStatTap" data-type="card">
         <text class="stat-number">{{stats.cardCount}}</text>
         <text class="stat-label">卡片</text>
       </view>
-      <view class="stat-divider"></view>
       <view class="stat-item" bindtap="onStatTap" data-type="favorite">
         <text class="stat-number">{{stats.favoriteCount}}</text>
         <text class="stat-label">收藏</text>

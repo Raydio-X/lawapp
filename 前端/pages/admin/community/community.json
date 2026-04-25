@@ -1,9 +1,0 @@
-{
-  "navigationStyle": "custom",
-  "navigationBarTitleText": "社区",
-  "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-tag": "tdesign-miniprogram/tag/tag"
-  },
-  "enablePullDownRefresh": true
-}

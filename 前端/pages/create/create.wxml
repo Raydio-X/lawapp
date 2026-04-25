@@ -30,7 +30,7 @@ module.exports = {
       bindtouchend="onLibraryTouchEnd"
     >
       <view class="create-card-icon library-icon">
-        <t-icon name="folder" size="56rpx" color="#fff" />
+        <t-icon name="book" size="56rpx" color="#fff" />
       </view>
       <view class="create-card-content">
         <text class="create-card-title">创建知识库</text>
@@ -97,7 +97,7 @@ module.exports = {
         data-index="{{index}}"
       >
         <view class="library-item-icon">
-          <t-icon name="folder" size="48rpx" color="#3B82F6" />
+          <t-icon name="book" size="48rpx" color="#3B82F6" />
         </view>
         <view class="library-item-content">
           <text class="library-item-name">{{item.name}}</text>
@@ -120,7 +120,7 @@ module.exports = {
       </view>
     </view>
     <view class="empty-state" wx:else>
-      <t-icon name="folder" size="80rpx" color="#ddd" />
+      <t-icon name="book" size="80rpx" color="#ddd" />
       <text class="empty-text">还没有创建知识库</text>
       <text class="empty-subtext">点击上方"创建知识库"开始创建</text>
     </view>
@@ -217,7 +217,7 @@ module.exports = {
         </view>
 
         <view class="outline-empty" wx:else>
-          <t-icon name="folder" size="64rpx" color="#ddd" />
+          <t-icon name="book" size="64rpx" color="#ddd" />
           <text>暂无大纲，点击下方按钮添加</text>
         </view>
 
