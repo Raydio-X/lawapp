@@ -9,6 +9,9 @@ const CommentModel = require('../models/Comment');
 const FavoriteModel = require('../models/Favorite');
 const LikeModel = require('../models/Like');
 const MasteryModel = require('../models/Mastery');
+const bm25Engine = require('../services/bm25');
+const sentenceEmbedding = require('../services/sentenceEmbedding');
+const resultFusion = require('../services/resultFusion');
 const { auth, optionalAuth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -264,6 +267,89 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
     }
 });
 
+router.get('/search/config', auth, (req, res) => {
+    try {
+        const config = {
+            bm25: bm25Engine.getParams(),
+            embedding: sentenceEmbedding.getStatus(),
+            fusion: resultFusion.getConfig()
+        };
+
+        res.json({
+            success: true,
+            data: config
+        });
+    } catch (error) {
+        console.error('Get search config error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取搜索配置失败'
+        });
+    }
+});
+
+router.put('/search/config', auth, async (req, res) => {
+    try {
+        const { bm25, fusion } = req.body;
+
+        if (bm25) {
+            const { k1, b, k3 } = bm25;
+            if (k1 !== undefined || b !== undefined || k3 !== undefined) {
+                await bm25Engine.updateParams(k1, b, k3);
+            }
+        }
+
+        if (fusion) {
+            const { bm25Weight, embeddingWeight, tagWeight, strategy } = fusion;
+            if (bm25Weight !== undefined || embeddingWeight !== undefined || tagWeight !== undefined) {
+                resultFusion.updateWeights(bm25Weight, embeddingWeight, tagWeight);
+            }
+            if (strategy) {
+                resultFusion.setStrategy(strategy);
+            }
+        }
+
+        const config = {
+            bm25: bm25Engine.getParams(),
+            embedding: sentenceEmbedding.getStatus(),
+            fusion: resultFusion.getConfig()
+        };
+
+        res.json({
+            success: true,
+            data: config,
+            message: '搜索配置更新成功'
+        });
+    } catch (error) {
+        console.error('Update search config error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '更新搜索配置失败'
+        });
+    }
+});
+
+router.post('/search/rebuild', auth, async (req, res) => {
+    try {
+        await bm25Engine.invalidateCache();
+        await sentenceEmbedding.invalidateCache();
+
+        res.json({
+            success: true,
+            message: '搜索索引重建已触发'
+        });
+    } catch (error) {
+        console.error('Rebuild search index error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '重建搜索索引失败'
+        });
+    }
+});
+
 router.get('/:id', optionalAuth, async (req, res) => {
     try {
         const card = await CardModel.findById(req.params.id, req.user?.id);
@@ -501,17 +587,20 @@ router.post('/:id/study', auth, async (req, res) => {
             });
         }
 
-        const { feedback, duration } = req.body;
+        const { feedback, duration, isFormalStudy } = req.body;
         
         await StudyModel.recordStudy(
             req.user.id,
             req.params.id,
             card.library_id,
             feedback || 'normal',
-            duration || 0
+            duration || 0,
+            isFormalStudy || false
         );
         
-        await CardModel.incrementStudyCount(req.params.id);
+        if (isFormalStudy) {
+            await CardModel.incrementStudyCount(req.params.id);
+        }
 
         res.json({
             success: true,
@@ -734,6 +823,29 @@ router.get('/review/count', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '获取复习数量失败'
+        });
+    }
+});
+
+router.get('/:id/related', optionalAuth, async (req, res) => {
+    try {
+        const { limit } = req.query;
+        const cards = await CardModel.getRelatedCards(
+            parseInt(req.params.id),
+            req.user?.id,
+            parseInt(limit) || 5
+        );
+
+        res.json({
+            success: true,
+            data: cards
+        });
+    } catch (error) {
+        console.error('Get related cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取相关卡片失败'
         });
     }
 });

@@ -377,6 +377,26 @@
   background: linear-gradient(135deg, #f8faff 0%, #fff 100%);
 }
 
+.study-nav-bar.single-card-mode {
+  background: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 100%);
+  border-top: 2rpx solid #D4AF37;
+}
+
+.single-card-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx 48rpx;
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  border-radius: 48rpx;
+}
+
+.single-card-tip text {
+  font-size: 28rpx;
+  color: #fff;
+  font-weight: 500;
+}
+
 .nav-btn-prev {
   display: flex;
   flex-direction: row;
@@ -479,4 +499,153 @@
 .nav-btn t-icon {
   display: flex;
   align-items: center;
+}
+
+.related-section {
+  background: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 50%, #FAFAD2 100%);
+  margin: 0 24rpx 24rpx;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 24rpx rgba(218, 165, 32, 0.2);
+  border: 2rpx solid #D4AF37;
+  animation: fadeIn 0.3s ease;
+}
+
+.related-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+  padding-bottom: 20rpx;
+  border-bottom: 2rpx solid rgba(212, 175, 55, 0.3);
+}
+
+.related-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.related-title {
+  font-size: 30rpx;
+  font-weight: 600;
+  color: #B8860B;
+}
+
+.related-vip-tag {
+  font-size: 20rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  padding: 2rpx 12rpx;
+  border-radius: 16rpx;
+  font-weight: 600;
+  margin-left: 8rpx;
+}
+
+.related-count {
+  font-size: 26rpx;
+  color: #C9A227;
+}
+
+.related-loading,
+.related-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 0;
+  gap: 16rpx;
+}
+
+.related-loading text,
+.related-empty text {
+  font-size: 26rpx;
+  color: #C9A227;
+}
+
+.related-list {
+  white-space: nowrap;
+  margin: 0 -8rpx;
+}
+
+.related-item {
+  display: inline-block;
+  padding: 0 8rpx;
+  vertical-align: top;
+}
+
+.related-card {
+  width: 420rpx;
+  background: #F8FAFC;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  border: 2rpx solid #8cb6f9;
+  transition: all 0.2s ease;
+}
+
+.related-card:active {
+  transform: scale(0.98);
+  border-color: #2563EB;
+  background: #EFF6FF;
+}
+
+.related-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.related-card-library {
+  font-size: 22rpx;
+  color: #3B82F6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  max-width: 200rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.related-card-tags {
+  display: flex;
+  gap: 8rpx;
+}
+
+.related-tag {
+  font-size: 20rpx;
+  color: #3B82F6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
+}
+
+.related-card-question {
+  min-height: 80rpx;
+}
+
+.related-card-question text {
+  font-size: 26rpx;
+  color: #1E293B;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.related-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+}
+
+.related-tip text {
+  font-size: 22rpx;
+  color: #C9A227;
 }

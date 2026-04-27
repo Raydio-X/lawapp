@@ -51,6 +51,47 @@
     </view>
   </view>
 
+  <!-- 模块：派生学习（答案展开后显示） -->
+  <view class="related-section {{answerRevealed ? 'show' : ''}}" wx:if="{{answerRevealed && !singleCard}}">
+    <view class="related-header">
+      <view class="related-title-wrap">
+        <text class="related-title">派生学习</text>
+        <text class="related-vip-tag">VIP</text>
+      </view>
+    </view>
+
+    <view class="related-loading" wx:if="{{relatedLoading}}">
+      <t-icon name="loading" size="40rpx" color="#B8860B" />
+      <text>正在发现相关知识点...</text>
+    </view>
+
+    <view class="related-empty" wx:elif="{{relatedCards.length === 0 && !relatedLoading}}">
+      <t-icon name="info-circle" size="40rpx" color="#D4AF37" />
+      <text>暂未发现相关知识点</text>
+    </view>
+
+    <scroll-view class="related-list" scroll-x="true" enhanced="true" show-scrollbar="false" wx:else>
+      <view class="related-item" wx:for="{{relatedCards}}" wx:key="id" bindtap="onRelatedCardTap" data-card="{{item}}">
+        <view class="related-card">
+          <view class="related-card-header">
+            <text class="related-card-library">{{item.library_name || '未知知识库'}}</text>
+            <view class="related-card-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+              <text class="related-tag" wx:for="{{item.tags}}" wx:for-item="tag" wx:key="*this">{{tag}}</text>
+            </view>
+          </view>
+          <view class="related-card-question">
+            <text>{{item.question}}</text>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="related-tip" wx:if="{{relatedCards.length > 0}}">
+      <t-icon name="star" size="24rpx" color="#D4AF37" />
+      <text>智能推荐相关知识点</text>
+    </view>
+  </view>
+
   <!-- 模块三：评论互动区（答案展开后显示） -->
   <view class="comment-section {{answerRevealed ? 'show' : ''}}" wx:if="{{answerRevealed}}">
     <view class="comment-header">
@@ -118,8 +159,15 @@
 </view>
 
 <!-- 模块四：卡片切换学习导航 -->
+<!-- 单卡模式（派生学习跳转）- 不显示导航栏 -->
+<view class="study-nav-bar single-card-mode" wx:if="{{!loading && currentCard && singleCard}}">
+  <view class="single-card-tip">
+    <text>派生学习模式</text>
+  </view>
+</view>
+
 <!-- 学习模式（开始学习） -->
-<view class="study-nav-bar study-mode" wx:if="{{!loading && currentCard && mode === 'study'}}">
+<view class="study-nav-bar study-mode" wx:elif="{{!loading && currentCard && mode === 'study'}}">
   <view class="nav-btn-prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
     <t-icon name="chevron-left" size="36rpx" color="{{currentIndex <= 0 ? '#ccc' : '#666'}}" />
     <text class="prev-text">上一张</text>
@@ -131,7 +179,7 @@
 </view>
 
 <!-- 普通模式（随机抽题、直接点击卡片等） -->
-<view class="study-nav-bar" wx:if="{{!loading && currentCard && mode !== 'study'}}">
+<view class="study-nav-bar" wx:elif="{{!loading && currentCard && mode !== 'study'}}">
   <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
     <t-icon name="chevron-left" size="32rpx" color="{{currentIndex <= 0 ? '#ccc' : '#3B82F6'}}" />
     <text class="nav-text">上一张</text>

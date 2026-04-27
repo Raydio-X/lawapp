@@ -143,7 +143,8 @@ Page({
       await cardAPI.recordStudy(currentCard.id, {
         libraryId: currentCard.libraryId,
         feedback: 'normal',
-        duration: 0
+        duration: 0,
+        isFormalStudy: true
       });
       this.studiedCards.add(currentCard.id);
     } catch (error) {
@@ -260,7 +261,8 @@ Page({
         await cardAPI.recordStudy(currentCard.id, {
           libraryId: currentCard.libraryId,
           feedback: 'hard',
-          duration: 0
+          duration: 0,
+          isFormalStudy: true
         });
         this.studiedCards.add(currentCard.id);
       }
@@ -309,7 +311,8 @@ Page({
         await cardAPI.recordStudy(currentCard.id, {
           libraryId: currentCard.libraryId,
           feedback: 'easy',
-          duration: 0
+          duration: 0,
+          isFormalStudy: true
         });
         this.studiedCards.add(currentCard.id);
       }

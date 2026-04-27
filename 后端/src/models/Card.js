@@ -1,4 +1,7 @@
 const db = require('../config/database');
+const bm25Engine = require('../services/bm25');
+const sentenceEmbedding = require('../services/sentenceEmbedding');
+const resultFusion = require('../services/resultFusion');
 
 class CardModel {
     static async getList(params = {}) {
@@ -313,6 +316,133 @@ class CardModel {
         );
 
         return { success: true, count: result.affectedRows };
+    }
+
+    static async getRelatedCards(cardId, userId = null, limit = 5) {
+        const [cardRows] = await db.query(
+            'SELECT question, answer, tags, created_by FROM cards WHERE id = ?',
+            [cardId]
+        );
+
+        if (!cardRows || cardRows.length === 0) {
+            return [];
+        }
+
+        const currentCard = cardRows[0];
+        const searchText = `${currentCard.question} ${currentCard.answer}`;
+        const currentTags = typeof currentCard.tags === 'string'
+            ? JSON.parse(currentCard.tags)
+            : (currentCard.tags || []);
+
+        let bm25Results = [];
+        let embeddingResults = [];
+        let tagResults = [];
+
+        try {
+            bm25Results = await bm25Engine.search(searchText, [cardId], userId, limit * 3);
+        } catch (error) {
+            console.log('BM25 search error:', error.message);
+        }
+
+        try {
+            embeddingResults = await sentenceEmbedding.search(searchText, currentTags, [cardId], userId, limit * 3);
+        } catch (error) {
+            console.log('Sentence embedding search error:', error.message);
+        }
+
+        if (currentTags && currentTags.length > 0) {
+            try {
+                tagResults = await this._searchByTags(currentTags, [cardId], userId, limit * 2);
+            } catch (error) {
+                console.log('Tag search error:', error.message);
+            }
+        }
+
+        const fusedResults = resultFusion.fuse(bm25Results, embeddingResults, tagResults);
+        const topIds = fusedResults.slice(0, limit).map(r => r.id);
+        const scoreMap = new Map(fusedResults.map(r => [r.id, r]));
+
+        if (topIds.length === 0) {
+            return [];
+        }
+
+        const cards = await this._fetchCardsByIds(topIds, cardId, userId);
+
+        const cardMap = new Map(cards.map(c => [c.id, c]));
+        const orderedCards = [];
+        for (const id of topIds) {
+            const card = cardMap.get(id);
+            if (card) {
+                const scores = scoreMap.get(id);
+                card.relevance = scores ? scores.score : 0;
+                card.bm25Score = scores ? scores.bm25Score : 0;
+                card.embeddingScore = scores ? scores.embeddingScore : 0;
+                orderedCards.push(card);
+            }
+        }
+
+        return orderedCards;
+    }
+
+    static async _searchByTags(tags, excludeIds = [], excludeUserId = null, limit = 10) {
+        const tagConditions = [];
+        const tagValues = [];
+        for (const t of tags) {
+            tagConditions.push('JSON_CONTAINS(c.tags, CAST(? AS JSON))');
+            tagValues.push(JSON.stringify(t));
+        }
+
+        const excludeIdList = excludeIds.filter(id => id !== undefined && id !== null);
+        let sql = `SELECT c.id, COUNT(*) as match_count
+                 FROM cards c
+                 WHERE c.is_public = 1`;
+        
+        if (excludeIdList.length > 0) {
+            sql += ` AND c.id NOT IN (${excludeIdList.join(',')})`;
+        }
+        if (excludeUserId) {
+            sql += ` AND (c.created_by IS NULL OR c.created_by != ?)`;
+            tagValues.push(excludeUserId);
+        }
+        sql += ` AND (${tagConditions.join(' OR ')})`;
+        sql += ` GROUP BY c.id ORDER BY match_count DESC, c.study_count DESC LIMIT ?`;
+
+        const params = [...tagValues, limit];
+        const [rows] = await db.query(sql, params);
+
+        const maxMatch = Math.max(...rows.map(r => r.match_count), 1);
+        return rows.map(row => ({
+            id: row.id,
+            score: row.match_count / maxMatch
+        }));
+    }
+
+    static async _fetchCardsByIds(ids, excludeCardId = null, userId = null) {
+        if (ids.length === 0) return [];
+
+        const idList = ids.join(',');
+        let sql = `SELECT c.*, l.name as library_name,
+                (SELECT COUNT(*) FROM user_likes ul WHERE ul.target_type = 'card' AND ul.target_id = c.id AND ul.user_id = ?) as is_liked,
+                (SELECT mastered FROM card_mastery cm WHERE cm.card_id = c.id AND cm.user_id = ?) as is_learned
+         FROM cards c
+         LEFT JOIN libraries l ON c.library_id = l.id
+         WHERE c.id IN (${idList})`;
+        
+        if (excludeCardId) {
+            sql += ` AND c.id != ${excludeCardId}`;
+        }
+        if (userId) {
+            sql += ` AND (c.created_by IS NULL OR c.created_by != ${userId})`;
+        }
+
+        const [rows] = await db.query(sql, [userId || 0, userId || 0]);
+
+        return rows.map(row => ({
+            ...row,
+            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+            is_liked: row.is_liked > 0,
+            is_learned: row.is_learned === 1
+        }));
     }
 }
 

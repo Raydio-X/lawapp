@@ -13,20 +13,26 @@ Page({
     loading: true,
     libraryName: '',
     isFavorite: false,
-    mode: ''
+    mode: '',
+    singleCard: false,
+    relatedCards: [],
+    relatedLoading: false
   },
 
   studiedCards: new Set(),
 
   onLoad(options) {
-    const { cardId, libraryId, index, name, mode } = options;
+    const { cardId, libraryId, index, name, mode, singleCard } = options;
     
     if (libraryId) {
       this.setData({ 
         libraryId: libraryId === 'hot_cards' ? libraryId : parseInt(libraryId),
         libraryName: name ? decodeURIComponent(name) : '',
-        mode: mode || ''
+        mode: mode || '',
+        singleCard: singleCard === 'true'
       });
+    } else if (singleCard === 'true') {
+      this.setData({ singleCard: true });
     }
     
     this.loadCardData(cardId, parseInt(index) || 0);
@@ -316,22 +322,63 @@ Page({
   onRevealAnswer() {
     this.setData({ answerRevealed: true });
     this.recordCardStudy();
+    if (!this.data.singleCard) {
+      this.loadRelatedCards();
+    }
+  },
+
+  async loadRelatedCards() {
+    const { currentCard } = this.data;
+    if (!currentCard || !currentCard.id) return;
+
+    this.setData({ relatedLoading: true, relatedCards: [] });
+
+    try {
+      const res = await cardAPI.getRelated(currentCard.id, 5);
+      if (res.success && res.data) {
+        this.setData({ 
+          relatedCards: res.data || [],
+          relatedLoading: false 
+        });
+      } else {
+        this.setData({ relatedLoading: false });
+      }
+    } catch (error) {
+      console.error('加载相关卡片失败:', error);
+      this.setData({ relatedLoading: false });
+    }
+  },
+
+  onRelatedCardTap(e) {
+    const card = e.currentTarget.dataset.card;
+    if (!card) return;
+
+    wx.navigateTo({
+      url: `/pages/card/study/study?cardId=${card.id}&singleCard=true`,
+      fail: (err) => {
+        console.error('跳转失败:', err);
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
   },
 
   async recordCardStudy() {
     const token = wx.getStorageSync('access_token');
     if (!token) return;
 
-    const { currentCard, libraryId } = this.data;
+    const { currentCard, libraryId, mode } = this.data;
     if (!currentCard) return;
 
     if (this.studiedCards.has(currentCard.id)) return;
+
+    const isFormalStudy = mode === 'study';
 
     try {
       await cardAPI.recordStudy(currentCard.id, {
         libraryId: libraryId === 'hot_cards' ? null : libraryId,
         feedback: 'normal',
-        duration: 0
+        duration: 0,
+        isFormalStudy: isFormalStudy
       });
       this.studiedCards.add(currentCard.id);
     } catch (error) {
@@ -455,7 +502,9 @@ Page({
       currentIndex: index,
       currentCard: newCard,
       answerRevealed: false,
-      commentText: ''
+      commentText: '',
+      relatedCards: [],
+      relatedLoading: false
     });
 
     const titlePrefix = libraryId === 'hot_cards' ? '热门卡片' : (libraryName || '卡片');

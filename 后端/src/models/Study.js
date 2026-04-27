@@ -2,14 +2,16 @@ const db = require('../config/database');
 const MasteryModel = require('./Mastery');
 
 class StudyModel {
-    static async recordStudy(userId, cardId, libraryId, feedback = 'normal', duration = 0) {
+    static async recordStudy(userId, cardId, libraryId, feedback = 'normal', duration = 0, isFormalStudy = false) {
         const [result] = await db.execute(
-            `INSERT INTO study_records (user_id, card_id, library_id, feedback, study_duration) 
-             VALUES (?, ?, ?, ?, ?)`,
-            [userId, cardId, libraryId, feedback, duration]
+            `INSERT INTO study_records (user_id, card_id, library_id, feedback, study_duration, is_formal_study) 
+             VALUES (?, ?, ?, ?, ?, ?)`,
+            [userId, cardId, libraryId, feedback, duration, isFormalStudy ? 1 : 0]
         );
         
-        await this.updateCardCount(userId);
+        if (isFormalStudy) {
+            await this.updateCardCount(userId);
+        }
         
         return result.insertId;
     }
@@ -29,7 +31,7 @@ class StudyModel {
         } else {
             await db.execute(
                 `UPDATE user_stats 
-                 SET total_cards_learned = (SELECT COUNT(DISTINCT card_id) FROM study_records WHERE user_id = ?)
+                 SET total_cards_learned = (SELECT COUNT(DISTINCT card_id) FROM study_records WHERE user_id = ? AND is_formal_study = 1)
                  WHERE user_id = ?`,
                 [userId, userId]
             );
@@ -49,12 +51,12 @@ class StudyModel {
 
         const [todayCards] = await db.execute(
             `SELECT COUNT(*) as count FROM study_records 
-             WHERE user_id = ? AND DATE(created_at) = CURDATE()`,
+             WHERE user_id = ? AND DATE(created_at) = CURDATE() AND is_formal_study = 1`,
             [userId]
         );
 
         const [totalCards] = await db.execute(
-            'SELECT COUNT(DISTINCT card_id) as count FROM study_records WHERE user_id = ?',
+            'SELECT COUNT(DISTINCT card_id) as count FROM study_records WHERE user_id = ? AND is_formal_study = 1',
             [userId]
         );
 
@@ -67,10 +69,10 @@ class StudyModel {
 
         const [todayNew] = await db.execute(
             `SELECT COUNT(DISTINCT sr.card_id) as count FROM study_records sr
-             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE()
+             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE() AND sr.is_formal_study = 1
              AND sr.card_id NOT IN (
                  SELECT DISTINCT card_id FROM study_records 
-                 WHERE user_id = ? AND DATE(created_at) < CURDATE()
+                 WHERE user_id = ? AND is_formal_study = 1 AND DATE(created_at) < CURDATE()
              )`,
             [userId, userId]
         );
@@ -118,7 +120,7 @@ class StudyModel {
              FROM study_records sr
              LEFT JOIN cards c ON sr.card_id = c.id
              LEFT JOIN libraries l ON sr.library_id = l.id
-             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE()
+             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE() AND sr.is_formal_study = 1
              ORDER BY sr.created_at DESC`,
             [userId]
         );
@@ -129,7 +131,7 @@ class StudyModel {
         const [rows] = await db.execute(
             `SELECT DATE(created_at) as date, COUNT(*) as count
              FROM study_records
-             WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?
+             WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ? AND is_formal_study = 1
              GROUP BY DATE(created_at)`,
             [userId, year, month]
         );
@@ -146,7 +148,7 @@ class StudyModel {
             `SELECT COUNT(DISTINCT sr.card_id) as count 
              FROM study_records sr
              LEFT JOIN cards c ON sr.card_id = c.id
-             WHERE sr.user_id = ? AND c.library_id = ?`,
+             WHERE sr.user_id = ? AND c.library_id = ? AND sr.is_formal_study = 1`,
             [userId, libraryId]
         );
 
@@ -166,7 +168,7 @@ class StudyModel {
              FROM study_records sr
              LEFT JOIN cards c ON sr.card_id = c.id
              LEFT JOIN libraries l ON c.library_id = l.id
-             WHERE sr.user_id = ?
+             WHERE sr.user_id = ? AND sr.is_formal_study = 1
              GROUP BY sr.card_id
              ORDER BY MAX(sr.created_at) DESC
              LIMIT ${parseInt(limit)}`,
@@ -182,7 +184,7 @@ class StudyModel {
         const [rows] = await db.execute(
             `SELECT DATE(created_at) as date, COUNT(*) as count
              FROM study_records
-             WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+             WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY) AND is_formal_study = 1
              GROUP BY DATE(created_at)
              ORDER BY date ASC`,
             [userId, parseInt(days)]
@@ -194,7 +196,7 @@ class StudyModel {
         const [rows] = await db.execute(
             `SELECT DATE(created_at) as date, COUNT(*) as count
              FROM study_records
-             WHERE user_id = ? AND YEAR(created_at) = ?
+             WHERE user_id = ? AND YEAR(created_at) = ? AND is_formal_study = 1
              GROUP BY DATE(created_at)`,
             [userId, year || new Date().getFullYear()]
         );
@@ -214,7 +216,7 @@ class StudyModel {
             `SELECT DATE(created_at) as date, COUNT(DISTINCT card_id) as count
              FROM study_records
              WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?
-             AND DATE(created_at) < CURDATE()
+             AND DATE(created_at) < CURDATE() AND is_formal_study = 1
              GROUP BY DATE(created_at)`,
             [userId, year, month]
         );
@@ -401,7 +403,7 @@ class StudyModel {
                 SELECT COUNT(DISTINCT card_id) as total_cards
                 FROM study_records
                 WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?
-                AND DATE(created_at) < CURDATE()
+                AND DATE(created_at) < CURDATE() AND is_formal_study = 1
                 GROUP BY user_id
             ) as card_stats`,
             [year, month]
