@@ -247,3 +247,9 @@
   font-size: 28rpx;
   color: #999;
 }
+
+.highlight-text {
+  background-color: #ffef66;
+  border-radius: 4rpx;
+  padding: 0 4rpx;
+}

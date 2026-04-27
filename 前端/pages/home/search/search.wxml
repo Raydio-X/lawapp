@@ -1,3 +1,4 @@
+<wxs src="./highlight.wxs" module="highlight" />
 <view class="container">
   <view class="search-header">
     <view class="search-box">
@@ -38,11 +39,19 @@
           <view class="card-main">
             <view class="card-question">
               <text class="highlight-tag">问</text>
-              <text class="card-text">{{item.question}}</text>
+              <text class="card-text">
+                <block wx:for="{{highlight.splitHighlight(item.question, keyword)}}" wx:for-item="part" wx:key="index">
+                  <text class="{{part.highlight ? 'highlight-text' : ''}}">{{part.text}}</text>
+                </block>
+              </text>
             </view>
             <view class="card-answer">
               <text class="highlight-tag answer-tag">答</text>
-              <text class="card-text answer-text">{{item.answer}}</text>
+              <text class="card-text answer-text">
+                <block wx:for="{{highlight.splitHighlight(item.answer, keyword)}}" wx:for-item="part" wx:key="index">
+                  <text class="{{part.highlight ? 'highlight-text' : ''}}">{{part.text}}</text>
+                </block>
+              </text>
             </view>
           </view>
           <view class="card-footer">
@@ -92,7 +101,11 @@
             <t-icon name="folder" size="48rpx" color="#3B82F6" />
           </view>
           <view class="lib-info">
-            <text class="lib-name">{{item.name}}</text>
+            <text class="lib-name">
+              <block wx:for="{{highlight.splitHighlight(item.name, keyword)}}" wx:for-item="part" wx:key="index">
+                <text class="{{part.highlight ? 'highlight-text' : ''}}">{{part.text}}</text>
+              </block>
+            </text>
             <view class="lib-meta">
               <text wx:if="{{item.subject}}" class="lib-subject">{{item.subject}}</text>
               <text class="lib-count">{{item.card_count || 0}}张卡片</text>

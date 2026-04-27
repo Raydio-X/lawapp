@@ -14,7 +14,9 @@
   <!-- 主要学习入口 -->
   <view class="main-actions">
     <view class="action-card primary" bindtap="onStartStudy">
-      <view class="action-bg"></view>
+      <view class="action-decor">
+        <t-icon name="book" size="120rpx" color="rgba(255, 255, 255, 0.15)" />
+      </view>
       <view class="action-content">
         <view class="action-main">
           <view class="action-text-wrap">

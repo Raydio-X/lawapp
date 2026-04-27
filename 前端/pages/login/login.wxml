@@ -1,9 +1,20 @@
 <view class="login-container">
-  <!-- 背景装饰 -->
+  <!-- 创意背景装饰 -->
   <view class="bg-decoration">
+    <!-- 渐变背景 -->
+    <view class="bg-gradient"></view>
+    
+    <!-- 浮动卡片 - 上部区域（1张） -->
+    <view class="floating-card card-2">
+      <view class="card-inner">
+        <view class="card-line"></view>
+        <view class="card-line short"></view>
+      </view>
+    </view>
+    
+    <!-- 装饰圆形 -->
     <view class="circle circle-1"></view>
     <view class="circle circle-2"></view>
-    <view class="circle circle-3"></view>
   </view>
 
   <!-- Logo区域 -->
@@ -52,6 +63,31 @@
   <!-- 底部信息 -->
   <view class="footer">
     <text class="version" bind:longpress="showTestEntry">v1.0.0</text>
+  </view>
+  
+  <!-- 下部区域装饰（登录按钮下方） -->
+  <view class="bottom-decoration">
+    <!-- 浮动卡片 - 下部区域（3张） -->
+    <view class="floating-card card-3">
+      <view class="card-inner">
+        <view class="card-line"></view>
+        <view class="card-line short"></view>
+        <view class="card-line"></view>
+      </view>
+    </view>
+    <view class="floating-card card-4">
+      <view class="card-inner">
+        <view class="card-line"></view>
+        <view class="card-line short"></view>
+      </view>
+    </view>
+    <view class="floating-card card-5">
+      <view class="card-inner">
+        <view class="card-line"></view>
+        <view class="card-line short"></view>
+        <view class="card-line"></view>
+      </view>
+    </view>
   </view>
 
   <!-- 加载提示 -->

@@ -9,14 +9,12 @@ class StudyModel {
             [userId, cardId, libraryId, feedback, duration]
         );
         
-        await this.updateUserStats(userId);
+        await this.updateCardCount(userId);
         
         return result.insertId;
     }
 
-    static async updateUserStats(userId) {
-        const today = new Date().toISOString().split('T')[0];
-        
+    static async updateCardCount(userId) {
         const [existing] = await db.execute(
             'SELECT * FROM user_stats WHERE user_id = ?',
             [userId]
@@ -25,41 +23,15 @@ class StudyModel {
         if (existing.length === 0) {
             await db.execute(
                 `INSERT INTO user_stats (user_id, total_study_days, current_streak, longest_streak, last_study_date, total_cards_learned) 
-                 VALUES (?, 1, 1, 1, ?, 1)`,
-                [userId, today]
+                 VALUES (?, 0, 0, 0, NULL, 1)`,
+                [userId]
             );
         } else {
-            const stats = existing[0];
-            let currentStreak = stats.current_streak;
-            let totalDays = stats.total_study_days;
-            
-            if (stats.last_study_date) {
-                const lastDate = new Date(stats.last_study_date);
-                const todayDate = new Date(today);
-                const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
-                
-                if (diffDays === 0) {
-                    // Same day, no change to streak
-                } else if (diffDays === 1) {
-                    currentStreak++;
-                    totalDays++;
-                } else {
-                    currentStreak = 1;
-                    totalDays++;
-                }
-            } else {
-                currentStreak = 1;
-                totalDays = 1;
-            }
-
-            const longestStreak = Math.max(stats.longest_streak, currentStreak);
-            
             await db.execute(
                 `UPDATE user_stats 
-                 SET total_study_days = ?, current_streak = ?, longest_streak = ?, last_study_date = ?,
-                     total_cards_learned = (SELECT COUNT(DISTINCT card_id) FROM study_records WHERE user_id = ?)
+                 SET total_cards_learned = (SELECT COUNT(DISTINCT card_id) FROM study_records WHERE user_id = ?)
                  WHERE user_id = ?`,
-                [totalDays, currentStreak, longestStreak, today, userId, userId]
+                [userId, userId]
             );
         }
     }
@@ -280,20 +252,86 @@ class StudyModel {
             [userId, today]
         );
 
+        let newDuration;
+        let wasCheckedIn = false;
+
         if (existing.length === 0) {
-            const [result] = await db.execute(
+            await db.execute(
                 `INSERT INTO study_time_records (user_id, library_id, duration, study_date) 
                  VALUES (?, ?, ?, ?)`,
                 [userId, libraryId, duration, today]
             );
-            return { inserted: true, duration };
+            newDuration = duration;
         } else {
-            const newDuration = existing[0].duration + duration;
+            newDuration = existing[0].duration + duration;
             await db.execute(
                 'UPDATE study_time_records SET duration = ? WHERE user_id = ? AND study_date = ?',
                 [newDuration, userId, today]
             );
-            return { inserted: false, duration: newDuration };
+        }
+
+        const CHECKIN_THRESHOLD = 30 * 60;
+        
+        if (newDuration >= CHECKIN_THRESHOLD) {
+            const [stats] = await db.execute(
+                'SELECT last_study_date FROM user_stats WHERE user_id = ?',
+                [userId]
+            );
+            
+            const lastStudyDate = stats[0]?.last_study_date;
+            const lastStudyDateStr = lastStudyDate ? new Date(lastStudyDate).toISOString().split('T')[0] : null;
+            
+            if (lastStudyDateStr !== today) {
+                wasCheckedIn = true;
+                await this.updateCheckIn(userId, today);
+            }
+        }
+
+        return { inserted: existing.length === 0, duration: newDuration, checkedIn: wasCheckedIn };
+    }
+
+    static async updateCheckIn(userId, today) {
+        const [existing] = await db.execute(
+            'SELECT * FROM user_stats WHERE user_id = ?',
+            [userId]
+        );
+
+        if (existing.length === 0) {
+            await db.execute(
+                `INSERT INTO user_stats (user_id, total_study_days, current_streak, longest_streak, last_study_date, total_cards_learned) 
+                 VALUES (?, 1, 1, 1, ?, 0)`,
+                [userId, today]
+            );
+        } else {
+            const stats = existing[0];
+            let currentStreak = stats.current_streak;
+            let totalDays = stats.total_study_days;
+            
+            if (stats.last_study_date) {
+                const lastDate = new Date(stats.last_study_date);
+                const todayDate = new Date(today);
+                const diffDays = Math.floor((todayDate - lastDate) / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 1) {
+                    currentStreak++;
+                    totalDays++;
+                } else if (diffDays > 1) {
+                    currentStreak = 1;
+                    totalDays++;
+                }
+            } else {
+                currentStreak = 1;
+                totalDays = 1;
+            }
+
+            const longestStreak = Math.max(stats.longest_streak, currentStreak);
+            
+            await db.execute(
+                `UPDATE user_stats 
+                 SET total_study_days = ?, current_streak = ?, longest_streak = ?, last_study_date = ?
+                 WHERE user_id = ?`,
+                [totalDays, currentStreak, longestStreak, today, userId]
+            );
         }
     }
 

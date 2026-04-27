@@ -1,6 +1,6 @@
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+  background: linear-gradient(160deg, #f0f7ff 0%, #e8f4ff 50%, #f5f9ff 100%);
   position: relative;
   overflow: hidden;
   display: flex;
@@ -20,34 +20,168 @@
   overflow: hidden;
 }
 
+.bg-gradient {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(96, 165, 250, 0.06) 0%, transparent 50%);
+}
+
+/* 浮动卡片样式 */
+.floating-card {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 20rpx;
+  box-shadow: 
+    0 10rpx 40rpx rgba(59, 130, 246, 0.12),
+    0 4rpx 12rpx rgba(59, 130, 246, 0.06);
+  border: 1rpx solid rgba(59, 130, 246, 0.1);
+  backdrop-filter: blur(4rpx);
+}
+
+.card-inner {
+  padding: 24rpx 28rpx;
+}
+
+.card-line {
+  height: 10rpx;
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.3) 0%, rgba(59, 130, 246, 0.1) 100%);
+  border-radius: 5rpx;
+  margin-bottom: 14rpx;
+}
+
+.card-line.short {
+  width: 60%;
+}
+
+.card-line:last-child {
+  margin-bottom: 0;
+}
+
+/* 上部区域卡片 - 较少 */
+.card-2 {
+  width: 110rpx;
+  top: 14%;
+  right: 6%;
+  transform: rotate(12deg);
+  animation: float2 10s ease-in-out infinite;
+}
+
+/* 下部区域卡片 - 较多 */
+.bottom-decoration .card-3 {
+  width: 145rpx;
+  top: 17%;
+  left: 6%;
+  transform: rotate(5deg);
+  animation: float3 9s ease-in-out infinite;
+}
+
+.bottom-decoration .card-4 {
+  width: 120rpx;
+  top: 27%;
+  right: 8%;
+  transform: rotate(-10deg);
+  animation: float4 7s ease-in-out infinite;
+}
+
+.bottom-decoration .card-5 {
+  width: 160rpx;
+  top: 53%;
+  left: 30%;
+  transform: rotate(-5deg);
+  animation: float5 11s ease-in-out infinite;
+}
+
+/* 浮动动画 */
+@keyframes float2 {
+  0%, 100% {
+    transform: rotate(12deg) translateY(0);
+  }
+  50% {
+    transform: rotate(12deg) translateY(-15rpx);
+  }
+}
+
+@keyframes float3 {
+  0%, 100% {
+    transform: rotate(5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(5deg) translateY(-18rpx);
+  }
+}
+
+@keyframes float4 {
+  0%, 100% {
+    transform: rotate(-10deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-10deg) translateY(-12rpx);
+  }
+}
+
+@keyframes float5 {
+  0%, 100% {
+    transform: rotate(-5deg) translateY(0);
+  }
+  50% {
+    transform: rotate(-5deg) translateY(-15rpx);
+  }
+}
+
+/* 下部区域装饰 */
+.bottom-decoration {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 45%;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.bottom-decoration .floating-card {
+  position: absolute;
+}
+
+/* 装饰圆形 */
 .circle {
   position: absolute;
   border-radius: 50%;
-  opacity: 0.1;
 }
 
 .circle-1 {
-  width: 600rpx;
-  height: 600rpx;
-  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-  top: -200rpx;
-  right: -200rpx;
+  width: 500rpx;
+  height: 500rpx;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
+  top: -150rpx;
+  right: -100rpx;
+  animation: pulse 8s ease-in-out infinite;
 }
 
 .circle-2 {
   width: 400rpx;
   height: 400rpx;
-  background: linear-gradient(135deg, #60A5FA 0%, #3B82F6 100%);
-  bottom: 100rpx;
-  left: -150rpx;
+  background: radial-gradient(circle, rgba(96, 165, 250, 0.05) 0%, transparent 70%);
+  bottom: -100rpx;
+  left: -100rpx;
+  animation: pulse 10s ease-in-out infinite;
+  animation-delay: 2s;
 }
 
-.circle-3 {
-  width: 300rpx;
-  height: 300rpx;
-  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-  bottom: -100rpx;
-  right: 100rpx;
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
 }
 
 .logo-section {
