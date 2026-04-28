@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const FavoriteModel = require('./Favorite');
 
 class LibraryModel {
     static async getList(params = {}) {
@@ -127,6 +128,13 @@ class LibraryModel {
     }
 
     static async update(id, data) {
+        if (data.is_public !== undefined && data.is_public === 0) {
+            const library = await this.findById(id);
+            if (library && library.is_public === 1) {
+                await FavoriteModel.removeByLibrary(id);
+            }
+        }
+
         const fields = [];
         const values = [];
 
@@ -162,6 +170,7 @@ class LibraryModel {
     }
 
     static async delete(id) {
+        await FavoriteModel.removeByLibrary(id);
         await db.execute('DELETE FROM libraries WHERE id = ?', [id]);
     }
 

@@ -40,8 +40,8 @@
       <view class="card-footer">
         <view class="card-stats">
           <view class="stat-item like-btn {{item.liked ? 'liked' : ''}}" catchtap="onLikeCard" data-index="{{index}}" data-id="{{item.id}}">
-            <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="24rpx" color="{{item.liked ? '#3B82F6' : '#999'}}" />
-            <text>{{item.likes}} 点赞</text>
+            <t-icon name="{{item.liked ? 'thumb-up-filled' : 'thumb-up'}}" size="30rpx" color="{{item.liked ? '#3B82F6' : '#999'}}" />
+            <text>{{item.likes}}</text>
           </view>
         </view>
         <view class="study-btn">

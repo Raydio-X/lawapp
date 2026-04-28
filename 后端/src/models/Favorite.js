@@ -121,6 +121,31 @@ class FavoriteModel {
         const [rows] = await db.execute(sql, values);
         return rows[0].count;
     }
+
+    static async removeByTarget(targetType, targetId) {
+        const [result] = await db.execute(
+            'DELETE FROM favorites WHERE target_type = ? AND target_id = ?',
+            [targetType, targetId]
+        );
+        return result.affectedRows;
+    }
+
+    static async removeByLibrary(libraryId) {
+        const [cardRows] = await db.execute(
+            'SELECT id FROM cards WHERE library_id = ?',
+            [libraryId]
+        );
+        
+        let totalRemoved = 0;
+        
+        totalRemoved += await this.removeByTarget('library', libraryId);
+        
+        for (const card of cardRows) {
+            totalRemoved += await this.removeByTarget('card', card.id);
+        }
+        
+        return totalRemoved;
+    }
 }
 
 module.exports = FavoriteModel;

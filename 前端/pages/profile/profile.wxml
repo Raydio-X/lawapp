@@ -223,4 +223,35 @@
       </view>
     </view>
   </view>
+
+  <!-- 昵称编辑弹窗 -->
+  <view class="nickname-popup" wx:if="{{showNicknamePopup}}" bindtap="onCloseNicknamePopup">
+    <view class="nickname-popup-container" catchtap="preventClose">
+      <view class="nickname-popup-header">
+        <text class="nickname-popup-title">修改昵称</text>
+        <view class="nickname-popup-close" bindtap="onCloseNicknamePopup">
+          <t-icon name="close" size="32rpx" color="#999" />
+        </view>
+      </view>
+      
+      <view class="nickname-popup-body">
+        <view class="nickname-input-wrapper">
+          <input 
+            class="nickname-input" 
+            placeholder="请输入昵称" 
+            value="{{nicknameInput}}"
+            bindinput="onNicknameInput"
+            maxlength="{{nicknameMaxLength}}"
+            focus="{{showNicknamePopup}}"
+          />
+          <text class="nickname-count">{{nicknameInput.length}}/{{nicknameMaxLength}}</text>
+        </view>
+      </view>
+      
+      <view class="nickname-popup-footer">
+        <view class="nickname-popup-btn cancel" bindtap="onCloseNicknamePopup">取消</view>
+        <view class="nickname-popup-btn confirm" bindtap="onConfirmNickname">确定</view>
+      </view>
+    </view>
+  </view>
 </view>

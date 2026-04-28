@@ -30,7 +30,10 @@ Page({
     showPlanPicker: false,
     cardCountOptions: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70],
     pickerValue: [8],
-    tempCardCount: 50
+    tempCardCount: 50,
+    showNicknamePopup: false,
+    nicknameInput: '',
+    nicknameMaxLength: 10
   },
 
   studyTimeTimer: null,
@@ -273,30 +276,49 @@ Page({
   },
 
   async editNickname() {
-    wx.showModal({
-      title: '修改昵称',
-      content: '',
-      editable: true,
-      placeholderText: '请输入昵称',
-      success: async (res) => {
-        if (res.confirm && res.content) {
-          try {
-            const result = await authAPI.updateProfile({ nickname: res.content });
-            if (result.success) {
-              this.setData({
-                'userInfo.nickName': res.content
-              });
-              wx.setStorageSync('userInfo', this.data.userInfo);
-              wx.showToast({ title: '修改成功', icon: 'success' });
-            } else {
-              wx.showToast({ title: result.message || '修改失败', icon: 'none' });
-            }
-          } catch (error) {
-            wx.showToast({ title: error.message || '修改失败', icon: 'none' });
-          }
-        }
-      }
+    this.setData({
+      showNicknamePopup: true,
+      nicknameInput: this.data.userInfo.nickName || ''
     });
+  },
+
+  onNicknameInput(e) {
+    let value = e.detail.value;
+    if (value.length > this.data.nicknameMaxLength) {
+      value = value.slice(0, this.data.nicknameMaxLength);
+    }
+    this.setData({ nicknameInput: value });
+  },
+
+  onCloseNicknamePopup() {
+    this.setData({ showNicknamePopup: false });
+  },
+
+  async onConfirmNickname() {
+    const nickname = this.data.nicknameInput.trim();
+    if (nickname.length === 0) {
+      wx.showToast({ title: '昵称不能为空', icon: 'none' });
+      return;
+    }
+    if (nickname.length > this.data.nicknameMaxLength) {
+      wx.showToast({ title: '昵称不能超过10个字', icon: 'none' });
+      return;
+    }
+    try {
+      const result = await authAPI.updateProfile({ nickname: nickname });
+      if (result.success) {
+        this.setData({
+          'userInfo.nickName': nickname,
+          showNicknamePopup: false
+        });
+        wx.setStorageSync('userInfo', this.data.userInfo);
+        wx.showToast({ title: '修改成功', icon: 'success' });
+      } else {
+        wx.showToast({ title: result.message || '修改失败', icon: 'none' });
+      }
+    } catch (error) {
+      wx.showToast({ title: error.message || '修改失败', icon: 'none' });
+    }
   },
 
   changeAvatar() {

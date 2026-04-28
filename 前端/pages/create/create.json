@@ -3,5 +3,5 @@
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-popup": "tdesign-miniprogram/popup/popup"
   },
-  "navigationBarTitleText": "创建"
+  "navigationBarTitleText": ""
 }

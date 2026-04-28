@@ -159,15 +159,8 @@
 </view>
 
 <!-- 模块四：卡片切换学习导航 -->
-<!-- 单卡模式（派生学习跳转）- 不显示导航栏 -->
-<view class="study-nav-bar single-card-mode" wx:if="{{!loading && currentCard && singleCard}}">
-  <view class="single-card-tip">
-    <text>派生学习模式</text>
-  </view>
-</view>
-
 <!-- 学习模式（开始学习） -->
-<view class="study-nav-bar study-mode" wx:elif="{{!loading && currentCard && mode === 'study'}}">
+<view class="study-nav-bar study-mode" wx:if="{{!loading && currentCard && mode === 'study'}}">
   <view class="nav-btn-prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
     <t-icon name="chevron-left" size="36rpx" color="{{currentIndex <= 0 ? '#ccc' : '#666'}}" />
     <text class="prev-text">上一张</text>
@@ -179,7 +172,7 @@
 </view>
 
 <!-- 普通模式（随机抽题、直接点击卡片等） -->
-<view class="study-nav-bar" wx:elif="{{!loading && currentCard && mode !== 'study'}}">
+<view class="study-nav-bar" wx:elif="{{!loading && currentCard && mode !== 'study' && !singleCard}}">
   <view class="nav-btn prev {{currentIndex <= 0 ? 'disabled' : ''}}" bindtap="onPrevCard">
     <t-icon name="chevron-left" size="32rpx" color="{{currentIndex <= 0 ? '#ccc' : '#3B82F6'}}" />
     <text class="nav-text">上一张</text>

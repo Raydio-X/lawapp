@@ -6,5 +6,5 @@
     "t-icon": "tdesign-miniprogram/icon/icon",
     "t-badge": "tdesign-miniprogram/badge/badge"
   },
-  "navigationBarTitleText": "我的"
+  "navigationBarTitleText": ""
 }
