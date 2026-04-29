@@ -148,6 +148,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '编辑卡片' }
   },
   {
+    path: '/admin/blocked-words',
+    name: 'AdminBlockedWords',
+    component: () => import('@/views/admin/BlockedWords.vue'),
+    meta: { title: '屏蔽词管理' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/home'
   }

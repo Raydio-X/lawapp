@@ -112,7 +112,7 @@
             :class="{ active: examMode === 'random' }"
             @click="examMode = 'random'"
           >
-            <t-icon name="shuffle" size="20px" :color="examMode === 'random' ? '#3B82F6' : '#999'" />
+            <t-icon name="swap" size="20px" :color="examMode === 'random' ? '#3B82F6' : '#999'" />
             <span class="mode-name">随机出题</span>
             <span class="mode-desc">从选中知识库随机抽题</span>
           </div>
@@ -121,7 +121,7 @@
             :class="{ active: examMode === 'sequential' }"
             @click="examMode = 'sequential'"
           >
-            <t-icon name="order" size="20px" :color="examMode === 'sequential' ? '#3B82F6' : '#999'" />
+            <t-icon name="queue" size="20px" :color="examMode === 'sequential' ? '#3B82F6' : '#999'" />
             <span class="mode-name">顺序出题</span>
             <span class="mode-desc">按知识库顺序出题</span>
           </div>

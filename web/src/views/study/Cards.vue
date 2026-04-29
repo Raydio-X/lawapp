@@ -131,13 +131,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, commentAPI } from '@/utils/api'
+import { useGlobalStudyTimer } from '@/composables/useStudyTimer'
 
 const router = useRouter()
 const route = useRoute()
+
+const { startStudyTimer, stopStudyTimer } = useGlobalStudyTimer()
 
 interface Card {
   id: number
@@ -176,6 +179,11 @@ onMounted(() => {
   currentIndex.value = index
   totalCards.value = total
   loadCardData()
+  startStudyTimer()
+})
+
+onUnmounted(() => {
+  stopStudyTimer()
 })
 
 const loadCardData = () => {

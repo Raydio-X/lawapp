@@ -6,6 +6,8 @@ interface UserInfo {
   nickName: string
   avatarUrl: string
   email?: string
+  bio?: string
+  role?: string
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -16,6 +18,7 @@ export const useUserStore = defineStore('user', () => {
   const isLoggedIn = computed(() => !!token.value)
   const displayName = computed(() => userInfo.value?.nickName || '法硕考生')
   const avatarUrl = computed(() => userInfo.value?.avatarUrl || '/assets/images/default-avatar.svg')
+  const userRole = computed(() => userInfo.value?.role || 'user')
 
   function setToken(newToken: string) {
     token.value = newToken
@@ -72,6 +75,7 @@ export const useUserStore = defineStore('user', () => {
     isLoggedIn,
     displayName,
     avatarUrl,
+    userRole,
     setToken,
     setUserInfo,
     loadUserInfo,

@@ -271,6 +271,37 @@ async function initDatabase() {
         `);
         console.log('Created messages table');
 
+        await connection.query(`
+            CREATE TABLE blocked_words (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                word VARCHAR(100) NOT NULL UNIQUE,
+                category VARCHAR(50) DEFAULT 'general',
+                is_enabled TINYINT(1) DEFAULT 1,
+                created_by INT DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_word (word),
+                INDEX idx_category (category),
+                INDEX idx_is_enabled (is_enabled)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created blocked_words table');
+
+        await connection.query(`
+            CREATE TABLE comment_likes (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                comment_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_comment_user (comment_id, user_id),
+                INDEX idx_comment_id (comment_id),
+                INDEX idx_user_id (user_id),
+                FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created comment_likes table');
+
         console.log('Database and tables created successfully!');
     } catch (error) {
         console.error('Error initializing database:', error);

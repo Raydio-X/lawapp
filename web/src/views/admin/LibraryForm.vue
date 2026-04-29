@@ -141,8 +141,8 @@ onMounted(() => {
 const loadLibraryDetail = async () => {
   try {
     const res = await api.get(`/libraries/${route.query.id}`)
-    if (res.data.code === 0) {
-      const library = res.data.data
+    if (res.success && res.data) {
+      const library = res.data
       libraryName.value = library.name
       tags.value = library.tags || []
       outline.value = library.outline || []
@@ -228,11 +228,11 @@ const onSubmit = async () => {
       res = await api.post('/libraries', data)
     }
 
-    if (res.data.code === 0) {
+    if (res.success) {
       MessagePlugin.success(isEdit.value ? '修改成功' : '创建成功')
       router.back()
     } else {
-      MessagePlugin.error(res.data.message || '操作失败')
+      MessagePlugin.error(res.message || '操作失败')
     }
   } catch (error) {
     MessagePlugin.error('操作失败，请重试')

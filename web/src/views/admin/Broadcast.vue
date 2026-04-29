@@ -74,11 +74,11 @@ const onSend = async () => {
       title: title.value,
       content: content.value
     })
-    if (res.data.code === 0) {
+    if (res.success) {
       MessagePlugin.success('通知发送成功')
       router.back()
     } else {
-      MessagePlugin.error(res.data.message || '发送失败')
+      MessagePlugin.error(res.message || '发送失败')
     }
   } catch (error) {
     MessagePlugin.error('发送失败，请重试')

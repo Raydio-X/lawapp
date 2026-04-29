@@ -221,13 +221,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { cardAPI, favoriteAPI, commentAPI } from '@/utils/api'
+import { useCardStudyStore } from '@/stores/cardStudy'
 
 const router = useRouter()
 const route = useRoute()
+const cardStudyStore = useCardStudyStore()
 
 interface Card {
   id: number
@@ -289,6 +291,52 @@ onMounted(() => {
   
   loadCardData(cardId, parseInt(index) || 0)
 })
+
+watch(
+  () => route.query.cardId,
+  (newCardId, oldCardId) => {
+    if (newCardId && newCardId !== oldCardId) {
+      const singleCardParam = route.query.singleCard as string
+      const libId = route.query.libraryId as string
+      
+      if (singleCardParam !== 'true' && libId) {
+        const stateKey = `library_${libId}_card_${newCardId}`
+        const savedState = cardStudyStore.getState(stateKey)
+        
+        if (savedState) {
+          libraryId.value = libId === 'hot_cards' ? libId : parseInt(libId)
+          libraryName.value = savedState.libraryName
+          mode.value = savedState.mode
+          singleCard.value = false
+          cardList.value = savedState.cardList as Card[]
+          totalCards.value = savedState.totalCards
+          currentIndex.value = savedState.currentIndex
+          currentCard.value = (savedState.cardList[savedState.currentIndex] || savedState.cardList[0]) as Card
+          answerRevealed.value = savedState.answerRevealed
+          comments.value = savedState.comments as Comment[]
+          isFavorite.value = savedState.isFavorite
+          relatedCards.value = savedState.relatedCards as Card[]
+          loading.value = false
+          cardStudyStore.removeState(stateKey)
+          return
+        }
+      }
+      
+      if (libId) {
+        libraryId.value = libId === 'hot_cards' ? libId : parseInt(libId)
+      } else {
+        libraryId.value = null
+      }
+      
+      if (singleCardParam === 'true') {
+        singleCard.value = true
+      }
+      
+      answerRevealed.value = false
+      loadCardData(newCardId as string, 0)
+    }
+  }
+)
 
 onUnmounted(() => {
   saveStudyProgress()
@@ -526,6 +574,23 @@ const loadRelatedCards = async () => {
 }
 
 const onRelatedCardTap = (card: Card) => {
+  if (currentCard.value && !singleCard.value) {
+    const stateKey = `library_${libraryId.value}_card_${currentCard.value.id}`
+    cardStudyStore.saveState(stateKey, {
+      cardId: currentCard.value.id,
+      answerRevealed: answerRevealed.value,
+      currentIndex: currentIndex.value,
+      totalCards: totalCards.value,
+      libraryId: libraryId.value,
+      libraryName: libraryName.value,
+      mode: mode.value,
+      cardList: cardList.value,
+      comments: comments.value,
+      isFavorite: isFavorite.value,
+      relatedCards: relatedCards.value,
+      timestamp: Date.now()
+    })
+  }
   router.push(`/card/study?cardId=${card.id}&singleCard=true`)
 }
 
@@ -585,23 +650,20 @@ const onLikeComment = async (index: number, commentId: number) => {
   const comment = comments.value[index]
   if (!comment) return
   
-  // 由于API没有unlike方法，只支持点赞，不支持取消点赞
-  if (comment.liked) {
-    MessagePlugin.info('您已经点赞过了')
-    return
-  }
-  
   try {
     const res = await commentAPI.like(commentId)
     if (res.success) {
-      comments.value[index].liked = true
-      comments.value[index].likeCount = (comment.likeCount || 0) + 1
+      const wasLiked = comment.liked
+      comments.value[index].liked = res.data?.liked ?? !wasLiked
+      comments.value[index].likeCount = res.data?.liked 
+        ? (comment.likeCount || 0) + 1 
+        : Math.max(0, (comment.likeCount || 0) - 1)
       
       comments.value.sort((a, b) => (b.likeCount || 0) - (a.likeCount || 0))
     }
   } catch (error) {
     console.error('点赞失败:', error)
-    MessagePlugin.error('点赞失败')
+    MessagePlugin.error('操作失败')
   }
 }
 
@@ -648,10 +710,16 @@ const onSubmitComment = async () => {
       comments.value.unshift(newComment)
       commentText.value = ''
       MessagePlugin.success('笔记已添加')
+    } else if (res.code === 400 && res.message?.includes('敏感词')) {
+      MessagePlugin.warning(res.message || '评论包含敏感词，请修改后重新发布')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('添加评论失败:', error)
-    MessagePlugin.error('添加失败')
+    if (error.response?.data?.message?.includes('敏感词')) {
+      MessagePlugin.warning(error.response.data.message)
+    } else {
+      MessagePlugin.error('添加失败')
+    }
   }
 }
 

@@ -167,6 +167,7 @@ export const cardAPI = {
   toggleMastery: (id: number) => api.post(`/cards/${id}/mastery/toggle`),
   like: (id: number) => api.post(`/cards/${id}/like`),
   unlike: (id: number) => api.post(`/cards/${id}/unlike`),
+  toggleLike: (id: number) => api.post(`/cards/${id}/like`),
   getNext: (id: number) => api.get(`/cards/${id}/next`),
   getPrev: (id: number) => api.get(`/cards/${id}/prev`),
   getRandom: (libraryId: number) => api.get(`/libraries/${libraryId}/cards/random`),
@@ -239,7 +240,13 @@ export const adminAPI = {
   updateCard: (id: number, data: any) => api.put(`/admin/cards/${id}`, data),
   deleteCard: (id: number) => api.delete(`/admin/cards/${id}`),
   getComments: (params?: any) => api.get('/admin/comments', params),
-  deleteComment: (id: number) => api.delete(`/admin/comments/${id}`)
+  deleteComment: (id: number) => api.delete(`/admin/comments/${id}`),
+  getBlockedWords: (params?: any) => api.get('/admin/blocked-words', params),
+  createBlockedWord: (data: { word: string; category?: string }) => api.post('/admin/blocked-words', data),
+  updateBlockedWord: (id: number, data: { word?: string; category?: string; is_enabled?: number }) => api.put(`/admin/blocked-words/${id}`, data),
+  deleteBlockedWord: (id: number) => api.delete(`/admin/blocked-words/${id}`),
+  batchCreateBlockedWords: (data: { words: string[]; category?: string }) => api.post('/admin/blocked-words/batch', data),
+  checkSensitive: (text: string) => api.post('/admin/check-sensitive', { text })
 }
 
 export const messageAPI = {

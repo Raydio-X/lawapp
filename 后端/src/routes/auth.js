@@ -81,13 +81,13 @@ router.post('/test-login', async (req, res) => {
         const { account, password } = req.body;
 
         if (account === 'test' && password === '123456') {
-            let user = await UserModel.findByOpenid('test_account');
+            let user = await UserModel.findByOpenid('test_openid');
             
             if (!user) {
                 user = await UserModel.create({
-                    openid: 'test_account',
+                    openid: 'test_openid',
                     nickname: '测试用户',
-                    avatar: '',
+                    avatar: 'https://via.placeholder.com/100',
                     bio: '测试账号'
                 });
             }

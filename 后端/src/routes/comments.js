@@ -30,20 +30,57 @@ router.delete('/:id', auth, async (req, res) => {
     }
 });
 
-router.post('/:id/like', async (req, res) => {
+router.post('/:id/like', auth, async (req, res) => {
     try {
-        await CommentModel.like(req.params.id);
+        const result = await CommentModel.toggleLike(req.params.id, req.user.id);
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: result.message
+            });
+        }
 
         res.json({
             success: true,
-            message: '点赞成功'
+            data: {
+                liked: result.liked
+            },
+            message: result.message
         });
     } catch (error) {
-        console.error('Like comment error:', error);
+        console.error('Toggle like error:', error);
         res.status(500).json({
             success: false,
             code: 500,
-            message: '点赞失败'
+            message: '操作失败'
+        });
+    }
+});
+
+router.post('/:id/unlike', auth, async (req, res) => {
+    try {
+        const result = await CommentModel.unlike(req.params.id, req.user.id);
+
+        if (!result.success) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: result.message
+            });
+        }
+
+        res.json({
+            success: true,
+            message: result.message
+        });
+    } catch (error) {
+        console.error('Unlike error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '取消点赞失败'
         });
     }
 });

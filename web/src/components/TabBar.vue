@@ -35,26 +35,26 @@ const tabList: TabItem[] = [
   {
     path: '/home',
     text: '社区',
-    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+PHBhdGggZD0iTTEwIDJ2Mkg3djJIMXYxOGgyMlY2aC02VjRoLTNWMmgtNHptMCAyaDJ2MmgtMlY0em0tMyAyaDN2MmgzMlY2aDE0djE0SDNWNnptNSA0djJoMlYxMEg4em0tNCAwdjJoMlYxMEg0em0wIDR2MmgyVjE0SDR6bTQgMHYyaDJWMTRIOHptNCAwdjJoMlYxNEgxMnoiLz48L3N2Zz4=',
-    selectedIcon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzNCODJGNiI+PHBhdGggZD0iTTEwIDJ2Mkg3djJIMXYxOGgyMlY2aC02VjRoLTNWMmgtNHptMCAyaDJ2MmgtMlY0em0tMyAyaDN2MmgzMlY2aDE0djE0SDNWNnptNSA0djJoMlYxMEg4em0tNCAwdjJoMlYxMEg0em0wIDR2MmgyVjE0SDR6bTQgMHYyaDJWMTRIOHptNCAwdjJoMlYxNEgxMnoiLz48L3N2Zz4='
+    icon: '/assets/images/tabbar/home.png',
+    selectedIcon: '/assets/images/tabbar/home-active.png'
   },
   {
     path: '/study',
     text: '学习',
-    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+PHBhdGggZD0iTTEyIDNMMCA5djZsMTIgNiAxMi02VjlsLTEyLTZ6bTAgMmwxMCA1LTEwIDUtMTAtNSAxMC01ek0yIDEwLjVsNCAydjRsLTQtMnYtNHptMjAgMHY0bC00IDJ2LTRsNC0yek02IDE2LjVsNiAzIDYtM3Y0bC02IDMtNi0zdi00eiIvPjwvc3ZnPg==',
-    selectedIcon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzNCODJGNiI+PHBhdGggZD0iTTEyIDNMMCA5djZsMTIgNiAxMi02VjlsLTEyLTZ6bTAgMmwxMCA1LTEwIDUtMTAtNSAxMC01ek0yIDEwLjVsNCAydjRsLTQtMnYtNHptMjAgMHY0bC00IDJ2LTRsNC0yek02IDE2LjVsNiAzIDYtM3Y0bC02IDMtNi0zdi00eiIvPjwvc3ZnPg=='
+    icon: '/assets/images/tabbar/study.png',
+    selectedIcon: '/assets/images/tabbar/study-active.png'
   },
   {
     path: '/create',
     text: '创作',
-    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+PHBhdGggZD0iTTE5IDEzaC02djZoLTJ2LTZINXYtMmg2VjVoMnY2aDZ2MnoiLz48L3N2Zz4=',
-    selectedIcon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzNCODJGNiI+PHBhdGggZD0iTTE5IDEzaC02djZoLTJ2LTZINXYtMmg2VjVoMnY2aDZ2MnoiLz48L3N2Zz4='
+    icon: '/assets/images/tabbar/create.png',
+    selectedIcon: '/assets/images/tabbar/create-active.png'
   },
   {
     path: '/profile',
     text: '我的',
-    icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzk5OTk5OSI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgM2MxLjY2IDAgMyAxLjM0IDMgM3MtMS4zNCAzLTMgMy0zLTEuMzQtMy0zIDEuMzQtMyAzLTN6bTAgMTQuMmMtMi41IDAtNC43MS0xLjI4LTYtMy4yMi4wMy0xLjk5IDQtMy4wOCA2LTMuMDggMS45OSAwIDUuOTcgMS4wOSA2IDMuMDgtMS4yOSAxLjk0LTMuNSAzLjIyLTYgMy4yMnoiLz48L3N2Zz4=',
-    selectedIcon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzNCODJGNiI+PHBhdGggZD0iTTEyIDJDNi40OCAyIDIgNi40OCAyIDEyczQuNDggMTAgMTAgMTAgMTAtNC40OCAxMC0xMFMxNy41MiAyIDEyIDJ6bTAgM2MxLjY2IDAgMyAxLjM0IDMgM3MtMS4zNCAzLTMgMy0zLTEuMzQtMy0zIDEuMzQtMyAzLTN6bTAgMTQuMmMtMi41IDAtNC43MS0xLjI4LTYtMy4yMi4wMy0xLjk5IDQtMy4wOCA2LTMuMDggMS45OSAwIDUuOTcgMS4wOSA2IDMuMDgtMS4yOSAxLjk0LTMuNSAzLjIyLTYgMy4yMnoiLz48L3N2Zz4='
+    icon: '/assets/images/tabbar/profile.png',
+    selectedIcon: '/assets/images/tabbar/profile-active.png'
   }
 ]
 

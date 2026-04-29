@@ -106,6 +106,38 @@ async function seedData() {
         }
         console.log('Created cards');
 
+        const blockedWords = [
+            { word: '傻逼', category: 'profanity' },
+            { word: '操你', category: 'profanity' },
+            { word: '妈的', category: 'profanity' },
+            { word: '他妈的', category: 'profanity' },
+            { word: '草泥马', category: 'profanity' },
+            { word: '王八蛋', category: 'profanity' },
+            { word: '滚蛋', category: 'profanity' },
+            { word: '混蛋', category: 'profanity' },
+            { word: '贱人', category: 'profanity' },
+            { word: '婊子', category: 'profanity' },
+            { word: '垃圾', category: 'insult' },
+            { word: '废物', category: 'insult' },
+            { word: '智障', category: 'insult' },
+            { word: '脑残', category: 'insult' },
+            { word: '白痴', category: 'insult' },
+            { word: '弱智', category: 'insult' },
+            { word: '傻X', category: 'profanity' },
+            { word: 'SB', category: 'profanity' },
+            { word: 'sb', category: 'profanity' },
+            { word: 'NC', category: 'insult' },
+            { word: 'nc', category: 'insult' }
+        ];
+
+        for (const bw of blockedWords) {
+            await connection.query(
+                'INSERT IGNORE INTO blocked_words (word, category, created_by) VALUES (?, ?, ?)',
+                [bw.word, bw.category, userId]
+            );
+        }
+        console.log('Created blocked words');
+
         console.log('Seed data created successfully!');
     } catch (error) {
         console.error('Error seeding data:', error);

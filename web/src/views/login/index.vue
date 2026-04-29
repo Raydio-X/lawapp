@@ -227,7 +227,13 @@ const handleTestLogin = async () => {
     const res = await authAPI.testLogin(testAccount.value, testPassword.value)
     if (res.success && res.data) {
       userStore.setToken(res.data.token)
-      userStore.setUserInfo(res.data.user)
+      userStore.setUserInfo({
+        id: res.data.userInfo.id,
+        nickName: res.data.userInfo.nickname,
+        avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
+        bio: res.data.userInfo.bio,
+        role: res.data.userInfo.role
+      })
       MessagePlugin.success('登录成功')
       
       const redirect = route.query.redirect as string

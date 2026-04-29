@@ -180,38 +180,6 @@
 
     <div class="bottom-placeholder"></div>
 
-    <div class="plan-popup" v-if="showPlanPicker" @click.self="showPlanPicker = false">
-      <div class="plan-picker-container" @click.stop>
-        <div class="plan-picker-header">
-          <span class="plan-picker-title">设置每日学习目标</span>
-          <div class="plan-picker-close" @click="showPlanPicker = false">
-            <t-icon name="close" size="16px" color="#999" />
-          </div>
-        </div>
-        
-        <div class="plan-picker-body">
-          <div class="plan-options">
-            <div 
-              class="plan-option" 
-              :class="{ selected: tempCardCount === count }"
-              v-for="count in cardCountOptions" 
-              :key="count"
-              @click="tempCardCount = count"
-            >
-              <span>{{ count }} 张</span>
-              <div class="plan-radio" v-if="tempCardCount === count">
-                <div class="plan-radio-dot"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="plan-picker-footer">
-          <div class="plan-picker-btn confirm" @click="onConfirmPlan">确定</div>
-        </div>
-      </div>
-    </div>
-
     <div class="nickname-popup" v-if="showNicknamePopup" @click.self="showNicknamePopup = false">
       <div class="nickname-popup-container" @click.stop>
         <div class="nickname-popup-header">
@@ -239,15 +207,24 @@
         </div>
       </div>
     </div>
+
+    <Picker
+      v-model:visible="showPlanPicker"
+      title="设置每日学习目标"
+      :options="planOptions"
+      :value="[tempCardCount]"
+      @confirm="onPlanConfirm"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
-import { studyAPI, messageAPI, favoriteAPI } from '@/utils/api'
+import { studyAPI, messageAPI } from '@/utils/api'
+import Picker from '@/components/Picker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -273,8 +250,14 @@ const studyProgress = ref({
 const unreadCount = ref(0)
 
 const showPlanPicker = ref(false)
-const cardCountOptions = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
-const tempCardCount = ref(50)
+const tempCardCount = ref(20)
+
+const planOptions = computed(() => {
+  return [10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map(count => ({
+    label: `${count} 张`,
+    value: count
+  }))
+})
 
 const showNicknamePopup = ref(false)
 const nicknameInput = ref('')
@@ -286,25 +269,39 @@ const goalPercent = computed(() => {
 
 onMounted(() => {
   loadData()
+  
+  document.addEventListener('visibilitychange', onVisibilityChange)
+})
+
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    loadData()
+  }
+}
+
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 
 const loadData = async () => {
   try {
-    const [statsRes, studyRes, msgRes, favRes] = await Promise.all([
+    const [statsRes, studyRes, msgRes] = await Promise.all([
       studyAPI.getStats(),
       studyAPI.getTodayStudyTime(),
-      messageAPI.getUnreadCount(),
-      favoriteAPI.getList({ pageSize: 1 })
+      messageAPI.getUnreadCount()
     ])
     
     if (statsRes.success && statsRes.data) {
       stats.value.libraryCount = statsRes.data.libraryCount || 0
       stats.value.cardCount = statsRes.data.cardCount || 0
+      stats.value.favoriteCount = statsRes.data.favoriteCount || 0
       studyProgress.value.streak = statsRes.data.streak || 0
       studyProgress.value.todayCards = statsRes.data.todayCards || 0
       studyProgress.value.todayNew = statsRes.data.todayNew || 0
       studyProgress.value.toReview = statsRes.data.toReview || 0
       studyProgress.value.totalCards = statsRes.data.totalCards || 0
+      studyProgress.value.dailyGoal = statsRes.data.dailyGoal || 20
+      tempCardCount.value = statsRes.data.dailyGoal || 20
     }
     
     if (studyRes.success && studyRes.data) {
@@ -316,10 +313,6 @@ const loadData = async () => {
     
     if (msgRes.success && msgRes.data) {
       unreadCount.value = msgRes.data.count || 0
-    }
-    
-    if (favRes.success && favRes.data) {
-      stats.value.favoriteCount = favRes.data.total || 0
     }
   } catch (error) {
     console.error('加载数据失败:', error)
@@ -362,14 +355,22 @@ const onMenuTap = (menu: string) => {
   }
 }
 
-const onConfirmPlan = async () => {
+const onPlanConfirm = async (value: (string | number)[]) => {
   try {
-    studyProgress.value.dailyGoal = tempCardCount.value
-    showPlanPicker.value = false
-    MessagePlugin.success('设置成功')
-  } catch (error) {
+    const count = value[0] as number
+    
+    const res = await studyAPI.updateDailyGoal(count)
+    
+    if (res.success) {
+      studyProgress.value.dailyGoal = count
+      tempCardCount.value = count
+      MessagePlugin.success('设置成功')
+    } else {
+      MessagePlugin.error(res.message || '设置失败')
+    }
+  } catch (error: any) {
     console.error('设置学习计划失败:', error)
-    MessagePlugin.error('设置失败')
+    MessagePlugin.error(error.message || '设置失败')
   }
 }
 
@@ -829,137 +830,6 @@ const onLogout = () => {
   height: 24px;
 }
 
-.plan-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 10001;
-  display: flex;
-  align-items: flex-end;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.plan-picker-container {
-  width: 100%;
-  background: #fff;
-  border-radius: 16px 16px 0 0;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.plan-picker-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.plan-picker-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1E293B;
-}
-
-.plan-picker-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #F8FAFC;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.plan-picker-body {
-  padding: 12px 16px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.plan-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.plan-option {
-  width: calc(50% - 5px);
-  padding: 12px 16px;
-  background: #F8FAFC;
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
-
-  span {
-    font-size: 14px;
-    color: #1E293B;
-  }
-
-  &.selected {
-    background: #E6F7FF;
-    border-color: #3B82F6;
-  }
-}
-
-.plan-radio {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: #3B82F6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.plan-radio-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #fff;
-}
-
-.plan-picker-footer {
-  display: flex;
-  justify-content: center;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-}
-
-.plan-picker-btn {
-  width: 100%;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.plan-picker-btn.confirm {
-  background: #3B82F6;
-  color: #fff;
-}
-
 .nickname-popup {
   position: fixed;
   top: 0;
@@ -972,6 +842,11 @@ const onLogout = () => {
   align-items: center;
   justify-content: center;
   animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .nickname-popup-container {

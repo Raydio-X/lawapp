@@ -12,66 +12,76 @@
       </div>
     </div>
 
+    <div class="tips-bar">
+      <t-icon name="info-circle" size="16px" color="#3B82F6" />
+      <span class="tips-text">请选择要学习的知识库，可多选</span>
+    </div>
+
     <div class="loading-container" v-if="loading">
       <t-icon name="loading" size="40px" color="#3B82F6" />
       <span class="loading-text">加载中...</span>
     </div>
 
     <div class="library-list" v-else>
-      <div class="select-all" @click="onToggleAll">
-        <div class="checkbox" :class="{ checked: isAllSelected }">
-          <t-icon v-if="isAllSelected" name="check" size="14px" color="#fff" />
-        </div>
-        <span class="select-all-text">全选</span>
-        <span class="selected-count">已选 {{ selectedCount }} 个</span>
-      </div>
-
       <div class="library-item" 
         v-for="library in libraries" 
         :key="library.id"
         :class="{ selected: library.selected }"
         @click="onToggleLibrary(library.id)"
       >
-        <div class="library-info">
-          <div class="library-icon">
-            <t-icon name="folder" size="20px" color="#3B82F6" />
-          </div>
-          <div class="library-content">
-            <div class="library-name">{{ library.name }}</div>
-            <div class="library-meta">
-              <span class="meta-item">
-                <t-icon name="view-module" size="12px" color="#999" />
-                {{ library.totalCards }} 张卡片
-              </span>
-              <span class="meta-item" v-if="library.unlearned > 0">
-                <t-icon name="book" size="12px" color="#00B578" />
-                {{ library.unlearned }} 张待学
-              </span>
-              <span class="meta-item learned" v-else>
-                <t-icon name="check-circle" size="12px" color="#00B578" />
-                已全部掌握
-              </span>
-            </div>
+        <div class="library-checkbox">
+          <div class="checkbox-inner" v-if="library.selected">
+            <t-icon name="check" size="14px" color="#fff" />
           </div>
         </div>
-        <div class="checkbox" :class="{ checked: library.selected }">
-          <t-icon v-if="library.selected" name="check" size="14px" color="#fff" />
+        <div class="library-info">
+          <div class="library-header">
+            <span class="library-name">{{ library.name }}</span>
+            <div class="source-tag" :class="library.source">
+              <span>{{ library.source === 'my' ? '我的' : '收藏' }}</span>
+            </div>
+            <div class="library-badge" v-if="library.unlearned > 0">
+              <span>{{ library.unlearned }}张待学</span>
+            </div>
+          </div>
+          <div class="library-meta">
+            <span class="meta-item">{{ library.totalCards }}张卡片</span>
+            <span class="meta-divider">|</span>
+            <span class="meta-item">已学{{ library.learnedCards }}张</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-track">
+              <div class="progress-fill" :style="{ width: library.progress + '%' }"></div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="empty-state" v-if="libraries.length === 0">
-        <t-icon name="folder" size="48px" color="#ddd" />
-        <span class="empty-text">暂无知识库</span>
-        <span class="empty-subtext">请先创建知识库</span>
+        <t-icon name="folder-open" size="50px" color="#ddd" />
+        <span class="empty-text">还没有可学习的知识库</span>
+        <span class="empty-hint">请先创建或收藏知识库</span>
       </div>
     </div>
 
-    <div class="bottom-bar" v-if="!loading">
-      <div class="stats-info">
-        <span class="stats-text">共 {{ totalUnlearned }} 张待学习卡片</span>
+    <div class="bottom-placeholder"></div>
+  </div>
+
+  <div class="bottom-bar" v-if="!loading">
+    <div class="select-all" @click="onToggleAll">
+      <div class="checkbox-inner" :class="{ checked: isAllSelected }">
+        <t-icon v-if="isAllSelected" name="check" size="12px" color="#fff" />
       </div>
-      <div class="start-btn" :class="{ disabled: selectedCount === 0 || totalUnlearned === 0 }" @click="onStartStudy">
+      <span>全选</span>
+    </div>
+    <div class="action-buttons">
+      <div class="random-btn" :class="{ active: selectedCount > 0 }" @click="onRandomStudy">
+        <t-icon name="swap" size="16px" :color="selectedCount > 0 ? '#fff' : '#999'" />
+        <span>随机抽题</span>
+      </div>
+      <div class="start-btn" :class="{ active: selectedCount > 0 }" @click="onStartStudy">
         <span>开始学习</span>
+        <span class="selected-count" v-if="selectedCount > 0">({{ selectedCount }}个)</span>
       </div>
     </div>
   </div>
@@ -81,7 +91,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { libraryAPI, cardAPI } from '@/utils/api'
+import { libraryAPI, cardAPI, favoriteAPI } from '@/utils/api'
 
 const router = useRouter()
 
@@ -89,8 +99,11 @@ interface Library {
   id: number
   name: string
   totalCards: number
+  learnedCards: number
   unlearned: number
+  progress: number
   selected: boolean
+  source: string
 }
 
 const libraries = ref<Library[]>([])
@@ -117,17 +130,47 @@ onMounted(() => {
 const loadLibraries = async () => {
   loading.value = true
   try {
-    const res = await libraryAPI.getList({ page: 1, pageSize: 100 })
-    if (res.success && res.data) {
-      const list = res.data.list || res.data || []
-      libraries.value = list.map((lib: any) => ({
+    const [myRes, favRes] = await Promise.all([
+      libraryAPI.getMyLibraries({ page: 1, pageSize: 100 }),
+      favoriteAPI.getLibraries({ page: 1, pageSize: 100 })
+    ])
+
+    const myLibraries = (myRes.success ? (myRes.data.list || myRes.data.libraries || myRes.data || []) : []).map((lib: any) => {
+      const totalCards = lib.totalCards || lib.card_count || 0
+      const learnedCards = lib.learnedCards || lib.learned_cards || 0
+      return {
         id: lib.id,
         name: lib.name,
-        totalCards: lib.card_count || 0,
-        unlearned: lib.unlearned_count || 0,
-        selected: false
-      }))
-    }
+        totalCards,
+        learnedCards,
+        unlearned: totalCards - learnedCards,
+        progress: totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0,
+        selected: false,
+        source: 'my'
+      }
+    })
+
+    const favLibraries = (favRes.success ? (favRes.data.libraries || favRes.data.list || []) : []).map((lib: any) => {
+      const totalCards = lib.totalCards || lib.total_cards || 0
+      const learnedCards = lib.learnedCards || lib.learned_cards || 0
+      return {
+        id: lib.id,
+        name: lib.name,
+        totalCards,
+        learnedCards,
+        unlearned: totalCards - learnedCards,
+        progress: totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0,
+        selected: false,
+        source: 'favorite'
+      }
+    })
+
+    const myIds = new Set(myLibraries.map((lib: Library) => lib.id))
+    const uniqueFavLibraries = favLibraries.filter((lib: Library) => !myIds.has(lib.id))
+    
+    const allLibraries = [...myLibraries, ...uniqueFavLibraries]
+    
+    libraries.value = allLibraries
   } catch (error) {
     console.error('加载知识库失败:', error)
     MessagePlugin.error('加载知识库失败')
@@ -215,14 +258,74 @@ const onStartStudy = async () => {
     MessagePlugin.error('加载失败，请重试')
   }
 }
+
+const onRandomStudy = async () => {
+  if (selectedCount.value === 0) {
+    MessagePlugin.warning('请选择知识库')
+    return
+  }
+
+  const selectedLibraries = libraries.value.filter(lib => lib.selected)
+  
+  MessagePlugin.loading({ content: '准备中...', duration: 0 })
+
+  try {
+    const allCards: any[] = []
+
+    for (const lib of selectedLibraries) {
+      const cardsRes = await cardAPI.getList({ library_id: lib.id, page: 1, pageSize: 1000 })
+      
+      if (cardsRes.success && cardsRes.data) {
+        const cards = cardsRes.data.list || cardsRes.data || []
+        
+        cards.forEach((card: any) => {
+          allCards.push({
+            id: card.id,
+            question: card.question,
+            answer: card.answer || '',
+            tags: card.tags || [],
+            learned: card.is_learned || false,
+            libraryId: lib.id,
+            libraryName: lib.name
+          })
+        })
+      }
+    }
+
+    MessagePlugin.closeAll()
+
+    if (allCards.length === 0) {
+      MessagePlugin.warning('所选知识库没有卡片')
+      return
+    }
+
+    const randomIndex = Math.floor(Math.random() * allCards.length)
+    const libraryNames = selectedLibraries.map(lib => lib.name).join('、')
+    
+    localStorage.setItem('studyCardsData', JSON.stringify({
+      cardList: allCards,
+      libraryNames: libraryNames,
+      totalCards: allCards.length
+    }))
+
+    router.push({
+      path: '/study/cards',
+      query: { index: randomIndex, total: allCards.length }
+    })
+  } catch (error) {
+    MessagePlugin.closeAll()
+    console.error('随机抽题失败:', error)
+    MessagePlugin.error('加载失败，请重试')
+  }
+}
 </script>
 
 <style lang="scss" scoped>
 .select-container {
   min-height: 100vh;
-  background-color: #f5f6fa;
+  background: #f5f6fa;
   padding-top: 44px;
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: 70px;
 }
 
 .custom-nav {
@@ -271,6 +374,19 @@ const onStartStudy = async () => {
   width: 40px;
 }
 
+.tips-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  background: #e8f0ff;
+}
+
+.tips-text {
+  font-size: 13px;
+  color: #3B82F6;
+}
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -286,137 +402,174 @@ const onStartStudy = async () => {
 }
 
 .library-list {
-  padding: 12px;
-}
-
-.select-all {
+  padding: 10px 12px;
   display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  border-radius: 12px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  
-  &:active {
-    background: #f5f6fa;
-  }
-}
-
-.select-all-text {
-  flex: 1;
-  margin-left: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
-}
-
-.selected-count {
-  font-size: 13px;
-  color: #3B82F6;
-}
-
-.checkbox {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: 2px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-  
-  &.checked {
-    background: #3B82F6;
-    border-color: #3B82F6;
-  }
+  flex-direction: column;
+  gap: 8px;
 }
 
 .library-item {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
   background: #fff;
-  border-radius: 12px;
-  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+  border: 1px solid transparent;
   cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:active {
-    background: #f5f6fa;
-  }
   
   &.selected {
-    background: rgba(0, 82, 217, 0.05);
-    border: 1px solid rgba(0, 82, 217, 0.2);
+    border-color: #3B82F6;
+    background: #f8faff;
   }
 }
 
-.library-info {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.library-icon {
-  width: 44px;
-  height: 44px;
-  background: linear-gradient(135deg, #EBF3FF 0%, #E1E8F7 100%);
-  border-radius: 12px;
+.library-checkbox {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #ddd;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.2s;
 }
 
-.library-content {
+.library-item.selected .library-checkbox {
+  border-color: #3B82F6;
+  background: #3B82F6;
+}
+
+.checkbox-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.library-info {
   flex: 1;
+  min-width: 0;
+}
+
+.library-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 5px;
 }
 
 .library-name {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 6px;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-badge {
+  background: #fff0f0;
+  padding: 2px 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  
+  span {
+    font-size: 10px;
+    color: #E34D59;
+    line-height: 1;
+  }
+}
+
+.source-tag {
+  padding: 2px 6px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 18px;
+  
+  span {
+    font-size: 10px;
+    line-height: 1;
+  }
+  
+  &.my {
+    background: #e8f0ff;
+    span { color: #3B82F6; }
+  }
+  
+  &.favorite {
+    background: #fff7e6;
+    span { color: #FF9500; }
+  }
 }
 
 .library-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+  margin-bottom: 7px;
 }
 
 .meta-item {
-  display: flex;
-  align-items: center;
-  gap: 4px;
   font-size: 12px;
   color: #999;
-  
-  &.learned {
-    color: #00B578;
-  }
+}
+
+.meta-divider {
+  color: #ddd;
+}
+
+.progress-bar {
+  width: 100%;
+}
+
+.progress-track {
+  height: 4px;
+  background: #f0f0f0;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
+  border-radius: 2px;
+  transition: width 0.3s;
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   padding: 60px 0;
 }
 
 .empty-text {
-  margin-top: 12px;
-  font-size: 16px;
+  font-size: 15px;
   color: #999;
+  margin-top: 12px;
 }
 
-.empty-subtext {
-  margin-top: 4px;
+.empty-hint {
   font-size: 13px;
   color: #ccc;
+  margin-top: 6px;
+}
+
+.bottom-placeholder {
+  height: 20px;
 }
 
 .bottom-bar {
@@ -425,47 +578,106 @@ const onStartStudy = async () => {
   left: 0;
   right: 0;
   background: #fff;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  z-index: 100;
 }
 
-.stats-info {
-  flex: 1;
+.select-all {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  .checkbox-inner {
+    width: 20px;
+    height: 20px;
+    border: 1px solid #ddd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &.checked {
+      border-color: #3B82F6;
+      background: #3B82F6;
+    }
+  }
+  
+  span {
+    font-size: 14px;
+    color: #666;
+  }
 }
 
-.stats-text {
-  font-size: 14px;
-  color: #666;
+.action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.start-btn {
-  min-width: 120px;
-  height: 44px;
-  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-  border-radius: 22px;
+.random-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
+  padding: 0 16px;
+  height: 40px;
+  border-radius: 20px;
+  background: #f5f6fa;
+  border: 1px solid #e8e8e8;
+  transition: all 0.2s;
   cursor: pointer;
-  transition: all 0.2s ease;
+  
+  &.active {
+    background: linear-gradient(135deg, #FAAD14 0%, #FFB800 100%);
+    border-color: transparent;
+    box-shadow: 0 3px 10px rgba(250, 173, 20, 0.3);
+  }
   
   span {
-    font-size: 16px;
-    color: #fff;
+    font-size: 14px;
     font-weight: 600;
+    color: #999;
+    line-height: 1;
   }
   
-  &:active {
-    transform: scale(0.98);
+  &.active span {
+    color: #fff;
+  }
+}
+
+.start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 24px;
+  height: 40px;
+  border-radius: 20px;
+  background: #ccc;
+  transition: all 0.2s;
+  cursor: pointer;
+  
+  &.active {
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    box-shadow: 0 4px 12px rgba(0, 82, 217, 0.3);
   }
   
-  &.disabled {
-    background: #ccc;
-    pointer-events: none;
+  span {
+    font-size: 15px;
+    font-weight: 600;
+    color: #fff;
+    line-height: 1;
+  }
+  
+  .selected-count {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    opacity: 0.9;
   }
 }
 </style>

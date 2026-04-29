@@ -1,155 +1,124 @@
 <template>
-  <div class="card-form-container">
+  <div class="container">
+    <div class="custom-nav">
+      <div class="nav-left" @click="router.back()">
+        <t-icon name="chevron-left" size="20px" color="#333" />
+      </div>
+      <div class="nav-title">{{ isEdit ? '编辑卡片' : '创建新卡片' }}</div>
+      <div class="nav-right"></div>
+    </div>
+    
     <div class="header-decoration"></div>
     
-    <div class="form-card">
-      <div class="card-header">
-        <div class="header-icon">
-          <t-icon name="edit-1" size="20px" color="#fff" />
-        </div>
-        <div class="header-text">
-          <span class="header-title">{{ isEdit ? '编辑卡片' : '创建新卡片' }}</span>
-          <span class="header-subtitle">记录知识点，构建你的法律知识体系</span>
-        </div>
-      </div>
-
-      <div class="form-body">
-        <div class="form-item">
-          <div class="form-label">
-            <span class="label-text">所属知识库</span>
-            <span class="label-required">*</span>
-          </div>
-          <div class="picker-card" @click="showLibraryPicker = true">
-            <span class="picker-value" :class="{ active: selectedLibrary }">{{ selectedLibrary ? selectedLibrary.name : '选择知识库' }}</span>
-            <t-icon name="chevron-right" size="16px" color="#c0c4cc" />
-          </div>
-        </div>
-
-        <div class="form-item" v-if="selectedLibrary">
-          <div class="form-label">
-            <span class="label-text">所属章节</span>
-          </div>
-          <div class="picker-card" @click="showChapterPicker = true">
-            <span class="picker-value" :class="{ active: selectedChapter }">{{ selectedChapter ? selectedChapter.name : '选择章节（可选）' }}</span>
-            <t-icon name="chevron-right" size="16px" color="#c0c4cc" />
-          </div>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="form-item">
-          <div class="form-label">
-            <span class="label-text">题目</span>
-            <span class="label-required">*</span>
-          </div>
-          <div class="textarea-card question-card" :class="{ focused: questionFocused }">
-            <textarea
-              class="form-textarea"
-              placeholder="输入法律问题或考点..."
-              v-model="question"
-              maxlength="100"
-              @focus="questionFocused = true"
-              @blur="questionFocused = false"
-            ></textarea>
-            <div class="textarea-footer">
-              <span class="hint-text">简洁明了，突出核心考点</span>
-              <span class="char-count">{{ question.length }}/100</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-item">
-          <div class="form-label">
-            <span class="label-text">答案</span>
-            <span class="label-required">*</span>
-          </div>
-          <div class="textarea-card answer-card" :class="{ focused: answerFocused }">
-            <textarea
-              class="form-textarea answer-textarea"
-              placeholder="输入答案解析，支持分点作答..."
-              v-model="answer"
-              maxlength="500"
-              @focus="answerFocused = true"
-              @blur="answerFocused = false"
-            ></textarea>
-            <div class="textarea-footer">
-              <span class="hint-text">详细解析，加深理解记忆</span>
-              <span class="char-count">{{ answer.length }}/500</span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div class="loading-container" v-if="loading">
+      <t-icon name="loading" size="40px" color="#3B82F6" />
+      <span class="loading-text">加载中...</span>
     </div>
+    
+    <template v-else-if="!loading && libraries.length > 0">
+      <div class="form-card">
+        <div class="card-header">
+          <div class="header-icon">
+            <t-icon name="edit-1" size="20px" color="#fff" />
+          </div>
+          <div class="header-text">
+            <span class="header-title">{{ isEdit ? '编辑卡片' : '创建新卡片' }}</span>
+            <span class="header-subtitle">记录知识点，构建你的法律知识体系</span>
+          </div>
+        </div>
 
-    <div class="footer">
-      <div class="btn-cancel" @click="onCancel">取消</div>
-      <div class="btn-submit" :class="{ disabled: !canSubmit }" @click="onSubmit">
-        <t-icon name="check" size="16px" color="#fff" />
-        <span>{{ isEdit ? '保存修改' : '创建卡片' }}</span>
-      </div>
-    </div>
+        <div class="form-body">
+          <div class="form-item">
+            <div class="form-label">
+              <span class="label-text">所属知识库</span>
+              <span class="label-required">*</span>
+            </div>
+            <div class="picker-card" @click="onSelectLibrary">
+              <span class="picker-value" :class="{ active: selectedLibrary }">{{ selectedLibrary ? selectedLibrary.name : '选择知识库' }}</span>
+              <t-icon name="chevron-right" size="16px" color="#c0c4cc" />
+            </div>
+          </div>
 
-    <t-popup v-model="showLibraryPicker" placement="bottom">
-      <div class="library-picker">
-        <div class="picker-header">
-          <span class="picker-title">选择知识库</span>
-          <div class="picker-close" @click="showLibraryPicker = false">
-            <t-icon name="close" size="20px" color="#999" />
-          </div>
-        </div>
-        <div class="picker-list">
-          <div 
-            class="picker-item" 
-            v-for="library in libraries" 
-            :key="library.id"
-            :class="{ selected: selectedLibrary?.id === library.id }"
-            @click="onSelectLibrary(library)"
-          >
-            <div class="picker-library-info">
-              <t-icon name="folder" size="18px" color="#3B82F6" />
-              <span class="picker-library-name">{{ library.name }}</span>
+          <div class="form-item" v-if="selectedLibrary">
+            <div class="form-label">
+              <span class="label-text">所属章节</span>
             </div>
-            <t-icon v-if="selectedLibrary?.id === library.id" name="check" size="18px" color="#3B82F6" />
+            <div class="picker-card" @click="onSelectChapter">
+              <span class="picker-value" :class="{ active: selectedChapter }">{{ selectedChapter ? selectedChapter.name : '选择章节（可选）' }}</span>
+              <t-icon name="chevron-right" size="16px" color="#c0c4cc" />
+            </div>
           </div>
-        </div>
-      </div>
-    </t-popup>
 
-    <t-popup v-model="showChapterPicker" placement="bottom">
-      <div class="library-picker">
-        <div class="picker-header">
-          <span class="picker-title">选择章节</span>
-          <div class="picker-close" @click="showChapterPicker = false">
-            <t-icon name="close" size="20px" color="#999" />
-          </div>
-        </div>
-        <div class="picker-list">
-          <div 
-            class="picker-item" 
-            @click="onSelectChapter(null)"
-          >
-            <div class="picker-library-info">
-              <t-icon name="folder" size="18px" color="#999" />
-              <span class="picker-library-name">不选择章节</span>
+          <div class="divider"></div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span class="label-text">题目</span>
+              <span class="label-required">*</span>
             </div>
-            <t-icon v-if="selectedChapter === null" name="check" size="18px" color="#3B82F6" />
-          </div>
-          <div 
-            class="picker-item" 
-            v-for="chapter in chapters" 
-            :key="chapter.id"
-            :class="{ selected: selectedChapter?.id === chapter.id }"
-            @click="onSelectChapter(chapter)"
-          >
-            <div class="picker-library-info">
-              <t-icon name="bookmark" size="18px" color="#3B82F6" />
-              <span class="picker-library-name">{{ chapter.name }}</span>
+            <div class="textarea-card question-card" :class="{ focused: questionFocused }">
+              <textarea
+                class="form-textarea"
+                placeholder="输入法律问题或考点..."
+                v-model="question"
+                maxlength="100"
+                @focus="questionFocused = true"
+                @blur="questionFocused = false"
+              ></textarea>
+              <div class="textarea-footer">
+                <span class="hint-text">简洁明了，突出核心考点</span>
+                <span class="char-count">{{ question.length }}/100</span>
+              </div>
             </div>
-            <t-icon v-if="selectedChapter?.id === chapter.id" name="check" size="18px" color="#3B82F6" />
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span class="label-text">答案</span>
+              <span class="label-required">*</span>
+            </div>
+            <div class="textarea-card answer-card" :class="{ focused: answerFocused }">
+              <textarea
+                class="form-textarea answer-textarea"
+                placeholder="输入答案解析，支持分点作答..."
+                v-model="answer"
+                maxlength="500"
+                @focus="answerFocused = true"
+                @blur="answerFocused = false"
+              ></textarea>
+              <div class="textarea-footer">
+                <span class="hint-text">详细解析，加深理解记忆</span>
+                <span class="char-count">{{ answer.length }}/500</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </t-popup>
+
+      <div class="footer">
+        <div class="btn-cancel" @click="onCancel">取消</div>
+        <div class="btn-submit" :class="{ disabled: !canSubmit }" @click="onSubmit">
+          <t-icon name="check" size="16px" color="#fff" />
+          <span>{{ isEdit ? '保存修改' : '创建卡片' }}</span>
+        </div>
+      </div>
+
+      <Picker
+        v-model:visible="showLibraryPicker"
+        title="选择知识库"
+        :options="libraryOptions"
+        :value="selectedLibraryIndex"
+        @confirm="onLibraryConfirm"
+      />
+
+      <Picker
+        v-model:visible="showChapterPicker"
+        title="选择章节"
+        :options="chapterOptions"
+        :value="selectedChapterIndex"
+        @confirm="onChapterConfirm"
+      />
+    </template>
   </div>
 </template>
 
@@ -158,6 +127,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
+import Picker from '@/components/Picker.vue'
 
 interface Library {
   id: number
@@ -169,9 +139,15 @@ interface Chapter {
   name: string
 }
 
+interface PickerOption {
+  label: string
+  value: string | number
+}
+
 const router = useRouter()
 const route = useRoute()
 
+const loading = ref(true)
 const isEdit = ref(false)
 const cardId = ref(0)
 const question = ref('')
@@ -181,10 +157,27 @@ const answerFocused = ref(false)
 
 const selectedLibrary = ref<Library | null>(null)
 const selectedChapter = ref<Chapter | null>(null)
+const selectedLibraryIndex = ref<(string | number)[]>([])
+const selectedChapterIndex = ref<(string | number)[]>([])
+
 const libraries = ref<Library[]>([])
 const chapters = ref<Chapter[]>([])
 const showLibraryPicker = ref(false)
 const showChapterPicker = ref(false)
+
+const libraryOptions = computed<PickerOption[]>(() => {
+  return libraries.value.map(lib => ({
+    label: lib.name,
+    value: lib.id
+  }))
+})
+
+const chapterOptions = computed<PickerOption[]>(() => {
+  return chapters.value.map(ch => ({
+    label: ch.name,
+    value: ch.id
+  }))
+})
 
 const canSubmit = computed(() => {
   return question.value.trim() && answer.value.trim() && selectedLibrary.value
@@ -223,6 +216,7 @@ const loadCardData = async () => {
 }
 
 const loadLibraries = async () => {
+  loading.value = true
   try {
     const res = await libraryAPI.getMyLibraries({ page: 1, pageSize: 100 })
     if (res.success && res.data) {
@@ -242,12 +236,21 @@ const loadLibraries = async () => {
         const lib = libraries.value.find(l => l.id === parseInt(libraryId))
         if (lib) {
           selectedLibrary.value = lib
+          selectedLibraryIndex.value = [lib.id]
           loadChapters(lib.id)
         }
+      } else {
+        selectedLibrary.value = libraries.value[0]
+        selectedLibraryIndex.value = [libraries.value[0].id]
+        loadChapters(libraries.value[0].id)
       }
     }
   } catch (error) {
     console.error('加载知识库失败:', error)
+    MessagePlugin.error('加载失败')
+    setTimeout(() => router.back(), 1500)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -256,22 +259,59 @@ const loadChapters = async (libraryId: number) => {
     const res = await chapterAPI.getList(libraryId)
     if (res.success && res.data) {
       chapters.value = res.data || []
+      
+      if (chapters.value.length > 0) {
+        selectedChapter.value = chapters.value[0]
+        selectedChapterIndex.value = [chapters.value[0].id]
+      } else {
+        selectedChapter.value = null
+        selectedChapterIndex.value = []
+      }
     }
   } catch (error) {
     console.error('加载章节失败:', error)
     chapters.value = []
+    selectedChapter.value = null
+    selectedChapterIndex.value = []
   }
 }
 
-const onSelectLibrary = (library: Library) => {
+const onSelectLibrary = () => {
+  showLibraryPicker.value = true
+}
+
+const onSelectChapter = () => {
+  if (!selectedLibrary.value) {
+    MessagePlugin.warning('请先选择知识库')
+    return
+  }
+  showChapterPicker.value = true
+}
+
+const onLibraryConfirm = (value: (string | number)[]) => {
+  const libraryId = value[0]
+  const library = libraries.value.find(lib => lib.id === libraryId)
+  
+  if (!library) return
+  
   selectedLibrary.value = library
-  selectedChapter.value = null
+  selectedLibraryIndex.value = value
   showLibraryPicker.value = false
+  
+  selectedChapter.value = null
+  selectedChapterIndex.value = []
+  
   loadChapters(library.id)
 }
 
-const onSelectChapter = (chapter: Chapter | null) => {
+const onChapterConfirm = (value: (string | number)[]) => {
+  const chapterId = value[0]
+  const chapter = chapters.value.find(ch => ch.id === chapterId)
+  
+  if (!chapter) return
+  
   selectedChapter.value = chapter
+  selectedChapterIndex.value = value
   showChapterPicker.value = false
 }
 
@@ -324,20 +364,73 @@ const onSubmit = async () => {
 </script>
 
 <style lang="scss" scoped>
-.card-form-container {
+.container {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f4f8 0%, #f8fafc 100%);
   padding: 16px;
+  padding-top: 60px;
   padding-bottom: 100px;
   box-sizing: border-box;
 }
 
-.header-decoration {
+.custom-nav {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  height: 140px;
+  height: 44px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.nav-left {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.nav-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.nav-right {
+  width: 40px;
+}
+
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 100px;
+}
+
+.loading-text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #999;
+}
+
+.header-decoration {
+  position: fixed;
+  top: 44px;
+  left: 0;
+  right: 0;
+  height: 120px;
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 50%, #93C5FD 100%);
   border-radius: 0 0 30px 30px;
   z-index: 0;
@@ -575,64 +668,5 @@ const onSubmit = async () => {
     background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
     box-shadow: none;
   }
-}
-
-.library-picker {
-  background: #fff;
-  border-radius: 16px 16px 0 0;
-  max-height: 60vh;
-  overflow: hidden;
-}
-
-.picker-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f5f6fa;
-}
-
-.picker-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.picker-close {
-  cursor: pointer;
-}
-
-.picker-list {
-  padding: 8px 16px 16px;
-  max-height: calc(60vh - 56px);
-  overflow-y: auto;
-}
-
-.picker-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid #f5f6fa;
-  cursor: pointer;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  &:active {
-    background: #f5f6fa;
-  }
-}
-
-.picker-library-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.picker-library-name {
-  font-size: 15px;
-  color: #333;
 }
 </style>

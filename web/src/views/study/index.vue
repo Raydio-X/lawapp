@@ -87,6 +87,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { MessagePlugin } from 'tdesign-vue-next'
 import { studyAPI, cardAPI, favoriteAPI } from '@/utils/api'
 
 const router = useRouter()
@@ -144,8 +145,49 @@ const onSmartExam = () => {
   router.push('/study/exam/setup')
 }
 
-const onReview = () => {
-  router.push('/study/cards?mode=review')
+const onReview = async () => {
+  if (reviewCount.value === 0) {
+    MessagePlugin.warning('暂无待复习卡片')
+    return
+  }
+
+  MessagePlugin.loading({ content: '准备中...', duration: 0 })
+
+  try {
+    const res = await cardAPI.getReviewCards()
+
+    MessagePlugin.closeAll()
+
+    if (!res.success || !res.data || res.data.length === 0) {
+      MessagePlugin.warning('暂无待复习卡片')
+      return
+    }
+
+    const reviewCards = res.data.map((card: any) => ({
+      id: card.id,
+      question: card.question,
+      answer: card.answer || '',
+      tags: card.tags || [],
+      learned: true,
+      libraryId: card.libraryId || card.library_id,
+      libraryName: card.libraryName || card.library_name
+    }))
+
+    localStorage.setItem('studyCardsData', JSON.stringify({
+      cardList: reviewCards,
+      libraryNames: '艾宾浩斯复习',
+      totalCards: reviewCards.length
+    }))
+
+    router.push({
+      path: '/study/cards',
+      query: { index: 0, total: reviewCards.length }
+    })
+  } catch (error) {
+    MessagePlugin.closeAll()
+    console.error('复习失败:', error)
+    MessagePlugin.error('加载失败，请重试')
+  }
 }
 
 const onFavorites = () => {

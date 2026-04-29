@@ -65,6 +65,16 @@ class StudyModel {
             [userId]
         );
 
+        const [cards] = await db.execute(
+            'SELECT COUNT(*) as count FROM cards WHERE created_by = ?',
+            [userId]
+        );
+
+        const [favorites] = await db.execute(
+            'SELECT COUNT(*) as count FROM favorites WHERE user_id = ?',
+            [userId]
+        );
+
         const todayTotal = todayCards[0].count || 0;
 
         const [todayNew] = await db.execute(
@@ -105,6 +115,8 @@ class StudyModel {
             streak: stats[0]?.current_streak || 0,
             totalTime: stats[0]?.total_study_time || 0,
             libraryCount: libraries[0].count,
+            cardCount: cards[0].count,
+            favoriteCount: favorites[0].count,
             progress: 0,
             dailyGoal: user[0]?.daily_goal || 50,
             todayNew: todayNew[0]?.count || 0,

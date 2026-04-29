@@ -260,11 +260,11 @@ router.put('/daily-goal', auth, async (req, res) => {
     try {
         const { goal } = req.body;
         
-        if (!goal || goal < 10 || goal > 70) {
+        if (!goal || goal < 10 || goal > 100) {
             return res.status(400).json({
                 success: false,
                 code: 400,
-                message: '每日目标必须在10-70之间'
+                message: '每日目标必须在10-100之间'
             });
         }
 

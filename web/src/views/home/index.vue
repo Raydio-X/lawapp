@@ -508,8 +508,8 @@ const onFavoriteLibrary = async (library: Library, index: number) => {
   display: inline-flex;
   flex-direction: column;
   justify-content: space-between;
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 130px;
   background: linear-gradient(145deg, #FFFFFF 0%, #F8FAFF 100%);
   border-radius: 12px;
   padding: 12px;
@@ -593,7 +593,7 @@ const onFavoriteLibrary = async (library: Library, index: number) => {
   line-height: 1.5;
   margin-bottom: 8px;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   white-space: normal;

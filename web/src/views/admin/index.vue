@@ -100,6 +100,17 @@
           </div>
           <t-icon name="chevron-right" size="20px" color="#ccc" />
         </div>
+
+        <div class="broadcast-entry" @click="router.push('/admin/blocked-words')">
+          <div class="broadcast-entry-icon" style="background-color: rgba(245, 158, 11, 0.1);">
+            <t-icon name="shield" size="24px" color="#F59E0B" />
+          </div>
+          <div class="broadcast-entry-content">
+            <span class="broadcast-entry-title">屏蔽词管理</span>
+            <span class="broadcast-entry-desc">管理评论敏感词过滤</span>
+          </div>
+          <t-icon name="chevron-right" size="20px" color="#ccc" />
+        </div>
       </template>
 
       <template v-if="activeTab === 'libraries'">
@@ -543,8 +554,8 @@ onMounted(() => {
 const loadStats = async () => {
   try {
     const res = await api.get('/admin/stats')
-    if (res.data.code === 0) {
-      stats.value = res.data.data
+    if (res.success && res.data) {
+      stats.value = res.data
     }
   } catch (error) {
     console.error('加载统计数据失败', error)
@@ -554,19 +565,17 @@ const loadStats = async () => {
 const loadLibraries = async () => {
   try {
     const res = await api.get('/libraries', {
-      params: {
-        keyword: libraryKeyword.value,
-        page: libraryPage.value,
-        pageSize: 20
-      }
+      keyword: libraryKeyword.value,
+      page: libraryPage.value,
+      pageSize: 20
     })
-    if (res.data.code === 0) {
+    if (res.success && res.data) {
       if (libraryPage.value === 1) {
-        libraries.value = res.data.data.list
+        libraries.value = res.data.list || res.data
       } else {
-        libraries.value.push(...res.data.data.list)
+        libraries.value.push(...(res.data.list || res.data))
       }
-      libraryHasMore.value = res.data.data.hasMore
+      libraryHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
     }
   } catch (error) {
     console.error('加载知识库失败', error)
@@ -599,20 +608,18 @@ const onDeleteLibrary = (library: any, index: number) => {
 const loadCards = async () => {
   try {
     const res = await api.get('/cards', {
-      params: {
-        keyword: cardKeyword.value,
-        isPublic: cardFilterPublic.value,
-        page: cardPage.value,
-        pageSize: 20
-      }
+      keyword: cardKeyword.value,
+      isPublic: cardFilterPublic.value,
+      page: cardPage.value,
+      pageSize: 20
     })
-    if (res.data.code === 0) {
+    if (res.success && res.data) {
       if (cardPage.value === 1) {
-        cards.value = res.data.data.list
+        cards.value = res.data.list || res.data
       } else {
-        cards.value.push(...res.data.data.list)
+        cards.value.push(...(res.data.list || res.data))
       }
-      cardHasMore.value = res.data.data.hasMore
+      cardHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
     }
   } catch (error) {
     console.error('加载卡片失败', error)
@@ -674,7 +681,7 @@ const onConfirmMoveCards = async () => {
       cardIds: selectedCardIds.value,
       chapterId: targetChapterId.value
     })
-    if (res.data.code === 0) {
+    if (res.success) {
       MessagePlugin.success('移动成功')
       showChapterPicker.value = false
       selectedCardIds.value = []
@@ -689,19 +696,17 @@ const onConfirmMoveCards = async () => {
 const loadHotCards = async () => {
   try {
     const res = await api.get('/cards/hot', {
-      params: {
-        keyword: hotCardKeyword.value,
-        page: hotCardPage.value,
-        pageSize: 20
-      }
+      keyword: hotCardKeyword.value,
+      page: hotCardPage.value,
+      pageSize: 20
     })
-    if (res.data.code === 0) {
+    if (res.success && res.data) {
       if (hotCardPage.value === 1) {
-        hotCards.value = res.data.data.list
+        hotCards.value = res.data.list || res.data
       } else {
-        hotCards.value.push(...res.data.data.list)
+        hotCards.value.push(...(res.data.list || res.data))
       }
-      hotCardHasMore.value = res.data.data.hasMore
+      hotCardHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
     }
   } catch (error) {
     console.error('加载热门卡片失败', error)
@@ -734,19 +739,17 @@ const onDeleteHotCard = (card: any, index: number) => {
 const loadComments = async () => {
   try {
     const res = await api.get('/comments', {
-      params: {
-        keyword: commentKeyword.value,
-        page: commentPage.value,
-        pageSize: 20
-      }
+      keyword: commentKeyword.value,
+      page: commentPage.value,
+      pageSize: 20
     })
-    if (res.data.code === 0) {
+    if (res.success && res.data) {
       if (commentPage.value === 1) {
-        comments.value = res.data.data.list
+        comments.value = res.data.list || res.data
       } else {
-        comments.value.push(...res.data.data.list)
+        comments.value.push(...(res.data.list || res.data))
       }
-      commentHasMore.value = res.data.data.hasMore
+      commentHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
     }
   } catch (error) {
     console.error('加载评论失败', error)
@@ -793,13 +796,13 @@ const onConfirmDelete = async () => {
     let res
     if (deleteTarget.value.type === 'library') {
       res = await api.delete(`/libraries/${deleteTarget.value.id}`)
-      if (res.data.code === 0) {
+      if (res.success) {
         libraries.value.splice(deleteTarget.value.index, 1)
         MessagePlugin.success('删除成功')
       }
     } else if (deleteTarget.value.type === 'card' || deleteTarget.value.type === 'hotCard') {
       res = await api.delete(`/cards/${deleteTarget.value.id}`)
-      if (res.data.code === 0) {
+      if (res.success) {
         if (deleteTarget.value.type === 'card') {
           cards.value.splice(deleteTarget.value.index, 1)
         } else {
@@ -809,7 +812,7 @@ const onConfirmDelete = async () => {
       }
     } else if (deleteTarget.value.type === 'comment') {
       res = await api.delete(`/comments/${deleteTarget.value.id}`)
-      if (res.data.code === 0) {
+      if (res.success) {
         if (deleteTarget.value.index >= 0) {
           comments.value.splice(deleteTarget.value.index, 1)
         } else {

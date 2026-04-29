@@ -175,7 +175,7 @@ const libsPage = ref(1)
 const pageSize = 20
 
 onMounted(() => {
-  const q = router.currentRoute.value.query.q as string
+  const q = router.currentRoute.value.query.keyword as string
   if (q) {
     keyword.value = q
     onSearch()
@@ -207,8 +207,7 @@ const searchCards = async () => {
   
   cardsLoading.value = true
   try {
-    const res = await cardAPI.search({ 
-      keyword: keyword.value.trim(), 
+    const res = await cardAPI.search(keyword.value.trim(), { 
       page: cardsPage.value, 
       pageSize 
     })
@@ -234,8 +233,7 @@ const searchLibraries = async () => {
   
   libsLoading.value = true
   try {
-    const res = await libraryAPI.search({ 
-      keyword: keyword.value.trim(), 
+    const res = await libraryAPI.search(keyword.value.trim(), { 
       page: libsPage.value, 
       pageSize 
     })

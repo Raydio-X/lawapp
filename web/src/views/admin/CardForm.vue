@@ -321,9 +321,9 @@ onMounted(() => {
 
 const loadLibraries = async () => {
   try {
-    const res = await api.get('/libraries', { params: { pageSize: 100 } })
-    if (res.data.code === 0) {
-      libraries.value = res.data.data.list
+    const res = await api.get('/libraries', { pageSize: 100 })
+    if (res.success && res.data) {
+      libraries.value = res.data.list || res.data
     }
   } catch (error) {
     console.error('加载知识库失败', error)
@@ -333,8 +333,8 @@ const loadLibraries = async () => {
 const loadCardDetail = async () => {
   try {
     const res = await api.get(`/cards/${route.query.id}`)
-    if (res.data.code === 0) {
-      const card = res.data.data
+    if (res.success && res.data) {
+      const card = res.data
       question.value = card.question
       answer.value = card.answer
       tagList.value = card.tags || []
@@ -357,8 +357,8 @@ const onSelectLibrary = async (library: any) => {
   
   try {
     const res = await api.get(`/libraries/${library.id}/chapters`)
-    if (res.data.code === 0) {
-      chapters.value = res.data.data
+    if (res.success && res.data) {
+      chapters.value = res.data
     }
   } catch (error) {
     console.error('加载章节失败', error)
@@ -409,11 +409,11 @@ const onSubmit = async () => {
       res = await api.post('/cards', data)
     }
 
-    if (res.data.code === 0) {
+    if (res.success) {
       MessagePlugin.success(isEdit.value ? '修改成功' : '创建成功')
       router.back()
     } else {
-      MessagePlugin.error(res.data.message || '操作失败')
+      MessagePlugin.error(res.message || '操作失败')
     }
   } catch (error) {
     MessagePlugin.error('操作失败，请重试')

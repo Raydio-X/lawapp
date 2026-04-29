@@ -12,6 +12,7 @@ const MasteryModel = require('../models/Mastery');
 const bm25Engine = require('../services/bm25');
 const sentenceEmbedding = require('../services/sentenceEmbedding');
 const resultFusion = require('../services/resultFusion');
+const sensitiveWordFilter = require('../utils/sensitiveWordFilter');
 const { auth, optionalAuth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -674,14 +675,15 @@ router.post('/:id/unlike', auth, async (req, res) => {
     }
 });
 
-router.get('/:cardId/comments', async (req, res) => {
+router.get('/:cardId/comments', optionalAuth, async (req, res) => {
     try {
         const { page, pageSize } = req.query;
+        const userId = req.user?.id || null;
         
         const result = await CommentModel.getList(req.params.cardId, {
             page: parseInt(page) || 1,
             pageSize: parseInt(pageSize) || 10
-        });
+        }, userId);
 
         res.json({
             success: true,
@@ -706,6 +708,18 @@ router.post('/:cardId/comments', auth, async (req, res) => {
                 success: false,
                 code: 400,
                 message: '评论内容不能为空'
+            });
+        }
+
+        const sensitiveCheck = await sensitiveWordFilter.contains(content);
+        if (sensitiveCheck.hasSensitive) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '评论包含敏感词，请修改后重新发布',
+                data: {
+                    word: sensitiveCheck.word
+                }
             });
         }
 

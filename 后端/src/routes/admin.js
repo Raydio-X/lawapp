@@ -5,6 +5,8 @@ const CommentModel = require('../models/Comment');
 const ChapterModel = require('../models/Chapter');
 const UserModel = require('../models/User');
 const MessageModel = require('../models/message');
+const BlockedWordModel = require('../models/BlockedWord');
+const sensitiveWordFilter = require('../utils/sensitiveWordFilter');
 const { adminAuth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -414,6 +416,139 @@ router.get('/stats', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('Admin get stats error:', error);
         res.status(500).json({ success: false, code: 500, message: '获取统计数据失败' });
+    }
+});
+
+router.get('/blocked-words', adminAuth, async (req, res) => {
+    try {
+        const { page, pageSize, keyword } = req.query;
+        const result = await BlockedWordModel.getList({
+            page: parseInt(page) || 1,
+            pageSize: parseInt(pageSize) || 50,
+            keyword
+        });
+
+        res.json({ success: true, data: result });
+    } catch (error) {
+        console.error('Get blocked words error:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取屏蔽词列表失败' });
+    }
+});
+
+router.post('/blocked-words', adminAuth, async (req, res) => {
+    try {
+        const { word, category } = req.body;
+
+        if (!word || !word.trim()) {
+            return res.status(400).json({ success: false, code: 400, message: '屏蔽词不能为空' });
+        }
+
+        const blockedWord = await BlockedWordModel.create(word.trim(), category || 'general', req.user.id);
+        
+        await sensitiveWordFilter.refresh();
+
+        res.status(201).json({ success: true, data: blockedWord });
+    } catch (error) {
+        console.error('Create blocked word error:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ success: false, code: 400, message: '该屏蔽词已存在' });
+        }
+        res.status(500).json({ success: false, code: 500, message: '添加屏蔽词失败' });
+    }
+});
+
+router.put('/blocked-words/:id', adminAuth, async (req, res) => {
+    try {
+        const { word, category, is_enabled } = req.body;
+
+        const updated = await BlockedWordModel.update(req.params.id, {
+            word,
+            category,
+            is_enabled
+        });
+
+        if (!updated) {
+            return res.status(404).json({ success: false, code: 404, message: '屏蔽词不存在' });
+        }
+
+        await sensitiveWordFilter.refresh();
+
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        console.error('Update blocked word error:', error);
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ success: false, code: 400, message: '该屏蔽词已存在' });
+        }
+        res.status(500).json({ success: false, code: 500, message: '更新屏蔽词失败' });
+    }
+});
+
+router.delete('/blocked-words/:id', adminAuth, async (req, res) => {
+    try {
+        const deleted = await BlockedWordModel.delete(req.params.id);
+
+        if (!deleted) {
+            return res.status(404).json({ success: false, code: 404, message: '屏蔽词不存在' });
+        }
+
+        await sensitiveWordFilter.refresh();
+
+        res.json({ success: true, message: '删除成功' });
+    } catch (error) {
+        console.error('Delete blocked word error:', error);
+        res.status(500).json({ success: false, code: 500, message: '删除屏蔽词失败' });
+    }
+});
+
+router.post('/blocked-words/batch', adminAuth, async (req, res) => {
+    try {
+        const { words, category } = req.body;
+
+        if (!words || !Array.isArray(words) || words.length === 0) {
+            return res.status(400).json({ success: false, code: 400, message: '请提供屏蔽词列表' });
+        }
+
+        const validWords = words
+            .map(w => w.trim())
+            .filter(w => w.length > 0);
+
+        if (validWords.length === 0) {
+            return res.status(400).json({ success: false, code: 400, message: '没有有效的屏蔽词' });
+        }
+
+        const result = await BlockedWordModel.batchCreate(validWords, category || 'general', req.user.id);
+        
+        await sensitiveWordFilter.refresh();
+
+        res.status(201).json({ success: true, data: result });
+    } catch (error) {
+        console.error('Batch create blocked words error:', error);
+        res.status(500).json({ success: false, code: 500, message: '批量添加屏蔽词失败' });
+    }
+});
+
+router.post('/check-sensitive', adminAuth, async (req, res) => {
+    try {
+        const { text } = req.body;
+
+        if (!text) {
+            return res.status(400).json({ success: false, code: 400, message: '请提供待检测文本' });
+        }
+
+        const startTime = Date.now();
+        const result = await sensitiveWordFilter.contains(text);
+        const duration = Date.now() - startTime;
+
+        res.json({
+            success: true,
+            data: {
+                ...result,
+                duration: `${duration}ms`
+            }
+        });
+    } catch (error) {
+        console.error('Check sensitive word error:', error);
+        res.status(500).json({ success: false, code: 500, message: '检测失败' });
     }
 });
 
