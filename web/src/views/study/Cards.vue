@@ -134,7 +134,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { cardAPI, commentAPI } from '@/utils/api'
+import { cardAPI, commentAPI, studyAPI } from '@/utils/api'
 import { useGlobalStudyTimer } from '@/composables/useStudyTimer'
 
 const router = useRouter()
@@ -184,7 +184,33 @@ onMounted(() => {
 
 onUnmounted(() => {
   stopStudyTimer()
+  saveProgress()
 })
+
+const saveProgress = async () => {
+  const data = localStorage.getItem('studyCardsData')
+  if (!data || cardList.value.length === 0) return
+
+  try {
+    const parsed = JSON.parse(data)
+    
+    const updatedCardList = cardList.value.map(card => ({
+      ...card,
+      learned: studiedCards.has(card.id) || card.learned
+    }))
+    
+    await studyAPI.saveProgress({
+      libraryIds: parsed.libraryIds || [],
+      libraryNames: parsed.libraryNames || '',
+      cardList: updatedCardList,
+      currentIndex: currentIndex.value,
+      learned: studiedCards.size,
+      total: totalCards.value
+    })
+  } catch (error) {
+    console.error('保存进度失败:', error)
+  }
+}
 
 const loadCardData = () => {
   const data = localStorage.getItem('studyCardsData')
@@ -195,6 +221,12 @@ const loadCardData = () => {
       totalCards.value = parsed.totalCards || parsed.cardList.length
       currentCard.value = cardList.value[currentIndex.value]
       loading.value = false
+      
+      cardList.value.forEach(card => {
+        if (card.learned && card.id) {
+          studiedCards.add(card.id)
+        }
+      })
       
       if (currentCard.value) {
         loadComments(currentCard.value.id)
@@ -245,7 +277,9 @@ const onBack = () => {
   const confirmDialog = DialogPlugin.confirm({
     header: '退出学习',
     body: '确定要退出学习吗？',
-    onConfirm: () => {
+    onConfirm: async () => {
+      await stopStudyTimer()
+      await saveProgress()
       router.push('/study')
       confirmDialog.hide()
     }

@@ -1,7 +1,7 @@
 <template>
   <div class="blocked-words-container">
     <div class="custom-nav">
-      <div class="nav-left" @click="router.back()">
+      <div class="nav-left" @click="router.push('/admin')">
         <t-icon name="chevron-left" size="20px" color="#333" />
       </div>
       <div class="nav-title">屏蔽词管理</div>
@@ -199,16 +199,19 @@ const loadData = async () => {
       pageSize: pagination.value.pageSize,
       keyword: searchKeyword.value
     })
-    if (res.success && res.data) {
+    if (res && res.data) {
       words.value = res.data.list || []
       pagination.value = {
         ...pagination.value,
         ...res.data.pagination
       }
+    } else {
+      words.value = []
+      MessagePlugin.error('数据格式错误')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('加载屏蔽词失败:', error)
-    MessagePlugin.error('加载失败')
+    MessagePlugin.error(error.message || '加载失败')
   } finally {
     loading.value = false
   }
@@ -226,20 +229,15 @@ const addWord = async () => {
   }
 
   try {
-    const res = await adminAPI.createBlockedWord({
+    await adminAPI.createBlockedWord({
       word: newWord.value.word.trim(),
       category: newWord.value.category
     })
-    if (res.success) {
-      MessagePlugin.success('添加成功')
-      showAddDialog.value = false
-      newWord.value = { word: '', category: 'general' }
-      loadData()
-      return true
-    } else {
-      MessagePlugin.error(res.message || '添加失败')
-      return false
-    }
+    MessagePlugin.success('添加成功')
+    showAddDialog.value = false
+    newWord.value = { word: '', category: 'general' }
+    loadData()
+    return true
   } catch (error: any) {
     console.error('添加屏蔽词失败:', error)
     MessagePlugin.error(error.message || '添加失败')
@@ -263,17 +261,12 @@ const batchAddWords = async () => {
       words: wordList,
       category: batchCategory.value
     })
-    if (res.success) {
-      MessagePlugin.success(`成功添加 ${res.data?.count || wordList.length} 个屏蔽词`)
-      showBatchDialog.value = false
-      batchWords.value = ''
-      batchCategory.value = 'general'
-      loadData()
-      return true
-    } else {
-      MessagePlugin.error(res.message || '添加失败')
-      return false
-    }
+    MessagePlugin.success(`成功添加 ${res.data?.count || wordList.length} 个屏蔽词`)
+    showBatchDialog.value = false
+    batchWords.value = ''
+    batchCategory.value = 'general'
+    loadData()
+    return true
   } catch (error: any) {
     console.error('批量添加屏蔽词失败:', error)
     MessagePlugin.error(error.message || '添加失败')
@@ -283,15 +276,10 @@ const batchAddWords = async () => {
 
 const toggleStatus = async (item: BlockedWord) => {
   try {
-    const res = await adminAPI.updateBlockedWord(item.id, {
+    await adminAPI.updateBlockedWord(item.id, {
       is_enabled: item.is_enabled
     })
-    if (res.success) {
-      MessagePlugin.success(item.is_enabled ? '已启用' : '已禁用')
-    } else {
-      item.is_enabled = item.is_enabled ? 0 : 1
-      MessagePlugin.error('操作失败')
-    }
+    MessagePlugin.success(item.is_enabled ? '已启用' : '已禁用')
   } catch (error) {
     console.error('更新状态失败:', error)
     item.is_enabled = item.is_enabled ? 0 : 1
@@ -308,17 +296,12 @@ const deleteWord = async () => {
   if (!deleteTarget.value) return false
 
   try {
-    const res = await adminAPI.deleteBlockedWord(deleteTarget.value.id)
-    if (res.success) {
-      MessagePlugin.success('删除成功')
-      showDeleteDialog.value = false
-      deleteTarget.value = null
-      loadData()
-      return true
-    } else {
-      MessagePlugin.error('删除失败')
-      return false
-    }
+    await adminAPI.deleteBlockedWord(deleteTarget.value.id)
+    MessagePlugin.success('删除成功')
+    showDeleteDialog.value = false
+    deleteTarget.value = null
+    loadData()
+    return true
   } catch (error) {
     console.error('删除屏蔽词失败:', error)
     MessagePlugin.error('删除失败')

@@ -3,7 +3,8 @@ const db = require('../config/database');
 class BlockedWordModel {
     static async getList(params = {}) {
         const { page = 1, pageSize = 50, keyword = '' } = params;
-        const offset = (page - 1) * pageSize;
+        const limit = parseInt(pageSize);
+        const offset = (parseInt(page) - 1) * limit;
 
         let sql = 'SELECT * FROM blocked_words WHERE 1=1';
         const queryParams = [];
@@ -13,8 +14,7 @@ class BlockedWordModel {
             queryParams.push(`%${keyword}%`);
         }
 
-        sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-        queryParams.push(parseInt(pageSize), offset);
+        sql += ` ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
 
         const [rows] = await db.execute(sql, queryParams);
 
@@ -30,9 +30,9 @@ class BlockedWordModel {
             list: rows,
             pagination: {
                 page: parseInt(page),
-                pageSize: parseInt(pageSize),
+                pageSize: limit,
                 total: countRows[0].total,
-                totalPages: Math.ceil(countRows[0].total / pageSize)
+                totalPages: Math.ceil(countRows[0].total / limit)
             }
         };
     }

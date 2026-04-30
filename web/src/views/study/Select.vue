@@ -55,6 +55,11 @@
             </div>
           </div>
         </div>
+        <div class="library-actions" @click.stop>
+          <div class="reset-btn" @click="onResetProgress(library)">
+            <t-icon name="refresh" size="16px" color="#999" />
+          </div>
+        </div>
       </div>
 
       <div class="empty-state" v-if="libraries.length === 0">
@@ -90,8 +95,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { MessagePlugin } from 'tdesign-vue-next'
-import { libraryAPI, cardAPI, favoriteAPI } from '@/utils/api'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { libraryAPI, cardAPI, favoriteAPI, studyAPI } from '@/utils/api'
 
 const router = useRouter()
 
@@ -193,6 +198,30 @@ const onToggleLibrary = (id: number) => {
   }
 }
 
+const onResetProgress = (library: Library) => {
+  const confirmDialog = DialogPlugin.confirm({
+    header: '重置学习进度',
+    body: `确定要重置「${library.name}」的学习进度吗？重置后该知识库的所有卡片将恢复为未学习状态。`,
+    confirmBtn: '确定重置',
+    cancelBtn: '取消',
+    onConfirm: async () => {
+      try {
+        const res = await studyAPI.resetLibraryProgress(library.id)
+        if (res.success) {
+          MessagePlugin.success('重置成功')
+          library.learnedCards = 0
+          library.unlearned = library.totalCards
+          library.progress = 0
+        }
+      } catch (error) {
+        console.error('重置失败:', error)
+        MessagePlugin.error('重置失败')
+      }
+      confirmDialog.hide()
+    }
+  })
+}
+
 const onStartStudy = async () => {
   if (selectedCount.value === 0) {
     MessagePlugin.warning('请选择知识库')
@@ -241,9 +270,11 @@ const onStartStudy = async () => {
     }
 
     const libraryNames = selectedLibraries.map(lib => lib.name).join('、')
+    const libraryIds = selectedLibraries.map(lib => lib.id)
     
     localStorage.setItem('studyCardsData', JSON.stringify({
       cardList: unlearnedCards,
+      libraryIds: libraryIds,
       libraryNames: libraryNames,
       totalCards: unlearnedCards.length
     }))
@@ -477,7 +508,7 @@ const onRandomStudy = async () => {
 .library-badge {
   background: #fff0f0;
   padding: 2px 6px;
-  border-radius: 8px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -492,7 +523,7 @@ const onRandomStudy = async () => {
 
 .source-tag {
   padding: 2px 6px;
-  border-radius: 6px;
+  border-radius: 4px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -547,6 +578,31 @@ const onRandomStudy = async () => {
   background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 2px;
   transition: width 0.3s;
+}
+
+.library-actions {
+  display: flex;
+  align-items: center;
+  padding-left: 8px;
+}
+
+.reset-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #f5f6fa;
+  }
+  
+  &:active {
+    background: #eee;
+  }
 }
 
 .empty-state {

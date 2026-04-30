@@ -109,6 +109,14 @@ class StudyModel {
 
         const toReviewCount = await MasteryModel.getReviewCount(userId);
 
+        const [unlearnedCards] = await db.execute(
+            `SELECT COUNT(*) as count FROM cards c
+             WHERE c.is_public = 1 AND c.id NOT IN (
+                 SELECT DISTINCT card_id FROM study_records WHERE user_id = ? AND is_formal_study = 1
+             )`,
+            [userId]
+        );
+
         return {
             totalCards: totalCards[0].count,
             todayCards: todayTotal,
@@ -122,7 +130,8 @@ class StudyModel {
             todayNew: todayNew[0]?.count || 0,
             weekTime: currentWeekSeconds,
             weekTrend: weekTrend,
-            toReview: toReviewCount
+            toReview: toReviewCount,
+            unlearnedCount: unlearnedCards[0]?.count || 0
         };
     }
 
@@ -430,6 +439,67 @@ class StudyModel {
             avgMaxDailyTime: Math.round((timeStats.avg_max_daily_time || 0) / 60),
             avgTotalCards: Math.round(cardStats.avg_total_cards || 0)
         };
+    }
+
+    static async saveProgress(userId, progress) {
+        const { libraryIds, libraryNames, cardList, currentIndex, learned, total } = progress;
+
+        const [existing] = await db.execute(
+            'SELECT id FROM study_progress WHERE user_id = ?',
+            [userId]
+        );
+
+        if (existing.length > 0) {
+            await db.execute(
+                `UPDATE study_progress 
+                 SET library_ids = ?, library_names = ?, card_list = ?, current_index = ?, learned = ?, total = ?, updated_at = NOW()
+                 WHERE user_id = ?`,
+                [JSON.stringify(libraryIds), libraryNames, JSON.stringify(cardList), currentIndex, learned, total, userId]
+            );
+        } else {
+            await db.execute(
+                `INSERT INTO study_progress (user_id, library_ids, library_names, card_list, current_index, learned, total)
+                 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                [userId, JSON.stringify(libraryIds), libraryNames, JSON.stringify(cardList), currentIndex, learned, total]
+            );
+        }
+
+        return true;
+    }
+
+    static async getLastProgress(userId) {
+        const [rows] = await db.execute(
+            'SELECT * FROM study_progress WHERE user_id = ?',
+            [userId]
+        );
+
+        if (rows.length === 0) {
+            return null;
+        }
+
+        const row = rows[0];
+        return {
+            libraryIds: row.library_ids || [],
+            libraryNames: row.library_names || '',
+            cardList: row.card_list || [],
+            currentIndex: row.current_index || 0,
+            learned: row.learned || 0,
+            total: row.total || 0
+        };
+    }
+
+    static async resetLibraryProgress(userId, libraryId) {
+        await db.execute(
+            'DELETE FROM study_records WHERE user_id = ? AND library_id = ?',
+            [userId, libraryId]
+        );
+
+        await db.execute(
+            'DELETE FROM card_mastery WHERE user_id = ? AND library_id = ?',
+            [userId, libraryId]
+        );
+
+        return true;
     }
 }
 

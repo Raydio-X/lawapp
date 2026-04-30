@@ -1,5 +1,15 @@
 <template>
   <div class="library-form-container">
+    <div class="custom-nav">
+      <div class="nav-content">
+        <div class="nav-back" @click="onCancel">
+          <t-icon name="chevron-left" size="20px" color="#333" />
+        </div>
+        <span class="nav-title">{{ isEdit ? '编辑知识库' : '创建知识库' }}</span>
+        <div class="nav-placeholder"></div>
+      </div>
+    </div>
+
     <div class="form-section">
       <div class="section-title">基本信息</div>
       
@@ -97,17 +107,17 @@
     </div>
 
     <div class="bottom-placeholder"></div>
-  </div>
 
-  <div class="bottom-bar">
-    <div class="btn-cancel" @click="onCancel">取消</div>
-    <div class="btn-submit" @click="onSubmit">{{ isEdit ? '保存修改' : '创建知识库' }}</div>
+    <div class="bottom-bar">
+      <div class="btn-cancel" @click="onCancel">取消</div>
+      <div class="btn-submit" @click="onSubmit">{{ isEdit ? '保存修改' : '创建知识库' }}</div>
+    </div>
   </div>
 
   <t-dialog
     v-model:visible="showCancelDialog"
     header="提示"
-    content="确定要放弃创建吗？"
+    :body="isEdit ? '确定要放弃修改吗？未保存的内容将丢失。' : '确定要放弃创建吗？已填写的内容将不会保存。'"
     confirm-btn="确定"
     cancel-btn="取消"
     @confirm="onConfirmCancel"
@@ -200,12 +210,12 @@ const onCancel = () => {
   if (libraryName.value || tags.value.some(t => t) || outline.value.some(o => o.title)) {
     showCancelDialog.value = true
   } else {
-    router.back()
+    router.push('/admin')
   }
 }
 
 const onConfirmCancel = () => {
-  router.back()
+  router.push('/admin')
 }
 
 const onSubmit = async () => {
@@ -230,7 +240,7 @@ const onSubmit = async () => {
 
     if (res.success) {
       MessagePlugin.success(isEdit.value ? '修改成功' : '创建成功')
-      router.back()
+      router.push('/admin')
     } else {
       MessagePlugin.error(res.message || '操作失败')
     }
@@ -244,36 +254,79 @@ const onSubmit = async () => {
 .library-form-container {
   min-height: 100vh;
   background-color: #f5f6fa;
-  padding-bottom: 80px;
+  padding: 12px 16px;
+  padding-top: 60px;
+  padding-bottom: 100px;
+  box-sizing: border-box;
+}
+
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  z-index: 999;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.nav-content {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-back {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #000;
+}
+
+.nav-placeholder {
+  width: 32px;
 }
 
 .form-section {
   background-color: #fff;
+  border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .section-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .section-tip {
   font-size: 12px;
   color: #999;
+  margin-left: 8px;
 }
 
 .form-item {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
+  position: relative;
 
   &:last-child {
     margin-bottom: 0;
@@ -281,35 +334,34 @@ const onSubmit = async () => {
 }
 
 .form-label {
-  display: block;
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  color: #666;
   margin-bottom: 8px;
+  display: block;
 }
 
 .required {
-  color: #f5222d;
+  color: #e34d59;
 }
 
 .form-label-tip {
   font-size: 12px;
   color: #999;
   font-weight: normal;
-  margin-left: 8px;
+  margin-left: 4px;
 }
 
 .form-input {
   width: 100%;
   height: 44px;
-  padding: 0 12px;
-  font-size: 14px;
+  background-color: #f5f6fa;
+  border-radius: 8px;
+  padding: 0 40px 0 12px;
+  font-size: 15px;
   color: #333;
-  background-color: #f5f7fa;
-  border-radius: 6px;
+  box-sizing: border-box;
   border: none;
   outline: none;
-  box-sizing: border-box;
 
   &::placeholder {
     color: #bbb;
@@ -317,36 +369,38 @@ const onSubmit = async () => {
 }
 
 .form-count {
-  display: block;
-  text-align: right;
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
   font-size: 12px;
   color: #bbb;
-  margin-top: 4px;
 }
 
 .tags-input-container {
-  margin-top: 8px;
+  width: 100%;
 }
 
 .tags-list-horizontal {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .tag-item-horizontal {
   display: flex;
   align-items: center;
-  background-color: #f5f7fa;
+  background-color: #f5f6fa;
   border-radius: 6px;
-  padding: 0 8px;
+  padding: 0 4px 0 8px;
   height: 36px;
 }
 
 .tag-input-horizontal {
-  width: 80px;
-  height: 36px;
-  font-size: 14px;
+  width: 60px;
+  height: 32px;
+  font-size: 13px;
   color: #333;
   background: transparent;
   border: none;
@@ -359,60 +413,88 @@ const onSubmit = async () => {
   justify-content: center;
   width: 20px;
   height: 20px;
+  border-radius: 50%;
   cursor: pointer;
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
 }
 
 .tag-add-btn-horizontal {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: #e8f4ff;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border: 1px dashed #ddd;
+  border-radius: 50%;
   cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:active {
+    background-color: rgba(0, 82, 217, 0.04);
+    border-color: #3B82F6;
+  }
 }
 
 .outline-container {
-  margin-top: 8px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
 }
 
 .outline-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
 }
 
 .outline-item {
   display: flex;
   align-items: center;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  padding: 12px;
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
   transition: all 0.2s;
+}
 
-  &.sub-item {
-    margin-left: 20px;
-  }
+.outline-item.sub-item {
+  background-color: #fafbfc;
+}
 
-  &.dragging {
-    opacity: 0.5;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
+.outline-item.dragging {
+  opacity: 0.8;
+  border-color: #3B82F6;
+  box-shadow: 0 4px 12px rgba(0, 82, 217, 0.2);
+  transform: scale(1.02);
 }
 
 .outline-drag-handle {
   display: flex;
   align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 6px;
   cursor: move;
-  margin-right: 12px;
 }
 
 .outline-main {
-  flex: 1;
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
+  margin-left: 0;
+}
+
+.outline-main.outline-level-2 {
+  margin-left: 20px;
+}
+
+.outline-main.outline-level-3 {
+  margin-left: 40px;
 }
 
 .outline-level-indicator {
@@ -424,27 +506,25 @@ const onSubmit = async () => {
   padding: 0 6px;
   background-color: #e8f4ff;
   border-radius: 4px;
-  margin-right: 8px;
+  margin-right: 6px;
+}
 
-  span {
-    font-size: 11px;
-    color: #3B82F6;
-    font-weight: 500;
-  }
+.outline-level-indicator span {
+  font-size: 11px;
+  color: #3B82F6;
+  font-weight: 500;
 }
 
 .outline-content {
   flex: 1;
+  min-width: 0;
 }
 
 .outline-input {
   width: 100%;
-  height: 36px;
-  padding: 0 8px;
   font-size: 14px;
   color: #333;
-  background-color: #fff;
-  border-radius: 4px;
+  background: transparent;
   border: none;
   outline: none;
 
@@ -456,7 +536,8 @@ const onSubmit = async () => {
 .outline-actions {
   display: flex;
   align-items: center;
-  margin-left: 8px;
+  gap: 4px;
+  margin-left: 6px;
 }
 
 .action-btn {
@@ -465,40 +546,54 @@ const onSubmit = async () => {
   justify-content: center;
   width: 28px;
   height: 28px;
+  border-radius: 50%;
+  background-color: #f5f6fa;
+  transition: all 0.2s ease;
   cursor: pointer;
+
+  &:active {
+    background-color: #e8e9eb;
+  }
 }
 
 .outline-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 32px;
+  padding: 24px 0;
   color: #999;
   font-size: 14px;
+}
 
-  span {
-    margin-top: 8px;
-  }
+.outline-empty span {
+  margin-top: 8px;
 }
 
 .outline-add-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  height: 44px;
-  background-color: #fff;
-  border: 1px dashed #3B82F6;
-  border-radius: 8px;
+  gap: 4px;
+  padding: 12px;
+  margin-top: 8px;
+  border: 1px dashed #ddd;
+  border-radius: 6px;
   color: #3B82F6;
   font-size: 14px;
+  transition: all 0.2s ease;
   cursor: pointer;
+
+  &:active {
+    background-color: rgba(0, 82, 217, 0.04);
+    border-color: #3B82F6;
+  }
 }
 
 .outline-tips {
-  margin-top: 12px;
+  margin-top: 8px;
   font-size: 12px;
   color: #999;
+  text-align: center;
 }
 
 .bottom-placeholder {
@@ -514,7 +609,8 @@ const onSubmit = async () => {
   gap: 12px;
   padding: 12px 16px;
   background-color: #fff;
-  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  z-index: 100;
 }
 
 .btn-cancel {
@@ -524,22 +620,47 @@ const onSubmit = async () => {
   align-items: center;
   justify-content: center;
   border-radius: 22px;
-  font-size: 15px;
+  font-size: 16px;
   color: #666;
-  background-color: #f5f7fa;
+  background-color: #f5f6fa;
+  transition: all 0.2s ease;
   cursor: pointer;
+
+  &:active {
+    background-color: #e8e9eb;
+  }
 }
 
 .btn-submit {
-  flex: 1;
+  flex: 2;
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 22px;
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
   color: #fff;
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  box-shadow: 0 4px 12px rgba(0, 82, 217, 0.3);
+  transition: all 0.2s ease;
   cursor: pointer;
+
+  &:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 6px rgba(0, 82, 217, 0.2);
+  }
+}
+
+@media (max-width: 768px) {
+  .library-form-container {
+    padding: 12px 16px;
+    padding-top: 60px;
+    padding-bottom: 100px;
+  }
+
+  .form-section {
+    padding: 16px;
+  }
 }
 </style>

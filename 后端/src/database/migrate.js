@@ -93,6 +93,42 @@ async function migrate() {
             console.log('blocked_words table already exists');
         }
 
+        const [progressTables] = await connection.query(
+            "SHOW TABLES LIKE 'study_progress'"
+        );
+
+        if (progressTables.length === 0) {
+            await connection.query(`
+                CREATE TABLE study_progress (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    user_id INT NOT NULL UNIQUE,
+                    library_ids JSON,
+                    library_names TEXT,
+                    card_list JSON,
+                    current_index INT DEFAULT 0,
+                    learned INT DEFAULT 0,
+                    total INT DEFAULT 0,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+            `);
+            console.log('Created study_progress table');
+        } else {
+            console.log('study_progress table already exists');
+        }
+
+        const [columns] = await connection.query(
+            "SHOW COLUMNS FROM study_records LIKE 'is_formal_study'"
+        );
+
+        if (columns.length === 0) {
+            await connection.query(
+                'ALTER TABLE study_records ADD COLUMN is_formal_study TINYINT(1) DEFAULT 1'
+            );
+            console.log('Added is_formal_study column to study_records table');
+        }
+
         console.log('Migration completed successfully!');
     } catch (error) {
         console.error('Migration error:', error);

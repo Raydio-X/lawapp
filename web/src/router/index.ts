@@ -11,7 +11,19 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     component: () => import('@/layouts/TabBarLayout.vue'),
-    redirect: '/home',
+    redirect: (to) => {
+      const userInfoStr = localStorage.getItem('userInfo')
+      let userRole = 'user'
+      if (userInfoStr) {
+        try {
+          const userInfo = JSON.parse(userInfoStr)
+          userRole = userInfo.role || 'user'
+        } catch (e) {
+          console.error('Failed to parse userInfo:', e)
+        }
+      }
+      return userRole === 'admin' ? '/admin' : '/home'
+    },
     children: [
       {
         path: 'home',
@@ -127,31 +139,31 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/admin/index.vue'),
-    meta: { title: '管理后台' }
+    meta: { title: '管理后台', requiresAdmin: true, keepAlive: true }
   },
   {
     path: '/admin/broadcast',
     name: 'AdminBroadcast',
     component: () => import('@/views/admin/Broadcast.vue'),
-    meta: { title: '发布通知' }
+    meta: { title: '发布通知', requiresAdmin: true }
   },
   {
     path: '/admin/library-form',
     name: 'AdminLibraryForm',
     component: () => import('@/views/admin/LibraryForm.vue'),
-    meta: { title: '编辑知识库' }
+    meta: { title: '编辑知识库', requiresAdmin: true }
   },
   {
     path: '/admin/card-form',
     name: 'AdminCardForm',
     component: () => import('@/views/admin/CardForm.vue'),
-    meta: { title: '编辑卡片' }
+    meta: { title: '编辑卡片', requiresAdmin: true }
   },
   {
     path: '/admin/blocked-words',
     name: 'AdminBlockedWords',
     component: () => import('@/views/admin/BlockedWords.vue'),
-    meta: { title: '屏蔽词管理' }
+    meta: { title: '屏蔽词管理', requiresAdmin: true }
   },
   {
     path: '/:pathMatch(.*)*',
@@ -173,6 +185,24 @@ router.beforeEach((to, from, next) => {
   if (!to.meta.noAuth && !token) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
     return
+  }
+
+  if (to.meta.requiresAdmin) {
+    const userInfoStr = localStorage.getItem('userInfo')
+    let userRole = 'user'
+    if (userInfoStr) {
+      try {
+        const userInfo = JSON.parse(userInfoStr)
+        userRole = userInfo.role || 'user'
+      } catch (e) {
+        console.error('Failed to parse userInfo:', e)
+      }
+    }
+    
+    if (userRole !== 'admin') {
+      next({ name: 'Home' })
+      return
+    }
   }
   
   next()

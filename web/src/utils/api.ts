@@ -49,7 +49,7 @@ class ApiClient {
         
         const error = new Error(data.message || '请求失败') as any
         error.code = data.code
-        error.data = data
+        error.data = data.data
         return Promise.reject(error)
       },
       (error) => {
@@ -76,7 +76,10 @@ class ApiClient {
             return Promise.reject(new Error('请求过于频繁，请稍后再试'))
           }
           
-          return Promise.reject(new Error(data?.message || `服务器错误 (${status})`))
+          const err = new Error(data?.message || `服务器错误 (${status})`) as any
+          err.code = data?.code
+          err.data = data?.data
+          return Promise.reject(err)
         }
         
         if (error.code === 'ECONNABORTED') {
@@ -203,7 +206,10 @@ export const studyAPI = {
   recordStudyTime: (libraryId: number, duration: number) => api.post('/study/time', { libraryId, duration }),
   getStudyTime: () => api.get('/study/time'),
   getTodayStudyTime: () => api.get('/study/today-time'),
-  updateDailyGoal: (goal: number) => api.put('/study/daily-goal', { goal })
+  updateDailyGoal: (goal: number) => api.put('/study/daily-goal', { goal }),
+  saveProgress: (data: any) => api.post('/study/progress', data),
+  getLastProgress: () => api.get('/study/progress/last'),
+  resetLibraryProgress: (libraryId: number) => api.post(`/study/reset/${libraryId}`)
 }
 
 export const commentAPI = {

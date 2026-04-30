@@ -1,5 +1,15 @@
 <template>
   <div class="broadcast-container">
+    <div class="custom-nav">
+      <div class="nav-content">
+        <div class="nav-back" @click="onCancel">
+          <t-icon name="chevron-left" size="20px" color="#333" />
+        </div>
+        <span class="nav-title">发布通知</span>
+        <div class="nav-placeholder"></div>
+      </div>
+    </div>
+
     <div class="form-section">
       <div class="form-header">
         <t-icon name="notification" size="24px" color="#3B82F6" />
@@ -56,7 +66,7 @@ const title = ref('')
 const content = ref('')
 
 const onCancel = () => {
-  router.back()
+  router.push('/admin')
 }
 
 const onSend = async () => {
@@ -76,7 +86,7 @@ const onSend = async () => {
     })
     if (res.success) {
       MessagePlugin.success('通知发送成功')
-      router.back()
+      router.push('/admin')
     } else {
       MessagePlugin.error(res.message || '发送失败')
     }
@@ -91,6 +101,44 @@ const onSend = async () => {
   min-height: 100vh;
   background-color: #f5f6fa;
   padding: 16px;
+  padding-top: 60px;
+}
+
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  z-index: 999;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.nav-content {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-back {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #000;
+}
+
+.nav-placeholder {
+  width: 32px;
 }
 
 .form-section {
@@ -123,10 +171,11 @@ const onSend = async () => {
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 12px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
 }
 
 .form-field {
-  margin-bottom: 16px;
+  margin-bottom: 24px;
   position: relative;
 
   &:last-child {
@@ -216,6 +265,7 @@ const onSend = async () => {
   font-size: 16px;
   border-radius: 22px;
   cursor: pointer;
+  transition: opacity 0.2s;
 
   &.cancel {
     background-color: #f5f6fa;
@@ -229,6 +279,17 @@ const onSend = async () => {
     &:active {
       opacity: 0.8;
     }
+  }
+}
+
+@media (max-width: 768px) {
+  .broadcast-container {
+    padding: 16px;
+    padding-top: 60px;
+  }
+
+  .form-card {
+    padding: 16px;
   }
 }
 </style>

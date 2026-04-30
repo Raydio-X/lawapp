@@ -223,7 +223,7 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, favoriteAPI, commentAPI } from '@/utils/api'
 import { useCardStudyStore } from '@/stores/cardStudy'
 
@@ -710,13 +710,18 @@ const onSubmitComment = async () => {
       comments.value.unshift(newComment)
       commentText.value = ''
       MessagePlugin.success('笔记已添加')
-    } else if (res.code === 400 && res.message?.includes('敏感词')) {
-      MessagePlugin.warning(res.message || '评论包含敏感词，请修改后重新发布')
     }
   } catch (error: any) {
     console.error('添加评论失败:', error)
-    if (error.response?.data?.message?.includes('敏感词')) {
-      MessagePlugin.warning(error.response.data.message)
+    if (error.code === 400 && error.data?.word) {
+        DialogPlugin.alert({
+          header: '内容审核提醒',
+          body: '您的评论包含敏感词，请修改后重新发布！',
+          confirmBtn: '我知道了',
+          theme: 'warning'
+        })
+      } else if (error.message?.includes('敏感词')) {
+      MessagePlugin.warning(error.message)
     } else {
       MessagePlugin.error('添加失败')
     }

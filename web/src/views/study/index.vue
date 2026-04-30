@@ -32,6 +32,30 @@
         </div>
       </div>
 
+      <div class="action-card continue" @click="onContinueStudy">
+        <div class="action-decor">
+          <t-icon name="history" size="55px" color="rgba(255, 255, 255, 0.12)" />
+        </div>
+        <div class="action-content">
+          <div class="action-main">
+            <div class="action-text-wrap">
+              <span class="action-title">继续学习</span>
+              <span class="action-desc" v-if="lastStudyProgress">{{ lastStudyProgress.libraryNames }}</span>
+              <span class="action-desc" v-else>暂无学习记录</span>
+            </div>
+            <div class="action-icon-wrap">
+              <t-icon name="play-circle-stroke" size="24px" color="#fff" />
+            </div>
+          </div>
+          <div class="action-badge" v-if="lastStudyProgress">
+            <span>进度 {{ lastStudyProgress.learned }}/{{ lastStudyProgress.total }}</span>
+          </div>
+          <div class="action-badge empty" v-else>
+            <span>点击开始</span>
+          </div>
+        </div>
+      </div>
+
       <div class="action-row">
         <div class="action-card small smart" @click="onSmartExam">
           <div class="action-icon-wrap">
@@ -85,10 +109,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { studyAPI, cardAPI, favoriteAPI } from '@/utils/api'
+
+defineOptions({
+  name: 'Study'
+})
+
+interface LastStudyProgress {
+  libraryIds: number[]
+  libraryNames: string
+  cardList: any[]
+  currentIndex: number
+  learned: number
+  total: number
+}
 
 const router = useRouter()
 
@@ -96,6 +133,7 @@ const streak = ref(0)
 const unlearnedCount = ref(0)
 const reviewCount = ref(0)
 const favoriteCount = ref(0)
+const lastStudyProgress = ref<LastStudyProgress | null>(null)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -110,6 +148,12 @@ const greeting = computed(() => {
 
 onMounted(() => {
   loadStats()
+  loadLastStudyProgress()
+})
+
+onActivated(() => {
+  loadStats()
+  loadLastStudyProgress()
 })
 
 const loadStats = async () => {
@@ -137,8 +181,46 @@ const loadStats = async () => {
   }
 }
 
+const loadLastStudyProgress = async () => {
+  try {
+    const res = await studyAPI.getLastProgress()
+    if (res.success && res.data && res.data.cardList && res.data.cardList.length > 0) {
+      lastStudyProgress.value = res.data
+    } else {
+      lastStudyProgress.value = null
+    }
+  } catch (error) {
+    console.error('加载学习进度失败:', error)
+    lastStudyProgress.value = null
+  }
+}
+
 const onStartStudy = () => {
   router.push('/study/select')
+}
+
+const onContinueStudy = () => {
+  if (!lastStudyProgress.value) {
+    router.push('/study/select')
+    return
+  }
+  
+  const cardList = lastStudyProgress.value.cardList
+  
+  localStorage.setItem('studyCardsData', JSON.stringify({
+    cardList: cardList,
+    libraryIds: lastStudyProgress.value.libraryIds,
+    libraryNames: lastStudyProgress.value.libraryNames,
+    totalCards: cardList.length
+  }))
+
+  router.push({
+    path: '/study/cards',
+    query: { 
+      index: lastStudyProgress.value.currentIndex, 
+      total: cardList.length 
+    }
+  })
 }
 
 const onSmartExam = () => {
@@ -319,6 +401,36 @@ const onDifficulty = () => {
 .action-card.primary .action-desc {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.8);
+}
+
+.action-card.continue {
+  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  border-radius: 10px;
+  padding: 20px 18px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  cursor: pointer;
+}
+
+.action-card.continue .action-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.action-card.continue .action-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.action-card.continue .action-badge {
+  background: rgba(255, 255, 255, 0.25);
+  
+  &.empty {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
 .action-row {

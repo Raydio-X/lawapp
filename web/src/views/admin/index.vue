@@ -103,7 +103,7 @@
 
         <div class="broadcast-entry" @click="router.push('/admin/blocked-words')">
           <div class="broadcast-entry-icon" style="background-color: rgba(245, 158, 11, 0.1);">
-            <t-icon name="shield" size="24px" color="#F59E0B" />
+            <t-icon name="filter" size="24px" color="#F59E0B" />
           </div>
           <div class="broadcast-entry-content">
             <span class="broadcast-entry-title">屏蔽词管理</span>
@@ -225,6 +225,11 @@
 
         <div class="selected-count-bar" v-if="isBatchSelectMode && selectedCardIds.length > 0">
           <span>已选择 {{ selectedCardIds.length }} 张卡片</span>
+        </div>
+
+        <div class="empty-batch-tip" v-if="isBatchSelectMode && cards.length === 0">
+          <span>您还没有创建任何卡片</span>
+          <span class="empty-batch-subtip">请先创建卡片后再进行批量管理</span>
         </div>
 
         <div class="list">
@@ -398,14 +403,14 @@
     <t-dialog
       v-model:visible="showDeleteConfirm"
       header="删除确认"
-      content="确定要删除吗？此操作不可恢复。"
+      body="确定要删除吗？此操作不可恢复。"
       confirm-btn="确定删除"
       cancel-btn="取消"
       @confirm="onConfirmDelete"
     />
 
-    <t-popup v-model:visible="showChapterPicker" placement="bottom">
-      <div class="chapter-picker-popup">
+    <t-popup v-model="showChapterPicker" placement="bottom">
+      <div class="chapter-picker-popup" v-if="showChapterPicker">
         <div class="chapter-picker-header">
           <span class="chapter-picker-title">选择目标章节</span>
           <div class="chapter-picker-close" @click="showChapterPicker = false">
@@ -436,54 +441,69 @@
       </div>
     </t-popup>
 
-    <t-popup v-model:visible="showCommentDetail" placement="bottom">
-      <div class="comment-detail-popup">
-        <div class="comment-detail-header">
-          <span class="comment-detail-title">评论详情</span>
-          <div class="comment-detail-close" @click="showCommentDetail = false">
-            <t-icon name="close" size="20px" color="#999" />
-          </div>
-        </div>
-        <div class="comment-detail-content" v-if="currentComment">
-          <div class="comment-detail-user">
-            <span class="comment-detail-nickname">{{ currentComment.nickname || '匿名用户' }}</span>
-            <span class="comment-detail-time">{{ currentComment.created_at }}</span>
-          </div>
-          <div class="comment-detail-text">{{ currentComment.content }}</div>
-          <div class="comment-detail-card" @click="onViewCommentCard(currentComment)">
-            <span class="comment-detail-card-label">评论的卡片:</span>
-            <span class="comment-detail-card-title">{{ currentComment.card_question || '未知卡片' }}</span>
-            <t-icon name="chevron-right" size="16px" color="#ccc" />
-          </div>
-          <div class="comment-detail-stats">
-            <div class="comment-stat-item">
-              <t-icon name="thumb-up" size="16px" color="#94A3B8" />
-              <span>{{ currentComment.like_count || 0 }} 赞</span>
+    <Transition name="fade">
+      <div class="comment-modal-overlay" v-if="showCommentDetail" @click="showCommentDetail = false">
+        <Transition name="scale">
+          <div class="comment-modal-container" v-if="showCommentDetail" @click.stop>
+            <div class="comment-modal-header">
+              <span class="comment-modal-title">评论详情</span>
+              <div class="comment-modal-close" @click="showCommentDetail = false">
+                <t-icon name="close" size="20px" color="#999" />
+              </div>
+            </div>
+            <div class="comment-modal-content" v-if="currentComment">
+              <div class="comment-modal-user">
+                <div class="user-avatar">
+                  <t-icon name="user" size="24px" color="#fff" />
+                </div>
+                <div class="user-info">
+                  <span class="user-nickname">{{ currentComment.nickname || '匿名用户' }}</span>
+                  <span class="user-time">{{ currentComment.created_at }}</span>
+                </div>
+              </div>
+              <div class="comment-modal-text">{{ currentComment.content }}</div>
+              <div class="comment-modal-card" @click="onViewCommentCard(currentComment)">
+                <div class="card-info">
+                  <span class="card-label">评论的卡片</span>
+                  <span class="card-title">{{ currentComment.card_question || '未知卡片' }}</span>
+                </div>
+                <t-icon name="chevron-right" size="16px" color="#ccc" />
+              </div>
+              <div class="comment-modal-stats">
+                <div class="stat-item">
+                  <t-icon name="thumb-up" size="16px" color="#3B82F6" />
+                  <span>{{ currentComment.like_count || 0 }} 赞</span>
+                </div>
+              </div>
+            </div>
+            <div class="comment-modal-footer">
+              <div class="modal-btn delete" @click="onDeleteCommentFromDetail">
+                <t-icon name="delete" size="16px" color="#f5222d" />
+                <span>删除评论</span>
+              </div>
             </div>
           </div>
-        </div>
-        <div class="comment-detail-footer">
-          <div class="comment-detail-btn delete" @click="onDeleteCommentFromDetail">
-            <t-icon name="delete" size="16px" color="#f5222d" />
-            <span>删除评论</span>
-          </div>
-        </div>
+        </Transition>
       </div>
-    </t-popup>
+    </Transition>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { MessagePlugin } from 'tdesign-vue-next'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import api from '@/utils/api'
+
+defineOptions({
+  name: 'Admin'
+})
 
 const router = useRouter()
 const userStore = useUserStore()
 
-const activeTab = ref('stats')
+const activeTab = ref(localStorage.getItem('adminActiveTab') || 'stats')
 const currentUserId = computed(() => userStore.userInfo?.id)
 
 const stats = ref({
@@ -499,6 +519,7 @@ const libraryHasMore = ref(false)
 const libraryPage = ref(1)
 
 const cards = ref<any[]>([])
+const allCards = ref<any[]>([])
 const cardKeyword = ref('')
 const cardFilterPublic = ref('')
 const cardHasMore = ref(false)
@@ -507,7 +528,8 @@ const isBatchSelectMode = ref(false)
 const selectedCardIds = ref<string[]>([])
 const showChapterPicker = ref(false)
 const chapterPickerList = ref<any[]>([])
-const targetChapterId = ref('')
+const targetChapterId = ref<string | null>(null)
+const isAllSelected = ref(false)
 
 const hotCards = ref<any[]>([])
 const hotCardKeyword = ref('')
@@ -518,38 +540,14 @@ const comments = ref<any[]>([])
 const commentKeyword = ref('')
 const commentHasMore = ref(false)
 const commentPage = ref(1)
-const showCommentDetail = ref(false)
-const currentComment = ref<any>(null)
 
 const showDeleteConfirm = ref(false)
-const deleteTarget = ref<{ type: string; id: string; index: number } | null>(null)
+const deleteType = ref('')
+const deleteId = ref<string | null>(null)
+const deleteIndex = ref(-1)
 
-const isAllSelected = computed(() => {
-  return cards.value.length > 0 && selectedCardIds.value.length === cards.value.length
-})
-
-watch(activeTab, () => {
-  if (activeTab.value === 'stats') {
-    loadStats()
-  } else if (activeTab.value === 'libraries') {
-    loadLibraries()
-  } else if (activeTab.value === 'cards') {
-    loadCards()
-  } else if (activeTab.value === 'hotCards') {
-    loadHotCards()
-  } else if (activeTab.value === 'comments') {
-    loadComments()
-  }
-})
-
-watch(cardFilterPublic, () => {
-  cardPage.value = 1
-  loadCards()
-})
-
-onMounted(() => {
-  loadStats()
-})
+const showCommentDetail = ref(false)
+const currentComment = ref<any>(null)
 
 const loadStats = async () => {
   try {
@@ -558,27 +556,101 @@ const loadStats = async () => {
       stats.value = res.data
     }
   } catch (error) {
-    console.error('加载统计数据失败', error)
+    console.error('加载统计失败:', error)
   }
 }
 
 const loadLibraries = async () => {
   try {
-    const res = await api.get('/libraries', {
-      keyword: libraryKeyword.value,
+    const params: any = {
       page: libraryPage.value,
       pageSize: 20
-    })
+    }
+    if (libraryKeyword.value) {
+      params.keyword = libraryKeyword.value
+    }
+    const res = await api.get('/admin/libraries', params)
     if (res.success && res.data) {
-      if (libraryPage.value === 1) {
-        libraries.value = res.data.list || res.data
-      } else {
-        libraries.value.push(...(res.data.list || res.data))
-      }
-      libraryHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
+      const list = res.data.list || []
+      libraries.value = libraryPage.value === 1 ? list : [...libraries.value, ...list]
+      libraryHasMore.value = list.length >= 20
     }
   } catch (error) {
-    console.error('加载知识库失败', error)
+    console.error('加载知识库失败:', error)
+  }
+}
+
+const loadCards = async () => {
+  try {
+    const params: any = {
+      page: cardPage.value,
+      pageSize: 20
+    }
+    if (cardKeyword.value) {
+      params.keyword = cardKeyword.value
+    }
+    if (cardFilterPublic.value) {
+      params.is_public = cardFilterPublic.value
+    }
+    const res = await api.get('/admin/cards', params)
+    if (res.success && res.data) {
+      const list = res.data.list || []
+      const newAllCards = cardPage.value === 1 ? list : [...allCards.value, ...list]
+      allCards.value = newAllCards
+      
+      const displayCards = isBatchSelectMode.value 
+        ? newAllCards.filter((c: any) => c.created_by === currentUserId.value)
+        : newAllCards
+      
+      cards.value = displayCards
+      cardHasMore.value = list.length >= 20
+    }
+  } catch (error) {
+    console.error('加载卡片失败:', error)
+  }
+}
+
+const loadHotCards = async () => {
+  try {
+    const params: any = {
+      page: hotCardPage.value,
+      pageSize: 20,
+      is_hot: '1'
+    }
+    if (hotCardKeyword.value) {
+      params.keyword = hotCardKeyword.value
+    }
+    const res = await api.get('/admin/cards', params)
+    if (res.success && res.data) {
+      const list = res.data.list || []
+      hotCards.value = hotCardPage.value === 1 ? list : [...hotCards.value, ...list]
+      hotCardHasMore.value = list.length >= 20
+    }
+  } catch (error) {
+    console.error('加载热门卡片失败:', error)
+  }
+}
+
+const loadComments = async () => {
+  try {
+    const params: any = {
+      page: commentPage.value,
+      pageSize: 20
+    }
+    if (commentKeyword.value) {
+      params.keyword = commentKeyword.value
+    }
+    const res = await api.get('/admin/comments', params)
+    if (res.success && res.data) {
+      const list = (res.data.list || []).map((item: any) => ({
+        ...item,
+        created_at: item.created_at ? item.created_at.substring(0, 16).replace('T', ' ') : ''
+      }))
+      comments.value = commentPage.value === 1 ? list : [...comments.value, ...list]
+      commentHasMore.value = list.length >= 20
+    }
+  } catch (error) {
+    console.error('加载评论失败:', error)
   }
 }
 
@@ -587,9 +659,44 @@ const onLibrarySearch = () => {
   loadLibraries()
 }
 
+const onCardSearch = () => {
+  cardPage.value = 1
+  allCards.value = []
+  loadCards()
+}
+
+const onHotCardSearch = () => {
+  hotCardPage.value = 1
+  loadHotCards()
+}
+
+const onCommentSearch = () => {
+  commentPage.value = 1
+  loadComments()
+}
+
 const loadMoreLibraries = () => {
+  if (!libraryHasMore.value) return
   libraryPage.value++
   loadLibraries()
+}
+
+const loadMoreCards = () => {
+  if (!cardHasMore.value) return
+  cardPage.value++
+  loadCards()
+}
+
+const loadMoreHotCards = () => {
+  if (!hotCardHasMore.value) return
+  hotCardPage.value++
+  loadHotCards()
+}
+
+const loadMoreComments = () => {
+  if (!commentHasMore.value) return
+  commentPage.value++
+  loadComments()
 }
 
 const onViewLibrary = (library: any) => {
@@ -601,53 +708,93 @@ const onEditLibrary = (library: any) => {
 }
 
 const onDeleteLibrary = (library: any, index: number) => {
-  deleteTarget.value = { type: 'library', id: library.id, index }
+  deleteType.value = 'library'
+  deleteId.value = library.id
+  deleteIndex.value = index
   showDeleteConfirm.value = true
 }
 
-const loadCards = async () => {
+const onEditCard = (card: any) => {
+  router.push(`/admin/card-form?id=${card.id}`)
+}
+
+const onDeleteCard = (card: any, index: number) => {
+  deleteType.value = 'card'
+  deleteId.value = card.id
+  deleteIndex.value = index
+  showDeleteConfirm.value = true
+}
+
+const onEditHotCard = (card: any) => {
+  router.push(`/admin/card-form?id=${card.id}&isHot=true`)
+}
+
+const onDeleteHotCard = (card: any, index: number) => {
+  deleteType.value = 'hotCard'
+  deleteId.value = card.id
+  deleteIndex.value = index
+  showDeleteConfirm.value = true
+}
+
+const onDeleteComment = (comment: any, index: number) => {
+  deleteType.value = 'comment'
+  deleteId.value = comment.id
+  deleteIndex.value = index
+  showDeleteConfirm.value = true
+}
+
+const onConfirmDelete = async () => {
+  if (!deleteId.value) return
+
   try {
-    const res = await api.get('/cards', {
-      keyword: cardKeyword.value,
-      isPublic: cardFilterPublic.value,
-      page: cardPage.value,
-      pageSize: 20
-    })
-    if (res.success && res.data) {
-      if (cardPage.value === 1) {
-        cards.value = res.data.list || res.data
-      } else {
-        cards.value.push(...(res.data.list || res.data))
+    let res
+    if (deleteType.value === 'library') {
+      res = await api.delete(`/admin/libraries/${deleteId.value}`)
+    } else if (deleteType.value === 'card' || deleteType.value === 'hotCard') {
+      res = await api.delete(`/admin/cards/${deleteId.value}`)
+    } else if (deleteType.value === 'comment') {
+      res = await api.delete(`/admin/comments/${deleteId.value}`)
+    }
+
+    if (res && res.success) {
+      MessagePlugin.success('删除成功')
+      showDeleteConfirm.value = false
+      
+      if (deleteType.value === 'library') {
+        libraries.value.splice(deleteIndex.value, 1)
+      } else if (deleteType.value === 'card') {
+        cards.value.splice(deleteIndex.value, 1)
+      } else if (deleteType.value === 'hotCard') {
+        hotCards.value.splice(deleteIndex.value, 1)
+      } else if (deleteType.value === 'comment') {
+        comments.value.splice(deleteIndex.value, 1)
       }
-      cardHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
     }
   } catch (error) {
-    console.error('加载卡片失败', error)
+    console.error('删除失败:', error)
+    MessagePlugin.error('删除失败')
   }
-}
-
-const onCardSearch = () => {
-  cardPage.value = 1
-  loadCards()
-}
-
-const loadMoreCards = () => {
-  cardPage.value++
-  loadCards()
 }
 
 const onToggleBatchSelect = () => {
-  isBatchSelectMode.value = !isBatchSelectMode.value
-  if (!isBatchSelectMode.value) {
-    selectedCardIds.value = []
-  }
+  const newMode = !isBatchSelectMode.value
+  const displayCards = newMode 
+    ? allCards.value.filter((c: any) => c.created_by === currentUserId.value)
+    : allCards.value
+  
+  isBatchSelectMode.value = newMode
+  cards.value = displayCards
+  selectedCardIds.value = []
+  isAllSelected.value = false
 }
 
 const onSelectAllCards = () => {
   if (isAllSelected.value) {
     selectedCardIds.value = []
+    isAllSelected.value = false
   } else {
     selectedCardIds.value = cards.value.map(c => c.id)
+    isAllSelected.value = true
   }
 }
 
@@ -659,181 +806,127 @@ const onCardItemTap = (card: any) => {
     } else {
       selectedCardIds.value.push(card.id)
     }
+    isAllSelected.value = selectedCardIds.value.length === cards.value.length && cards.value.length > 0
   } else {
-    router.push(`/card/study/${card.id}`)
+    onViewCard(card)
   }
 }
 
-const onEditCard = (card: any) => {
-  router.push(`/admin/card-form?id=${card.id}`)
-}
-
-const onDeleteCard = (card: any, index: number) => {
-  deleteTarget.value = { type: 'card', id: card.id, index }
-  showDeleteConfirm.value = true
+const onViewCard = (card: any) => {
+  router.push(`/card/study?cardId=${card.id}`)
 }
 
 const onConfirmMoveCards = async () => {
-  if (!targetChapterId.value || selectedCardIds.value.length === 0) return
-  
+  if (selectedCardIds.value.length === 0) {
+    MessagePlugin.warning('请先选择卡片')
+    return
+  }
+
   try {
     const res = await api.post('/cards/batch-move', {
       cardIds: selectedCardIds.value,
       chapterId: targetChapterId.value
     })
     if (res.success) {
-      MessagePlugin.success('移动成功')
+      MessagePlugin.success(`已移动 ${res.data?.count || selectedCardIds.value.length} 张卡片`)
       showChapterPicker.value = false
-      selectedCardIds.value = []
       isBatchSelectMode.value = false
+      selectedCardIds.value = []
+      isAllSelected.value = false
+      cardPage.value = 1
+      allCards.value = []
       loadCards()
+    } else {
+      MessagePlugin.error(res.message || '移动失败')
     }
   } catch (error) {
+    console.error('批量移动卡片失败:', error)
     MessagePlugin.error('移动失败')
   }
 }
 
-const loadHotCards = async () => {
-  try {
-    const res = await api.get('/cards/hot', {
-      keyword: hotCardKeyword.value,
-      page: hotCardPage.value,
-      pageSize: 20
-    })
-    if (res.success && res.data) {
-      if (hotCardPage.value === 1) {
-        hotCards.value = res.data.list || res.data
-      } else {
-        hotCards.value.push(...(res.data.list || res.data))
+watch(showChapterPicker, async (visible) => {
+  if (visible && selectedCardIds.value.length > 0) {
+    const selectedCard = cards.value.find(c => c.id === selectedCardIds.value[0])
+    if (selectedCard?.library_id) {
+      try {
+        const res = await api.get(`/libraries/${selectedCard.library_id}/chapters`)
+        if (res.success && res.data) {
+          const chapters = res.data.list || res.data || []
+          chapterPickerList.value = [
+            { id: null, name: '无章节', level: 0 },
+            ...chapters.map((ch: any) => ({
+              id: ch.id,
+              name: ch.name,
+              level: ch.level || 1
+            }))
+          ]
+        }
+      } catch (error) {
+        console.error('加载章节列表失败:', error)
       }
-      hotCardHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
     }
-  } catch (error) {
-    console.error('加载热门卡片失败', error)
   }
-}
-
-const onHotCardSearch = () => {
-  hotCardPage.value = 1
-  loadHotCards()
-}
-
-const loadMoreHotCards = () => {
-  hotCardPage.value++
-  loadHotCards()
-}
-
-const onViewCard = (card: any) => {
-  router.push(`/card/study/${card.id}`)
-}
-
-const onEditHotCard = (card: any) => {
-  router.push(`/admin/card-form?id=${card.id}&isHot=true`)
-}
-
-const onDeleteHotCard = (card: any, index: number) => {
-  deleteTarget.value = { type: 'hotCard', id: card.id, index }
-  showDeleteConfirm.value = true
-}
-
-const loadComments = async () => {
-  try {
-    const res = await api.get('/comments', {
-      keyword: commentKeyword.value,
-      page: commentPage.value,
-      pageSize: 20
-    })
-    if (res.success && res.data) {
-      if (commentPage.value === 1) {
-        comments.value = res.data.list || res.data
-      } else {
-        comments.value.push(...(res.data.list || res.data))
-      }
-      commentHasMore.value = res.data.hasMore || res.data.pagination?.hasMore || false
-    }
-  } catch (error) {
-    console.error('加载评论失败', error)
-  }
-}
-
-const onCommentSearch = () => {
-  commentPage.value = 1
-  loadComments()
-}
-
-const loadMoreComments = () => {
-  commentPage.value++
-  loadComments()
-}
+})
 
 const onViewCommentDetail = (comment: any) => {
   currentComment.value = comment
   showCommentDetail.value = true
 }
 
-const onDeleteComment = (comment: any, index: number) => {
-  deleteTarget.value = { type: 'comment', id: comment.id, index }
-  showDeleteConfirm.value = true
-}
-
 const onViewCommentCard = (comment: any) => {
   if (comment.card_id) {
-    router.push(`/card/study/${comment.card_id}`)
+    showCommentDetail.value = false
+    router.push(`/card/study?cardId=${comment.card_id}`)
   }
 }
 
 const onDeleteCommentFromDetail = () => {
   if (currentComment.value) {
-    deleteTarget.value = { type: 'comment', id: currentComment.value.id, index: -1 }
+    showCommentDetail.value = false
+    deleteType.value = 'comment'
+    deleteId.value = currentComment.value.id
+    deleteIndex.value = comments.value.findIndex(c => c.id === currentComment.value.id)
     showDeleteConfirm.value = true
   }
 }
 
-const onConfirmDelete = async () => {
-  if (!deleteTarget.value) return
-  
-  try {
-    let res
-    if (deleteTarget.value.type === 'library') {
-      res = await api.delete(`/libraries/${deleteTarget.value.id}`)
-      if (res.success) {
-        libraries.value.splice(deleteTarget.value.index, 1)
-        MessagePlugin.success('删除成功')
-      }
-    } else if (deleteTarget.value.type === 'card' || deleteTarget.value.type === 'hotCard') {
-      res = await api.delete(`/cards/${deleteTarget.value.id}`)
-      if (res.success) {
-        if (deleteTarget.value.type === 'card') {
-          cards.value.splice(deleteTarget.value.index, 1)
-        } else {
-          hotCards.value.splice(deleteTarget.value.index, 1)
-        }
-        MessagePlugin.success('删除成功')
-      }
-    } else if (deleteTarget.value.type === 'comment') {
-      res = await api.delete(`/comments/${deleteTarget.value.id}`)
-      if (res.success) {
-        if (deleteTarget.value.index >= 0) {
-          comments.value.splice(deleteTarget.value.index, 1)
-        } else {
-          comments.value = comments.value.filter(c => c.id !== deleteTarget.value?.id)
-        }
-        showCommentDetail.value = false
-        MessagePlugin.success('删除成功')
-      }
+const onLogout = () => {
+  const confirmDialog = DialogPlugin.confirm({
+    header: '提示',
+    body: '确定要退出管理员账号吗？',
+    onConfirm: () => {
+      userStore.logout()
+      router.push('/login')
+      confirmDialog.hide()
     }
-  } catch (error) {
-    MessagePlugin.error('删除失败')
-  } finally {
-    showDeleteConfirm.value = false
-    deleteTarget.value = null
-  }
+  })
 }
 
-const onLogout = () => {
-  userStore.logout()
-  router.push('/login')
-}
+watch(cardFilterPublic, () => {
+  cardPage.value = 1
+  allCards.value = []
+  loadCards()
+})
+
+watch(activeTab, (newTab) => {
+  localStorage.setItem('adminActiveTab', newTab)
+})
+
+onMounted(() => {
+  loadStats()
+  loadLibraries()
+  loadCards()
+  loadHotCards()
+  loadComments()
+})
+
+onActivated(() => {
+  const savedTab = localStorage.getItem('adminActiveTab')
+  if (savedTab && savedTab !== activeTab.value) {
+    activeTab.value = savedTab
+  }
+})
 </script>
 
 <style lang="scss" scoped>
@@ -844,12 +937,13 @@ const onLogout = () => {
 }
 
 .custom-nav {
-  position: fixed;
+  position: sticky;
   top: 0;
   left: 0;
   right: 0;
   background-color: #fff;
   z-index: 999;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
 }
 
 .nav-content {
@@ -874,26 +968,26 @@ const onLogout = () => {
   top: 44px;
   z-index: 100;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
-  margin-top: 44px;
+}
 
-  .tab-item {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    padding: 6px 0;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #999;
-    transition: all 0.2s;
+.tab-bar .tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 0;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #999;
+  transition: all 0.2s;
+  cursor: pointer;
+}
 
-    &.active {
-      color: #3B82F6;
-      background-color: rgba(0, 82, 217, 0.06);
-      font-weight: 500;
-    }
-  }
+.tab-bar .tab-item.active {
+  color: #3B82F6;
+  background-color: rgba(59, 130, 246, 0.06);
+  font-weight: 500;
 }
 
 .content {
@@ -925,22 +1019,22 @@ const onLogout = () => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
 
-  &.blue {
-    background-color: rgba(0, 82, 217, 0.1);
-  }
+.stat-icon.blue {
+  background-color: rgba(59, 130, 246, 0.1);
+}
 
-  &.green {
-    background-color: rgba(82, 196, 26, 0.1);
-  }
+.stat-icon.green {
+  background-color: rgba(82, 196, 26, 0.1);
+}
 
-  &.orange {
-    background-color: rgba(250, 140, 22, 0.1);
-  }
+.stat-icon.orange {
+  background-color: rgba(250, 140, 22, 0.1);
+}
 
-  &.red {
-    background-color: rgba(245, 34, 45, 0.1);
-  }
+.stat-icon.red {
+  background-color: rgba(245, 34, 45, 0.1);
 }
 
 .stat-info {
@@ -977,6 +1071,10 @@ const onLogout = () => {
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
   border: none;
   outline: none;
+
+  &::placeholder {
+    color: #bbb;
+  }
 }
 
 .add-btn {
@@ -991,6 +1089,7 @@ const onLogout = () => {
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
+  height: 36px;
 }
 
 .filter-row {
@@ -1007,12 +1106,12 @@ const onLogout = () => {
   background-color: #fff;
   transition: all 0.2s;
   cursor: pointer;
+}
 
-  &.active {
-    color: #3B82F6;
-    background-color: rgba(0, 82, 217, 0.1);
-    font-weight: 500;
-  }
+.filter-chip.active {
+  color: #3B82F6;
+  background-color: rgba(59, 130, 246, 0.1);
+  font-weight: 500;
 }
 
 .list {
@@ -1029,11 +1128,12 @@ const onLogout = () => {
   align-items: center;
   gap: 8px;
   box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+}
 
-  &.selected {
-    background-color: #e8f3ff !important;
-    border: 1px solid #3B82F6 !important;
-  }
+.list-item.selected {
+  background-color: #e8f3ff !important;
+  border: 1px solid #3B82F6 !important;
 }
 
 .item-main {
@@ -1113,18 +1213,18 @@ const onLogout = () => {
   justify-content: center;
   transition: all 0.2s;
   cursor: pointer;
+}
 
-  &.edit {
-    background-color: rgba(0, 82, 217, 0.08);
-  }
+.action-btn.edit {
+  background-color: rgba(59, 130, 246, 0.08);
+}
 
-  &.delete {
-    background-color: rgba(245, 34, 45, 0.08);
-  }
+.action-btn.delete {
+  background-color: rgba(245, 34, 45, 0.08);
+}
 
-  &:active {
-    transform: scale(0.9);
-  }
+.action-btn:active {
+  transform: scale(0.9);
 }
 
 .comment-item .item-main {
@@ -1178,6 +1278,27 @@ const onLogout = () => {
   font-size: 14px;
 }
 
+.empty-batch-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 30px 16px;
+  background-color: #fff;
+  margin: 12px;
+  border-radius: 8px;
+}
+
+.empty-batch-tip span {
+  color: #666;
+  font-size: 14px;
+}
+
+.empty-batch-subtip {
+  margin-top: 8px;
+  color: #999;
+  font-size: 12px;
+}
+
 .bottom-placeholder {
   height: 24px;
 }
@@ -1210,11 +1331,11 @@ const onLogout = () => {
 .tab-bar-text {
   font-size: 11px;
   color: #999;
+}
 
-  &.active-text {
-    color: #3B82F6;
-    font-weight: 500;
-  }
+.tab-bar-text.active-text {
+  color: #3B82F6;
+  font-weight: 500;
 }
 
 .batch-toolbar {
@@ -1224,6 +1345,7 @@ const onLogout = () => {
   padding: 8px 12px;
   background-color: #fff;
   margin-bottom: 8px;
+  border-radius: 8px;
 }
 
 .batch-toggle-btn {
@@ -1236,11 +1358,11 @@ const onLogout = () => {
   font-size: 13px;
   color: #666;
   cursor: pointer;
+}
 
-  &.active {
-    background-color: #e8f3ff;
-    color: #3B82F6;
-  }
+.batch-toggle-btn.active {
+  background-color: #e8f3ff;
+  color: #3B82F6;
 }
 
 .batch-actions {
@@ -1268,11 +1390,11 @@ const onLogout = () => {
   font-size: 13px;
   color: #3B82F6;
   cursor: pointer;
+}
 
-  &.disabled {
-    background-color: #f5f5f5;
-    color: #ccc;
-  }
+.move-btn.disabled {
+  background-color: #f5f5f5;
+  color: #ccc;
 }
 
 .selected-count-bar {
@@ -1342,11 +1464,11 @@ const onLogout = () => {
   font-size: 14px;
   color: #333;
   cursor: pointer;
+}
 
-  &.selected {
-    background-color: #e8f3ff;
-    color: #3B82F6;
-  }
+.chapter-picker-item.selected {
+  background-color: #e8f3ff;
+  color: #3B82F6;
 }
 
 .chapter-picker-name {
@@ -1365,12 +1487,12 @@ const onLogout = () => {
   background-color: #e8f4ff;
   border-radius: 4px;
   margin-right: 6px;
+}
 
-  span {
-    font-size: 11px;
-    color: #3B82F6;
-    font-weight: 500;
-  }
+.chapter-level-indicator span {
+  font-size: 11px;
+  color: #3B82F6;
+  font-weight: 500;
 }
 
 .chapter-picker-footer {
@@ -1390,33 +1512,29 @@ const onLogout = () => {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
+}
 
-  &.cancel {
-    background-color: #f5f5f5;
-    color: #666;
-  }
+.chapter-picker-btn.cancel {
+  background-color: #f5f5f5;
+  color: #666;
+}
 
-  &.confirm {
-    background-color: #3B82F6;
-    color: #fff;
-  }
+.chapter-picker-btn.confirm {
+  background-color: #3B82F6;
+  color: #fff;
 }
 
 .hot-cards-header {
   padding: 8px 12px;
   background-color: #fffaf5;
   border-bottom: 1px solid #ffe8d6;
+  border-radius: 8px;
+  margin-bottom: 8px;
 }
 
 .hot-cards-tip {
   font-size: 12px;
   color: #ff6b35;
-}
-
-.hot-card-item .item-header {
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
 }
 
 .hot-stat {
@@ -1433,17 +1551,18 @@ const onLogout = () => {
   margin-top: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   cursor: pointer;
+  transition: all 0.2s;
+}
 
-  &:active {
-    background-color: #f9f9f9;
-  }
+.broadcast-entry:active {
+  background-color: #f9f9f9;
 }
 
 .broadcast-entry-icon {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background-color: rgba(0, 82, 217, 0.1);
+  background-color: rgba(59, 130, 246, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1467,128 +1586,266 @@ const onLogout = () => {
   color: #999;
 }
 
-.comment-detail-popup {
+.comment-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.comment-modal-container {
   background-color: #fff;
-  border-radius: 16px 16px 0 0;
-  max-height: 70vh;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.comment-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.comment-modal-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+}
+
+.comment-modal-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f5f5f5;
+  }
+}
+
+.comment-modal-content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.comment-modal-user {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.user-info {
   display: flex;
   flex-direction: column;
 }
 
-.comment-detail-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #eee;
-}
-
-.comment-detail-title {
+.user-nickname {
   font-size: 16px;
   font-weight: 600;
   color: #333;
 }
 
-.comment-detail-close {
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.comment-detail-content {
-  flex: 1;
-  padding: 16px;
-  overflow-y: auto;
-}
-
-.comment-detail-user {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.comment-detail-nickname {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-
-.comment-detail-time {
+.user-time {
   font-size: 12px;
   color: #999;
+  margin-top: 2px;
 }
 
-.comment-detail-text {
+.comment-modal-text {
   font-size: 15px;
   color: #333;
-  line-height: 1.6;
+  line-height: 1.8;
   margin-bottom: 16px;
-  padding: 12px;
+  padding: 16px;
   background-color: #f8f9fa;
-  border-radius: 8px;
+  border-radius: 6px;
+  word-break: break-all;
 }
 
-.comment-detail-card {
+.comment-modal-card {
   display: flex;
   align-items: center;
-  padding: 12px;
-  background-color: #e8f4ff;
-  border-radius: 8px;
-  margin-bottom: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #e8f4ff 0%, #f0f7ff 100%);
+  border-radius: 6px;
+  margin-bottom: 16px;
   cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: linear-gradient(135deg, #d4e8ff 0%, #e0f0ff 100%);
+  }
+
+  &:active {
+    transform: scale(0.98);
+  }
 }
 
-.comment-detail-card-label {
+.card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-label {
   font-size: 12px;
   color: #64748B;
-  margin-right: 6px;
 }
 
-.comment-detail-card-title {
-  flex: 1;
+.card-title {
   font-size: 14px;
   color: #3B82F6;
+  font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin-top: 2px;
 }
 
-.comment-detail-stats {
+.comment-modal-stats {
   display: flex;
   gap: 16px;
+  padding: 12px 0;
 }
 
-.comment-stat-item {
+.stat-item {
   display: flex;
   align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #64748B;
+  gap: 6px;
+  font-size: 14px;
+  color: #3B82F6;
+  font-weight: 500;
 }
 
-.comment-detail-footer {
-  padding: 12px 16px;
-  border-top: 1px solid #eee;
+.comment-modal-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
 }
 
-.comment-detail-btn {
+.modal-btn {
+  flex: 1;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-  height: 44px;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
+  transition: all 0.2s;
+
+  &.cancel {
+    background-color: #f5f6fa;
+    color: #666;
+
+    &:hover {
+      background-color: #e8e9eb;
+    }
+  }
 
   &.delete {
     background-color: #fef2f2;
     color: #f5222d;
+
+    &:hover {
+      background-color: #fee2e2;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.scale-enter-active,
+.scale-leave-active {
+  transition: all 0.25s ease;
+}
+
+.scale-enter-from,
+.scale-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+@media (max-width: 480px) {
+  .comment-modal-container {
+    max-width: 100%;
+    margin: 16px;
+    max-height: 85vh;
+  }
+
+  .comment-modal-content {
+    padding: 16px;
+  }
+
+  .comment-modal-footer {
+    padding: 12px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .tab-bar {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+  
+  .tab-bar .tab-item {
+    min-width: 60px;
   }
 }
 </style>

@@ -237,7 +237,13 @@ const handleTestLogin = async () => {
       MessagePlugin.success('登录成功')
       
       const redirect = route.query.redirect as string
-      router.push(redirect || '/home')
+      if (redirect) {
+        router.push(redirect)
+      } else if (res.data.userInfo.role === 'admin') {
+        router.push('/admin')
+      } else {
+        router.push('/home')
+      }
     }
   } catch (error: any) {
     MessagePlugin.error(error.message || '登录失败')

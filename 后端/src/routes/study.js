@@ -65,6 +65,24 @@ router.get('/calendar', auth, async (req, res) => {
     }
 });
 
+router.get('/progress/last', auth, async (req, res) => {
+    try {
+        const progress = await StudyModel.getLastProgress(req.user.id);
+
+        res.json({
+            success: true,
+            data: progress
+        });
+    } catch (error) {
+        console.error('Get last progress error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取学习进度失败'
+        });
+    }
+});
+
 router.get('/progress/:libraryId', auth, async (req, res) => {
     try {
         const progress = await StudyModel.getLibraryProgress(req.user.id, req.params.libraryId);
@@ -280,6 +298,61 @@ router.put('/daily-goal', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '设置每日目标失败'
+        });
+    }
+});
+
+router.post('/progress', auth, async (req, res) => {
+    try {
+        const { libraryIds, libraryNames, cardList, currentIndex, learned, total } = req.body;
+
+        if (!cardList || !Array.isArray(cardList) || cardList.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '卡片列表不能为空'
+            });
+        }
+
+        await StudyModel.saveProgress(req.user.id, {
+            libraryIds: libraryIds || [],
+            libraryNames: libraryNames || '',
+            cardList: cardList,
+            currentIndex: currentIndex || 0,
+            learned: learned || 0,
+            total: total || cardList.length
+        });
+
+        res.json({
+            success: true,
+            message: '保存成功'
+        });
+    } catch (error) {
+        console.error('Save progress error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '保存学习进度失败'
+        });
+    }
+});
+
+router.post('/reset/:libraryId', auth, async (req, res) => {
+    try {
+        const { libraryId } = req.params;
+        
+        await StudyModel.resetLibraryProgress(req.user.id, parseInt(libraryId));
+
+        res.json({
+            success: true,
+            message: '重置成功'
+        });
+    } catch (error) {
+        console.error('Reset progress error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '重置学习进度失败'
         });
     }
 });

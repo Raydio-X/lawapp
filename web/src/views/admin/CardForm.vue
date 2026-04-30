@@ -1,5 +1,15 @@
 <template>
   <div class="card-form-container">
+    <div class="custom-nav">
+      <div class="nav-content">
+        <div class="nav-back" @click="onCancel">
+          <t-icon name="chevron-left" size="20px" color="#333" />
+        </div>
+        <span class="nav-title">{{ isEdit ? '编辑卡片' : isHot ? '添加热门卡片' : '创建卡片' }}</span>
+        <div class="nav-placeholder"></div>
+      </div>
+    </div>
+
     <div class="batch-import-entry" @click="showBatchImport = true" v-if="!isEdit && !isHot">
       <t-icon name="upload" size="18px" color="#3B82F6" />
       <span class="batch-import-text">批量导入卡片</span>
@@ -99,8 +109,8 @@
       </div>
     </div>
 
-    <t-popup v-model:visible="showLibraryPicker" placement="bottom">
-      <div class="picker-popup">
+    <t-popup v-model="showLibraryPicker" placement="bottom">
+      <div class="picker-popup" v-if="showLibraryPicker">
         <div class="picker-header">
           <span class="picker-title">选择知识库</span>
           <div class="picker-close" @click="showLibraryPicker = false">
@@ -122,8 +132,8 @@
       </div>
     </t-popup>
 
-    <t-popup v-model:visible="showChapterPicker" placement="bottom">
-      <div class="picker-popup">
+    <t-popup v-model="showChapterPicker" placement="bottom">
+      <div class="picker-popup" v-if="showChapterPicker">
         <div class="picker-header">
           <span class="picker-title">选择章节</span>
           <div class="picker-close" @click="showChapterPicker = false">
@@ -381,7 +391,7 @@ const onRemoveTag = (index: number) => {
 }
 
 const onCancel = () => {
-  router.back()
+  router.push('/admin')
 }
 
 const onSubmit = async () => {
@@ -411,7 +421,7 @@ const onSubmit = async () => {
 
     if (res.success) {
       MessagePlugin.success(isEdit.value ? '修改成功' : '创建成功')
-      router.back()
+      router.push('/admin')
     } else {
       MessagePlugin.error(res.message || '操作失败')
     }
@@ -435,7 +445,6 @@ const onChooseFile = () => {
 }
 
 const parseExcelFile = async (file: File) => {
-  
   MessagePlugin.info('文件解析功能需要集成xlsx库')
 }
 
@@ -487,23 +496,67 @@ const onBatchConfirmImport = async () => {
 .card-form-container {
   min-height: 100vh;
   background-color: #f5f6fa;
-  padding-bottom: 80px;
+  padding-bottom: 120px;
+  padding-top: 60px;
+  box-sizing: border-box;
+}
+
+.custom-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #fff;
+  z-index: 999;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+}
+
+.nav-content {
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+}
+
+.nav-back {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nav-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #000;
+}
+
+.nav-placeholder {
+  width: 32px;
 }
 
 .batch-import-entry {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 16px;
   background-color: #fff;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   cursor: pointer;
+  transition: background-color 0.2s;
 
-  .batch-import-text {
-    flex: 1;
-    margin-left: 8px;
-    font-size: 14px;
-    color: #3B82F6;
+  &:active {
+    background-color: #f5f5f5;
   }
+}
+
+.batch-import-text {
+  flex: 1;
+  margin-left: 8px;
+  font-size: 14px;
+  color: #3B82F6;
 }
 
 .form-section {
@@ -526,13 +579,14 @@ const onBatchConfirmImport = async () => {
 }
 
 .label-text {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   color: #333;
 }
 
 .label-required {
-  color: #f5222d;
+  font-size: 15px;
+  color: #e34d59;
   margin-left: 4px;
 }
 
@@ -546,16 +600,22 @@ const onBatchConfirmImport = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 44px;
-  padding: 0 12px;
-  background-color: #f5f7fa;
-  border-radius: 6px;
+  padding: 12px 16px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
   cursor: pointer;
+  transition: all 0.2s;
+
+  &:active {
+    background-color: #f0f0f0;
+  }
 }
 
 .picker-content {
-  font-size: 14px;
-  color: #bbb;
+  flex: 1;
+  font-size: 15px;
+  color: #999;
 
   &.selected {
     color: #333;
@@ -564,16 +624,19 @@ const onBatchConfirmImport = async () => {
 
 .textarea-wrapper {
   position: relative;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e8e8e8;
+  padding: 12px;
 }
 
 .form-textarea {
   width: 100%;
   min-height: 80px;
-  padding: 12px;
-  font-size: 14px;
+  font-size: 15px;
+  line-height: 1.6;
   color: #333;
-  background-color: #f5f7fa;
-  border-radius: 6px;
+  background: transparent;
   border: none;
   outline: none;
   resize: none;
@@ -589,36 +652,37 @@ const onBatchConfirmImport = async () => {
 }
 
 .char-count {
-  position: absolute;
-  right: 12px;
-  bottom: 8px;
+  text-align: right;
   font-size: 12px;
-  color: #bbb;
+  color: #999;
+  margin-top: 8px;
 }
 
 .tags-input-container {
-  margin-top: 8px;
+  width: 100%;
 }
 
 .tags-list-horizontal {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: row;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .tag-item-horizontal {
   display: flex;
   align-items: center;
-  background-color: #f5f7fa;
+  background-color: #f5f6fa;
   border-radius: 6px;
-  padding: 0 8px;
+  padding: 0 4px 0 8px;
   height: 36px;
 }
 
 .tag-input-horizontal {
-  width: 80px;
-  height: 36px;
-  font-size: 14px;
+  width: 60px;
+  height: 32px;
+  font-size: 13px;
   color: #333;
   background: transparent;
   border: none;
@@ -631,28 +695,40 @@ const onBatchConfirmImport = async () => {
   justify-content: center;
   width: 20px;
   height: 20px;
+  border-radius: 50%;
   cursor: pointer;
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
 }
 
 .tag-add-btn-horizontal {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  background-color: #e8f4ff;
-  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  border: 1px dashed #ddd;
+  border-radius: 50%;
   cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:active {
+    background-color: rgba(0, 82, 217, 0.04);
+    border-color: #3B82F6;
+  }
 }
 
 .footer {
   position: fixed;
-  bottom: 0;
   left: 0;
   right: 0;
+  bottom: 0;
   background-color: #fff;
   padding: 12px 16px;
-  border-top: 1px solid #eee;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 100;
 }
 
 .btn-group {
@@ -667,10 +743,15 @@ const onBatchConfirmImport = async () => {
   align-items: center;
   justify-content: center;
   border-radius: 22px;
-  font-size: 15px;
+  font-size: 16px;
   color: #666;
-  background-color: #f5f7fa;
+  background-color: #f5f6fa;
   cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:active {
+    opacity: 0.8;
+  }
 }
 
 .btn-submit {
@@ -680,14 +761,19 @@ const onBatchConfirmImport = async () => {
   align-items: center;
   justify-content: center;
   border-radius: 22px;
-  font-size: 15px;
+  font-size: 16px;
   color: #fff;
-  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  background-color: #3B82F6;
   cursor: pointer;
+  transition: opacity 0.2s;
 
   &.disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  &:active:not(.disabled) {
+    opacity: 0.8;
   }
 }
 
@@ -704,7 +790,7 @@ const onBatchConfirmImport = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .picker-title {
@@ -714,6 +800,13 @@ const onBatchConfirmImport = async () => {
 }
 
 .picker-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 50%;
   cursor: pointer;
 }
 
@@ -728,13 +821,18 @@ const onBatchConfirmImport = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  font-size: 14px;
+  font-size: 15px;
   color: #333;
   cursor: pointer;
+  transition: background-color 0.2s;
 
   &.selected {
-    background-color: #e8f3ff;
+    background-color: #f0f5ff;
     color: #3B82F6;
+  }
+
+  &:active {
+    background-color: #f5f5f5;
   }
 }
 
@@ -744,27 +842,39 @@ const onBatchConfirmImport = async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
   display: flex;
   align-items: flex-end;
-  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .batch-container {
   width: 100%;
-  background-color: #fff;
+  background: #fff;
   border-radius: 16px 16px 0 0;
   max-height: 85vh;
   display: flex;
   flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
 }
 
 .batch-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .batch-title {
@@ -774,11 +884,22 @@ const onBatchConfirmImport = async () => {
 }
 
 .batch-close {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 50%;
   cursor: pointer;
 }
 
 .batch-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 16px;
+  overflow: hidden;
 }
 
 .batch-step-header {
@@ -792,9 +913,10 @@ const onBatchConfirmImport = async () => {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #3B82F6;
+  background: #3B82F6;
   color: #fff;
-  font-size: 14px;
+  font-size: 13px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -802,12 +924,13 @@ const onBatchConfirmImport = async () => {
 
 .batch-step-title {
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
   color: #333;
 }
 
 .batch-library-list {
-  max-height: 300px;
+  flex: 1;
+  max-height: 200px;
   overflow-y: auto;
 }
 
@@ -815,14 +938,16 @@ const onBatchConfirmImport = async () => {
   display: flex;
   align-items: center;
   padding: 12px;
-  background-color: #f8f9fa;
+  background: #f8f9fa;
   border-radius: 8px;
   margin-bottom: 8px;
+  border: 1px solid transparent;
+  transition: all 0.2s;
   cursor: pointer;
 
   &.selected {
-    background-color: #e8f3ff;
-    border: 1px solid #3B82F6;
+    border-color: #3B82F6;
+    background: #f0f5ff;
   }
 }
 
@@ -834,29 +959,31 @@ const onBatchConfirmImport = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 10px;
+  flex-shrink: 0;
+}
 
-  .batch-library-item.selected & {
-    border-color: #3B82F6;
-  }
+.batch-library-item.selected .batch-library-radio {
+  border-color: #3B82F6;
 }
 
 .batch-radio-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  background-color: #3B82F6;
+  background: #3B82F6;
 }
 
 .batch-library-info {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .batch-library-name {
-  display: block;
   font-size: 14px;
+  font-weight: 500;
   color: #333;
-  margin-bottom: 4px;
 }
 
 .batch-library-count {
@@ -866,234 +993,285 @@ const onBatchConfirmImport = async () => {
 
 .batch-empty {
   text-align: center;
-  padding: 40px;
+  padding: 24px;
   color: #999;
-}
-
-.batch-step-footer {
-  padding-top: 16px;
-}
-
-.batch-next-btn {
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #3B82F6;
-  color: #fff;
-  border-radius: 22px;
-  font-size: 15px;
-  cursor: pointer;
-
-  &.disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
+  font-size: 14px;
 }
 
 .batch-upload-area {
-  padding: 32px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
+  border: 1px dashed #ddd;
+  border-radius: 10px;
+  padding: 24px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 16px;
+  transition: all 0.2s;
+  cursor: pointer;
+
+  &:active {
+    border-color: #00A870;
+    background: #f8fdfb;
+  }
 }
 
 .batch-upload-content {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 8px;
 }
 
 .batch-upload-text {
   font-size: 14px;
   color: #333;
-  margin-top: 12px;
+  font-weight: 500;
 }
 
 .batch-upload-hint {
   font-size: 12px;
   color: #999;
-  margin-top: 8px;
 }
 
 .batch-upload-done {
   display: flex;
   flex-direction: column;
   align-items: center;
+  gap: 6px;
 }
 
 .batch-file-name {
   font-size: 14px;
   color: #333;
-  margin-top: 8px;
+  font-weight: 500;
 }
 
 .batch-file-change {
   font-size: 12px;
-  color: #3B82F6;
-  margin-top: 8px;
+  color: #00A870;
 }
 
 .batch-template-section {
-  background-color: #f8f9fa;
+  background: #f8f9fa;
   border-radius: 8px;
-  padding: 16px;
+  padding: 12px;
   margin-bottom: 16px;
 }
 
 .batch-template-title {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   font-size: 13px;
   color: #666;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .batch-template-info {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .batch-template-row {
   display: flex;
-  font-size: 13px;
+  align-items: center;
+  font-size: 12px;
+  color: #666;
+}
 
-  .col-a {
-    width: 80px;
-    color: #999;
-  }
+.batch-template-row .col-a {
+  width: 80px;
+  color: #999;
+}
 
-  .col-b {
-    color: #333;
-  }
+.batch-template-row .col-b {
+  color: #333;
+  font-weight: 500;
 }
 
 .batch-download-template {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px;
-  background-color: #fff;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #3B82F6;
   border-radius: 6px;
-  font-size: 13px;
   color: #3B82F6;
+  font-size: 13px;
   cursor: pointer;
+
+  &:active {
+    background: #f0f5ff;
+  }
 }
 
 .batch-step-actions {
   display: flex;
+  justify-content: center;
   gap: 12px;
-  padding-top: 16px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.batch-step-footer {
+  display: flex;
+  justify-content: center;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 .batch-prev-btn {
-  flex: 1;
-  height: 44px;
+  flex: 0.5;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f5f5;
-  color: #666;
-  border-radius: 22px;
+  border-radius: 8px;
   font-size: 15px;
+  font-weight: 500;
+  background: #f5f5f5;
+  color: #666;
   cursor: pointer;
+
+  &:active {
+    background: #e8e8e8;
+  }
+}
+
+.batch-next-btn {
+  flex: 0.5;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  background: #3B82F6;
+  color: #fff;
+  cursor: pointer;
+
+  &.disabled {
+    background: #ccc;
+    color: #fff;
+    cursor: not-allowed;
+  }
 }
 
 .batch-preview-summary {
-  padding: 12px;
-  background-color: #e8f4ff;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  text-align: center;
+  margin-bottom: 12px;
 }
 
 .batch-preview-total {
   font-size: 14px;
-  color: #333;
+  color: #666;
+}
 
-  .highlight {
-    color: #3B82F6;
-    font-weight: 600;
-  }
+.batch-preview-total .highlight {
+  color: #3B82F6;
+  font-weight: 600;
+  font-size: 16px;
 }
 
 .batch-preview-list {
-  max-height: 300px;
+  flex: 1;
+  max-height: 200px;
   overflow-y: auto;
 }
 
 .batch-preview-item {
   display: flex;
-  padding: 12px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  padding: 10px 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  margin-bottom: 6px;
 }
 
 .batch-preview-index {
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  background-color: #3B82F6;
-  color: #fff;
+  background: #e8f4ff;
+  color: #3B82F6;
   font-size: 12px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: 12px;
+  margin-right: 8px;
   flex-shrink: 0;
 }
 
 .batch-preview-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .batch-preview-q {
-  display: block;
-  font-size: 14px;
+  font-size: 13px;
   color: #333;
-  margin-bottom: 4px;
+  font-weight: 500;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .batch-preview-a {
-  display: block;
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
-  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .batch-preview-chapter {
-  display: block;
-  font-size: 12px;
+  font-size: 11px;
   color: #999;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 3px;
+  align-self: flex-start;
 }
 
 .batch-result {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 0;
+  padding: 32px 0;
+  gap: 12px;
 }
 
 .batch-result-icon {
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .batch-result-title {
   font-size: 18px;
   font-weight: 600;
   color: #333;
-  margin-bottom: 8px;
 }
 
 .batch-result-desc {
   font-size: 14px;
-  color: #999;
+  color: #666;
+}
+
+@media (max-width: 768px) {
+  .card-form-container {
+    padding: 16px;
+    padding-top: 60px;
+    padding-bottom: 120px;
+  }
+
+  .form-section {
+    padding: 16px;
+  }
 }
 </style>

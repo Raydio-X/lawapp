@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { studyAPI } from '@/utils/api'
 
 const isStudying = ref(false)
@@ -11,26 +11,21 @@ const MIN_SYNC_DURATION = 5
 
 export function useStudyTimer() {
   const startStudyTimer = () => {
-    if (isStudying.value) return
+    if (studyTimer.value) {
+      clearInterval(studyTimer.value)
+      studyTimer.value = null
+    }
     
     isStudying.value = true
     studyStartTime.value = Date.now()
     
-    if (studyTimer.value) {
-      clearInterval(studyTimer.value)
-    }
-    
     studyTimer.value = window.setInterval(() => {
       syncStudyTime()
     }, SYNC_INTERVAL)
-    
-    console.log('学习计时开始')
   }
 
-  const pauseStudyTimer = () => {
-    if (!isStudying.value) return
-    
-    syncStudyTime()
+  const pauseStudyTimer = async () => {
+    await syncStudyTime()
     
     if (studyTimer.value) {
       clearInterval(studyTimer.value)
@@ -38,13 +33,10 @@ export function useStudyTimer() {
     }
     
     isStudying.value = false
-    console.log('学习计时暂停')
   }
 
-  const stopStudyTimer = () => {
-    if (!isStudying.value) return
-    
-    syncStudyTime()
+  const stopStudyTimer = async () => {
+    await syncStudyTime()
     
     if (studyTimer.value) {
       clearInterval(studyTimer.value)
@@ -53,7 +45,6 @@ export function useStudyTimer() {
     
     isStudying.value = false
     studyStartTime.value = null
-    console.log('学习计时停止')
   }
 
   const syncStudyTime = async () => {
@@ -70,7 +61,6 @@ export function useStudyTimer() {
       if (res.success) {
         studyStartTime.value = Date.now()
         totalStudyTime.value += duration
-        console.log(`同步学习时长: ${duration}秒`)
       }
     } catch (error) {
       console.error('同步学习时间失败:', error)
@@ -85,12 +75,6 @@ export function useStudyTimer() {
     if (!studyStartTime.value) return 0
     return Math.floor((Date.now() - studyStartTime.value) / 1000)
   }
-
-  onUnmounted(() => {
-    if (studyTimer.value) {
-      clearInterval(studyTimer.value)
-    }
-  })
 
   return {
     isStudying,
@@ -107,16 +91,7 @@ let globalStudyTimer: ReturnType<typeof useStudyTimer> | null = null
 
 export function useGlobalStudyTimer() {
   if (!globalStudyTimer) {
-    const { isStudying, totalStudyTime, startStudyTimer, pauseStudyTimer, stopStudyTimer, getStudyStatus, getStudyDuration } = useStudyTimer()
-    globalStudyTimer = {
-      isStudying,
-      totalStudyTime,
-      startStudyTimer,
-      pauseStudyTimer,
-      stopStudyTimer,
-      getStudyStatus,
-      getStudyDuration
-    }
+    globalStudyTimer = useStudyTimer()
   }
   return globalStudyTimer
 }
