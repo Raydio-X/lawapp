@@ -277,7 +277,7 @@ const onCardTap = (card: Card) => {
     query: {
       cardId: card.id,
       libraryId: card.library_id,
-      singleCard: true
+      singleCard: 'true'
     }
   })
 }
