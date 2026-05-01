@@ -3,7 +3,7 @@ import { MessagePlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
 
-const BASE_URL = '/api'
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
 
 interface ApiResponse<T = any> {
   success: boolean
