@@ -130,7 +130,7 @@ router.get('/categories', async (req, res) => {
 
 router.get('/:id', optionalAuth, async (req, res) => {
     try {
-        const library = await LibraryModel.findById(req.params.id);
+        const library = await LibraryModel.findById(req.params.id, req.user?.id);
         
         if (!library) {
             return res.status(404).json({

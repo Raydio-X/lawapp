@@ -19,7 +19,7 @@
         <div class="answer-section">
           <div class="answer-row">
             <span class="answer-label">参考答案：</span>
-            <span class="answer-text">{{ item.answer }}</span>
+            <span class="answer-text" v-html="item.answer"></span>
           </div>
           <div class="answer-row">
             <span class="answer-label">你的作答：</span>
@@ -153,6 +153,34 @@ const onBack = () => {
   font-size: 13px;
   color: #333;
   flex: 1;
+  
+  :deep(ol), :deep(ul) {
+    padding-left: 1.5em;
+    margin: 8px 0;
+  }
+  
+  :deep(li) {
+    margin-bottom: 4px;
+  }
+  
+  :deep(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    
+    td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+  }
+  
+  :deep(p) {
+    margin: 0 0 8px 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .answer-text.user-answer {

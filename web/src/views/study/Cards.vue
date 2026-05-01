@@ -53,7 +53,32 @@
             <span>参考答案</span>
           </div>
           <div class="answer-content">
-            <span class="answer-text">{{ currentCard.answer || '暂无答案' }}</span>
+            <span class="answer-text" v-html="currentCard.answer || '暂无答案'"></span>
+          </div>
+          
+          <div class="difficulty-section">
+            <div class="difficulty-label">
+              <span>难度评分</span>
+              <span class="difficulty-hint">（可选）</span>
+            </div>
+            <div class="difficulty-stars">
+              <div 
+                class="star-item" 
+                v-for="i in 5" 
+                :key="i"
+                :class="{ active: i <= difficultyRating }"
+                @click="onRateDifficulty(i)"
+              >
+                <t-icon 
+                  :name="i <= difficultyRating ? 'star-filled' : 'star'" 
+                  size="24px" 
+                  :color="i <= difficultyRating ? '#F59E0B' : '#CBD5E1'" 
+                />
+              </div>
+            </div>
+            <div class="difficulty-text" v-if="difficultyRating > 0">
+              {{ getDifficultyText(difficultyRating) }}
+            </div>
           </div>
         </div>
       </div>
@@ -111,22 +136,21 @@
   </div>
 
   <div class="study-nav-bar study-mode" v-if="!loading && currentCard">
-    <div class="study-mode-left">
-      <div class="nav-btn-prev" :class="{ disabled: currentIndex <= 0 }" @click="onPrevCard">
-        <t-icon name="chevron-left" size="18px" :color="currentIndex <= 0 ? '#ccc' : '#666'" />
-        <span class="prev-text">上一张</span>
-      </div>
-      <span class="progress-text-nav">{{ currentIndex + 1 }} / {{ totalCards }}</span>
+    <div class="nav-btn prev" :class="{ disabled: currentIndex <= 0 }" @click="onPrevCard">
+      <t-icon name="chevron-left" size="18px" :color="currentIndex <= 0 ? '#ccc' : '#3B82F6'" />
+      <span class="btn-text">上一张</span>
     </div>
     
-    <div class="action-buttons" :class="{ active: answerRevealed }">
-      <div class="forgot-btn" @click="onForgot">
-        <span class="btn-text">忘记了</span>
-      </div>
-      <div class="mastered-btn" @click="onMastered">
-        <span class="btn-text">已掌握</span>
-      </div>
+    <div class="nav-btn learned" :class="{ active: isCurrentCardLearned, disabled: !answerRevealed }" @click="onLearned">
+      <t-icon v-if="isCurrentCardLearned" name="check-circle" size="16px" color="#fff" style="margin-right: 4px;" />
+      <span class="btn-text">{{ isCurrentCardLearned ? '已学习' : '标记已学习' }}</span>
     </div>
+    
+    <div class="nav-btn next" :class="{ disabled: currentIndex >= totalCards - 1 }" @click="moveToNextCard" v-if="isCurrentCardLearned">
+      <span class="btn-text">下一张</span>
+      <t-icon name="chevron-right" size="18px" :color="currentIndex >= totalCards - 1 ? '#ccc' : '#3B82F6'" />
+    </div>
+    <div class="nav-btn-placeholder" v-else></div>
   </div>
 </template>
 
@@ -170,8 +194,11 @@ const answerRevealed = ref(false)
 const loading = ref(true)
 const comments = ref<Comment[]>([])
 const commentText = ref('')
+const difficultyRating = ref(0)
+const isCurrentCardLearned = ref(false)
 
 const studiedCards = new Set<number>()
+const learnedCardStates = new Map<number, { revealed: boolean, difficulty: number }>()
 
 onMounted(() => {
   const index = parseInt(route.query.index as string) || 0
@@ -228,8 +255,22 @@ const loadCardData = () => {
         }
       })
       
+      loadLearnedStatesFromStorage()
+      
       if (currentCard.value) {
         loadComments(currentCard.value.id)
+        
+        const savedState = learnedCardStates.get(currentCard.value.id)
+        if (savedState) {
+          answerRevealed.value = savedState.revealed
+          difficultyRating.value = savedState.difficulty
+          isCurrentCardLearned.value = true
+        } else {
+          isCurrentCardLearned.value = currentCard.value.learned || false
+          if (isCurrentCardLearned.value) {
+            answerRevealed.value = true
+          }
+        }
       }
     }
   } else {
@@ -368,37 +409,23 @@ const onPrevCard = () => {
   switchCard(currentIndex.value - 1)
 }
 
-const onForgot = async () => {
-  if (!answerRevealed.value) {
-    MessagePlugin.warning('请先查看答案')
-    return
-  }
-
-  try {
-    if (!studiedCards.has(currentCard.value!.id)) {
-      await cardAPI.recordStudy(currentCard.value!.id, {
-        libraryId: currentCard.value!.libraryId,
-        feedback: 'hard',
-        duration: 0,
-        isFormalStudy: true
-      })
-      studiedCards.add(currentCard.value!.id)
-    }
-
-    const res = await cardAPI.setMastery(currentCard.value!.id, false)
-    if (res.success) {
-      cardList.value[currentIndex.value].learned = false
-      moveToNextCard()
-    }
-  } catch (error: any) {
-    console.error('标记忘记失败:', error)
-    MessagePlugin.error(error.message || '操作失败')
-  }
+const onRateDifficulty = (rating: number) => {
+  difficultyRating.value = rating
 }
 
-const onMastered = async () => {
+const getDifficultyText = (rating: number): string => {
+  const texts = ['', '简单', '较简单', '中等', '较难', '困难']
+  return texts[rating] || ''
+}
+
+const onLearned = async () => {
   if (!answerRevealed.value) {
     MessagePlugin.warning('请先查看答案')
+    return
+  }
+
+  if (isCurrentCardLearned.value) {
+    moveToNextCard()
     return
   }
 
@@ -406,20 +433,33 @@ const onMastered = async () => {
     if (!studiedCards.has(currentCard.value!.id)) {
       await cardAPI.recordStudy(currentCard.value!.id, {
         libraryId: currentCard.value!.libraryId,
-        feedback: 'easy',
+        feedback: 'normal',
         duration: 0,
         isFormalStudy: true
       })
       studiedCards.add(currentCard.value!.id)
     }
 
-    const res = await cardAPI.setMastery(currentCard.value!.id, true)
+    if (difficultyRating.value > 0) {
+      await cardAPI.rateDifficulty(currentCard.value!.id, difficultyRating.value)
+    }
+
+    const res = await cardAPI.setMastery(currentCard.value!.id, true, 'normal')
     if (res.success) {
       cardList.value[currentIndex.value].learned = true
+      isCurrentCardLearned.value = true
+      
+      learnedCardStates.set(currentCard.value!.id, {
+        revealed: true,
+        difficulty: difficultyRating.value
+      })
+      
+      saveLearnedStatesToStorage()
+      
       moveToNextCard()
     }
   } catch (error: any) {
-    console.error('标记掌握失败:', error)
+    console.error('标记学习失败:', error)
     MessagePlugin.error(error.message || '操作失败')
   }
 }
@@ -442,12 +482,53 @@ const switchCard = (index: number) => {
   
   currentCard.value = cardList.value[index]
   currentIndex.value = index
-  answerRevealed.value = false
   comments.value = []
   commentText.value = ''
 
   if (currentCard.value) {
     loadComments(currentCard.value.id)
+    
+    const savedState = learnedCardStates.get(currentCard.value.id)
+    if (savedState) {
+      answerRevealed.value = savedState.revealed
+      difficultyRating.value = savedState.difficulty
+      isCurrentCardLearned.value = true
+    } else {
+      answerRevealed.value = false
+      difficultyRating.value = 0
+      isCurrentCardLearned.value = cardList.value[index].learned || false
+      
+      if (isCurrentCardLearned.value) {
+        answerRevealed.value = true
+      }
+    }
+  }
+}
+
+const saveLearnedStatesToStorage = () => {
+  const data = localStorage.getItem('studyCardsData')
+  if (!data) return
+  
+  const parsed = JSON.parse(data)
+  const states: Record<number, { revealed: boolean, difficulty: number }> = {}
+  
+  learnedCardStates.forEach((value, key) => {
+    states[key] = value
+  })
+  
+  parsed.learnedCardStates = states
+  localStorage.setItem('studyCardsData', JSON.stringify(parsed))
+}
+
+const loadLearnedStatesFromStorage = () => {
+  const data = localStorage.getItem('studyCardsData')
+  if (!data) return
+  
+  const parsed = JSON.parse(data)
+  if (parsed.learnedCardStates) {
+    Object.entries(parsed.learnedCardStates).forEach(([key, value]) => {
+      learnedCardStates.set(parseInt(key), value as { revealed: boolean, difficulty: number })
+    })
   }
 }
 </script>
@@ -637,11 +718,84 @@ const switchCard = (index: number) => {
   border-left: 3px solid #00B578;
 }
 
+.difficulty-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.difficulty-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 12px;
+  
+  span:first-child {
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.difficulty-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.difficulty-stars {
+  display: flex;
+  gap: 8px;
+}
+
+.star-item {
+  cursor: pointer;
+  transition: transform 0.15s ease;
+  
+  &:active {
+    transform: scale(0.9);
+  }
+}
+
+.difficulty-text {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #F59E0B;
+  font-weight: 500;
+}
+
 .answer-text {
   display: block;
   font-size: 16px;
   color: #333;
   line-height: 1.8;
+  
+  :deep(ol), :deep(ul) {
+    padding-left: 1.5em;
+    margin: 8px 0;
+  }
+  
+  :deep(li) {
+    margin-bottom: 4px;
+  }
+  
+  :deep(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    
+    td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+  }
+  
+  :deep(p) {
+    margin: 0 0 8px 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .comment-section {
@@ -835,93 +989,85 @@ const switchCard = (index: number) => {
   
   &.study-mode {
     display: flex;
-    flex-direction: column;
-    gap: 10px;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
   }
-}
-
-.study-mode-left {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.nav-btn-prev {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border-radius: 16px;
-  background: #f5f6fa;
-  cursor: pointer;
-  transition: all 0.2s ease;
   
-  &.disabled {
-    opacity: 0.4;
-    pointer-events: none;
+  .nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 20px;
+    border-radius: 22px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:active {
+      transform: scale(0.96);
+    }
+    
+    &.disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+    
+    .btn-text {
+      font-size: 14px;
+      color: #fff;
+      font-weight: 500;
+    }
+    
+    &.prev {
+      background: transparent;
+      box-shadow: none;
+      min-width: 80px;
+      
+      .btn-text {
+        color: #3B82F6;
+      }
+      
+      &.disabled .btn-text {
+        color: #ccc;
+      }
+    }
+    
+    &.next {
+      background: transparent;
+      box-shadow: none;
+      min-width: 80px;
+      
+      .btn-text {
+        color: #3B82F6;
+      }
+      
+      &.disabled .btn-text {
+        color: #ccc;
+      }
+    }
+    
+    &.learned {
+      background: linear-gradient(135deg, #00B578 0%, #00C853 100%);
+      box-shadow: 0 3px 12px rgba(0, 181, 120, 0.35);
+      flex: 1;
+      max-width: 160px;
+      
+      &.active {
+        background: linear-gradient(135deg, #2BA47A 0%, #00995B 100%);
+        box-shadow: 0 3px 12px rgba(0, 153, 91, 0.45);
+      }
+      
+      &.disabled {
+        opacity: 0.5;
+      }
+    }
   }
-}
-
-.prev-text {
-  font-size: 13px;
-  color: #666;
-}
-
-.progress-text-nav {
-  font-size: 13px;
-  color: #999;
-  font-weight: 500;
-}
-
-.action-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 16px;
-  width: 100%;
-  opacity: 0.4;
-  pointer-events: none;
-  transition: all 0.3s ease;
   
-  &.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-}
-
-.forgot-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 90px;
-  height: 44px;
-  padding: 0 24px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, #E34D59 0%, #F3696B 100%);
-  box-shadow: 0 3px 10px rgba(227, 77, 89, 0.25);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:active {
-    transform: scale(0.96);
-  }
-}
-
-.mastered-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 90px;
-  height: 44px;
-  padding: 0 24px;
-  border-radius: 22px;
-  background: linear-gradient(135deg, #00B578 0%, #00C853 100%);
-  box-shadow: 0 3px 12px rgba(0, 181, 120, 0.35);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:active {
-    transform: scale(0.96);
+  .nav-btn-placeholder {
+    min-width: 80px;
+    height: 44px;
   }
 }
 

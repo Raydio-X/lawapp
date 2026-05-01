@@ -18,11 +18,13 @@ class BM25Engine {
     async initialize() {
         if (this.initialized) return;
 
+        console.log('BM25Engine: Initializing...');
         const [rows] = await db.query(
             'SELECT id, question, answer, created_by FROM cards WHERE is_public = 1'
         );
 
         this.docCount = rows.length;
+        console.log('BM25Engine: Found', this.docCount, 'public cards');
         let totalLen = 0;
 
         for (const row of rows) {

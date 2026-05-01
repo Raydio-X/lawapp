@@ -55,7 +55,7 @@
             <span>参考答案</span>
           </div>
           <div class="answer-content">
-            <span class="answer-text">{{ currentCard.answer }}</span>
+            <span class="answer-text" v-html="currentCard.answer"></span>
           </div>
         </div>
       </div>
@@ -332,7 +332,7 @@ watch(
         singleCard.value = true
       }
       
-      answerRevealed.value = false
+      answerRevealed.value = mode.value !== 'study'
       loadCardData(newCardId as string, 0)
     }
   }
@@ -381,11 +381,15 @@ const loadSingleCard = async (cardId: number) => {
       totalCards.value = 1
       currentIndex.value = 0
       currentCard.value = list[0]
-      answerRevealed.value = false
+      answerRevealed.value = mode.value !== 'study'
       libraryName.value = card.library_name || '卡片详情'
       
       loadComments(card.id)
       checkFavorite(card.id)
+      
+      if (!singleCard.value && mode.value !== 'study') {
+        loadRelatedCards()
+      }
     }
   } catch (error) {
     console.error('加载卡片详情失败:', error)
@@ -419,10 +423,14 @@ const loadHotCards = async (cardId: string | undefined, index: number) => {
       totalCards.value = list.length
       currentIndex.value = currentIdx
       currentCard.value = card
-      answerRevealed.value = false
+      answerRevealed.value = mode.value !== 'study'
       
       loadComments(card.id)
       checkFavorite(card.id)
+      
+      if (!singleCard.value && mode.value !== 'study') {
+        loadRelatedCards()
+      }
     }
   } catch (error) {
     console.error('加载热门卡片失败:', error)
@@ -446,11 +454,15 @@ const loadLibraryCards = async (cardId: string | undefined, index: number) => {
         totalCards.value = list.length
         currentIndex.value = currentIdx
         currentCard.value = card
-        answerRevealed.value = false
+        answerRevealed.value = mode.value !== 'study'
         libraryName.value = data.libraryName || libraryName.value
         
         loadComments(card.id)
         checkFavorite(card.id)
+        
+        if (!singleCard.value && mode.value !== 'study') {
+          loadRelatedCards()
+        }
         return
       }
     }
@@ -483,10 +495,14 @@ const loadLibraryCards = async (cardId: string | undefined, index: number) => {
       totalCards.value = list.length
       currentIndex.value = currentIdx
       currentCard.value = card
-      answerRevealed.value = false
+      answerRevealed.value = mode.value !== 'study'
       
       loadComments(card.id)
       checkFavorite(card.id)
+      
+      if (!singleCard.value && mode.value !== 'study') {
+        loadRelatedCards()
+      }
     }
   } catch (error) {
     console.error('加载知识库卡片失败:', error)
@@ -556,15 +572,23 @@ const onRevealAnswer = () => {
 }
 
 const loadRelatedCards = async () => {
-  if (!currentCard.value) return
+  if (!currentCard.value) {
+    console.log('loadRelatedCards: No current card')
+    return
+  }
   
+  console.log('loadRelatedCards: Loading related cards for card', currentCard.value.id)
   relatedLoading.value = true
   relatedCards.value = []
   
   try {
     const res = await cardAPI.getRelated(currentCard.value.id)
+    console.log('loadRelatedCards: API response', res)
     if (res.success && res.data) {
+      console.log('loadRelatedCards: Found', res.data.length, 'related cards')
       relatedCards.value = res.data.slice(0, 5)
+    } else {
+      console.log('loadRelatedCards: No data in response')
     }
   } catch (error) {
     console.error('加载相关卡片失败:', error)
@@ -752,13 +776,17 @@ const switchCard = (index: number) => {
   
   currentIndex.value = index
   currentCard.value = card
-  answerRevealed.value = false
+  answerRevealed.value = mode.value !== 'study'
   commentText.value = ''
   relatedCards.value = []
   
   loadComments(card.id)
   checkFavorite(card.id)
   saveStudyProgress()
+  
+  if (!singleCard.value && mode.value !== 'study') {
+    loadRelatedCards()
+  }
 }
 
 const saveStudyProgress = () => {
@@ -977,6 +1005,34 @@ const saveStudyProgress = () => {
   font-size: 15px;
   color: #1E293B;
   line-height: 1.8;
+  
+  :deep(ol), :deep(ul) {
+    padding-left: 1.5em;
+    margin: 8px 0;
+  }
+  
+  :deep(li) {
+    margin-bottom: 4px;
+  }
+  
+  :deep(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 8px 0;
+    
+    td {
+      border: 1px solid #ddd;
+      padding: 8px;
+    }
+  }
+  
+  :deep(p) {
+    margin: 0 0 8px 0;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
 }
 
 .related-section {

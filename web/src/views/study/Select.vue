@@ -332,9 +332,11 @@ const onRandomStudy = async () => {
 
     const randomIndex = Math.floor(Math.random() * allCards.length)
     const libraryNames = selectedLibraries.map(lib => lib.name).join('、')
+    const libraryIds = selectedLibraries.map(lib => lib.id)
     
     localStorage.setItem('studyCardsData', JSON.stringify({
       cardList: allCards,
+      libraryIds: libraryIds,
       libraryNames: libraryNames,
       totalCards: allCards.length
     }))

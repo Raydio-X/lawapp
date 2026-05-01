@@ -8,7 +8,11 @@
           </div>
         </div>
         <div class="nav-title">{{ libraryName }}</div>
-        <div class="nav-right"></div>
+        <div class="nav-right">
+          <div class="manage-btn" @click="onToggleManageMode" v-if="!loading">
+            {{ isManageMode ? '取消' : '管理' }}
+          </div>
+        </div>
       </div>
     </div>
 
@@ -19,6 +23,13 @@
 
     <template v-else>
       <div class="library-overview-card">
+        <div class="favorite-btn" :class="{ favorited: isFavorited }" @click="onToggleFavorite">
+          <t-icon 
+            :name="isFavorited ? 'star-filled' : 'star'" 
+            size="24px" 
+            :color="isFavorited ? '#F59E0B' : '#94A3B8'" 
+          />
+        </div>
         <div class="library-header">
           <div class="library-icon-large">
             <t-icon name="book" size="32px" color="#fff" />
@@ -134,17 +145,32 @@
 
       <div class="cards-section" v-if="selectedChapter">
         <div class="cards-header">
-          <span class="cards-title">{{ selectedChapter.title }}</span>
-          <span class="cards-subtitle">共 {{ selectedChapter.cards.length }} 张卡片</span>
+          <div class="cards-header-left">
+            <span class="cards-title">{{ selectedChapter.title }}</span>
+            <span class="cards-subtitle">共 {{ selectedChapter.cards.length }} 张卡片</span>
+          </div>
+          <div class="cards-header-right" v-if="isManageMode && selectedChapter.cards.length > 0">
+            <div class="select-all-btn" @click="onSelectAllCards">
+              {{ isAllSelected ? '取消全选' : '全选' }}
+            </div>
+          </div>
         </div>
 
         <div class="card-list-vertical">
           <div 
             class="card-item-large"
+            :class="{ selected: isManageMode && selectedCardIds.includes(card.id) }"
             v-for="(card, cardIndex) in selectedChapter.cards" 
             :key="card.id"
             @click="onCardTap(card, cardIndex)"
           >
+            <div class="card-checkbox" v-if="isManageMode" @click.stop="onSelectCard(card.id)">
+              <t-icon 
+                :name="selectedCardIds.includes(card.id) ? 'check-circle-filled' : 'circle'" 
+                size="22px" 
+                :color="selectedCardIds.includes(card.id) ? '#3B82F6' : '#ccc'" 
+              />
+            </div>
             <div class="card-header">
               <div class="card-number-large">{{ cardIndex + 1 }}</div>
             </div>
@@ -160,7 +186,12 @@
                 >{{ tag }}</t-tag>
               </div>
             </div>
-            <div class="card-arrow">
+            <div class="card-actions" v-if="isManageMode">
+              <div class="action-btn edit" @click.stop="onEditCard(card)">
+                <t-icon name="edit" size="16px" color="#3B82F6" />
+              </div>
+            </div>
+            <div class="card-arrow" v-else>
               <t-icon name="chevron-right" size="20px" color="#ccc" />
             </div>
           </div>
@@ -174,6 +205,59 @@
 
       <div class="bottom-placeholder"></div>
     </template>
+
+    <div class="batch-action-bar" v-if="isManageMode && selectedCardIds.length > 0">
+      <div class="batch-info">
+        <span>已选择 {{ selectedCardIds.length }} 张卡片</span>
+      </div>
+      <div class="batch-actions">
+        <div class="batch-btn move" @click="onShowMoveDialog">
+          <t-icon name="move" size="16px" color="#fff" />
+          <span>移动到</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="move-dialog-overlay" v-if="showMoveDialog" @click.self="showMoveDialog = false">
+      <div class="move-dialog">
+        <div class="move-dialog-header">
+          <span class="move-dialog-title">移动到章节</span>
+          <t-icon name="close" size="20px" color="#999" class="close-btn" @click="showMoveDialog = false" />
+        </div>
+        <div class="move-dialog-body">
+          <div class="chapter-list">
+            <div 
+              class="chapter-item" 
+              :class="{ selected: targetChapterId === null }"
+              @click="targetChapterId = null"
+            >
+              <div class="chapter-radio">
+                <div class="chapter-radio-dot" v-if="targetChapterId === null"></div>
+              </div>
+              <span class="chapter-name">无章节</span>
+            </div>
+            <div 
+              class="chapter-item" 
+              :class="{ selected: targetChapterId === chapter.id }"
+              v-for="chapter in flatChapters" 
+              :key="chapter.id"
+              @click="targetChapterId = chapter.id"
+            >
+              <div class="chapter-radio">
+                <div class="chapter-radio-dot" v-if="targetChapterId === chapter.id"></div>
+              </div>
+              <span class="chapter-name" :style="{ paddingLeft: (chapter.level - 1) * 16 + 'px' }">
+                {{ chapter.name }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="move-dialog-footer">
+          <div class="move-btn cancel" @click="showMoveDialog = false">取消</div>
+          <div class="move-btn confirm" @click="onConfirmMove">确认移动</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -181,7 +265,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { libraryAPI, cardAPI } from '@/utils/api'
+import { libraryAPI, cardAPI, chapterAPI, isLoggedIn } from '@/utils/api'
 
 const router = useRouter()
 const route = useRoute()
@@ -214,9 +298,17 @@ interface Chapter {
   children: Chapter[]
 }
 
+interface FlatChapter {
+  id: number
+  name: string
+  level: number
+}
+
 const libraryId = ref(0)
 const libraryName = ref('')
 const librarySubject = ref('未分类')
+const isFavorited = ref(false)
+const favoriteCount = ref(0)
 const loading = ref(true)
 const chapters = ref<Chapter[]>([])
 const allCards = ref<Card[]>([])
@@ -228,6 +320,30 @@ const selectedChapterIndex = ref(-1)
 const selectedChildIndex = ref(-1)
 const selectedGrandChildIndex = ref(-1)
 const selectedChapter = ref<Chapter | null>(null)
+
+const isManageMode = ref(false)
+const selectedCardIds = ref<number[]>([])
+const isAllSelected = ref(false)
+const showMoveDialog = ref(false)
+const targetChapterId = ref<number | null>(null)
+
+const flatChapters = computed<FlatChapter[]>(() => {
+  const result: FlatChapter[] = []
+  const flatten = (chapterList: Chapter[]) => {
+    chapterList.forEach(ch => {
+      result.push({
+        id: ch.id,
+        name: ch.title,
+        level: ch.level
+      })
+      if (ch.children && ch.children.length > 0) {
+        flatten(ch.children)
+      }
+    })
+  }
+  flatten(chapters.value)
+  return result
+})
 
 onMounted(() => {
   libraryId.value = parseInt(route.params.id as string) || 0
@@ -247,6 +363,8 @@ const loadLibraryData = async () => {
       const lib = libRes.data
       libraryName.value = lib.name || libraryName.value
       librarySubject.value = lib.subject || '未分类'
+      isFavorited.value = Boolean(lib.is_favorited)
+      favoriteCount.value = lib.favorite_count || 0
       
       if (lib.chapters && lib.chapters.length > 0) {
         processChapters(lib.chapters)
@@ -415,6 +533,11 @@ const onGrandChildChapterTap = (chapterIndex: number, childIndex: number, grandC
 }
 
 const onCardTap = (card: Card, cardIndex: number) => {
+  if (isManageMode.value) {
+    onSelectCard(card.id)
+    return
+  }
+  
   const allCardsFlat: any[] = []
   chapters.value.forEach(chapter => {
     chapter.cards.forEach(c => {
@@ -448,6 +571,100 @@ const onCardTap = (card: Card, cardIndex: number) => {
       index: globalIndex
     }
   })
+}
+
+const onToggleManageMode = () => {
+  isManageMode.value = !isManageMode.value
+  if (!isManageMode.value) {
+    selectedCardIds.value = []
+    isAllSelected.value = false
+  }
+}
+
+const onSelectCard = (cardId: number) => {
+  const index = selectedCardIds.value.indexOf(cardId)
+  if (index > -1) {
+    selectedCardIds.value.splice(index, 1)
+  } else {
+    selectedCardIds.value.push(cardId)
+  }
+  
+  if (selectedChapter.value) {
+    isAllSelected.value = selectedCardIds.value.length === selectedChapter.value.cards.length
+  }
+}
+
+const onSelectAllCards = () => {
+  if (!selectedChapter.value) return
+  
+  if (isAllSelected.value) {
+    selectedCardIds.value = []
+    isAllSelected.value = false
+  } else {
+    selectedCardIds.value = selectedChapter.value.cards.map(c => c.id)
+    isAllSelected.value = true
+  }
+}
+
+const onEditCard = (card: Card) => {
+  router.push({
+    path: '/create/card',
+    query: {
+      id: card.id,
+      libraryId: libraryId.value,
+      libraryName: libraryName.value
+    }
+  })
+}
+
+const onShowMoveDialog = () => {
+  if (selectedCardIds.value.length === 0) {
+    MessagePlugin.warning('请先选择卡片')
+    return
+  }
+  targetChapterId.value = null
+  showMoveDialog.value = true
+}
+
+const onConfirmMove = async () => {
+  if (selectedCardIds.value.length === 0) {
+    MessagePlugin.warning('请先选择卡片')
+    return
+  }
+
+  try {
+    const res = await cardAPI.batchMove(selectedCardIds.value, targetChapterId.value)
+    if (res.success) {
+      MessagePlugin.success(`已移动 ${res.data.count} 张卡片`)
+      showMoveDialog.value = false
+      selectedCardIds.value = []
+      isAllSelected.value = false
+      loadLibraryData()
+    }
+  } catch (error: any) {
+    console.error('移动失败:', error)
+    MessagePlugin.error(error.message || '移动失败')
+  }
+}
+
+const onToggleFavorite = async () => {
+  if (!isLoggedIn()) {
+    MessagePlugin.warning('请先登录后再进行收藏操作')
+    return
+  }
+
+  try {
+    const res = await libraryAPI.toggleFavorite(libraryId.value)
+    
+    if (res.success) {
+      isFavorited.value = Boolean(res.data.isFavorited)
+      favoriteCount.value = res.data.favoriteCount || 0
+      MessagePlugin.success(isFavorited.value ? '收藏成功' : '已取消收藏')
+    }
+  } catch (error: any) {
+    console.error('收藏操作失败:', error)
+    MessagePlugin.error(error.message || '操作失败')
+  }
 }
 </script>
 
@@ -507,7 +724,18 @@ const onCardTap = (card: Card, cardIndex: number) => {
 }
 
 .nav-right {
-  width: 40px;
+  width: 60px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.manage-btn {
+  font-size: 13px;
+  color: #3B82F6;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.08);
+  cursor: pointer;
 }
 
 .loading-container {
@@ -531,6 +759,24 @@ const onCardTap = (card: Card, cardIndex: number) => {
   margin-bottom: 16px;
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.08);
+  position: relative;
+}
+
+.favorite-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  
+  &:active {
+    transform: scale(0.92);
+  }
 }
 
 .library-header {
@@ -824,6 +1070,28 @@ const onCardTap = (card: Card, cardIndex: number) => {
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid #E2E8F0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cards-header-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.cards-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.select-all-btn {
+  font-size: 13px;
+  color: #3B82F6;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: rgba(59, 130, 246, 0.08);
+  cursor: pointer;
 }
 
 .cards-title {
@@ -927,5 +1195,201 @@ const onCardTap = (card: Card, cardIndex: number) => {
 
 .bottom-placeholder {
   height: 24px;
+}
+
+.card-checkbox {
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.card-item-large.selected {
+  background-color: rgba(59, 130, 246, 0.08);
+  border-color: #3B82F6;
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 10px;
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(59, 130, 246, 0.1);
+  cursor: pointer;
+  
+  &:active {
+    background: rgba(59, 130, 246, 0.2);
+  }
+}
+
+.batch-action-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 100;
+}
+
+.batch-info {
+  font-size: 14px;
+  color: #333;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.batch-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.batch-btn.move {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  color: #fff;
+}
+
+.move-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 1000;
+}
+
+.move-dialog {
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  width: 100%;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.move-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #E7E7E7;
+}
+
+.move-dialog-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.close-btn {
+  cursor: pointer;
+}
+
+.move-dialog-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.chapter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chapter-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  
+  &:active {
+    background: #f5f6fa;
+  }
+  
+  &.selected {
+    background: rgba(59, 130, 246, 0.08);
+  }
+}
+
+.chapter-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  margin-right: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chapter-item.selected .chapter-radio {
+  border-color: #3B82F6;
+}
+
+.chapter-radio-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3B82F6;
+}
+
+.chapter-name {
+  font-size: 15px;
+  color: #333;
+}
+
+.move-dialog-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #E7E7E7;
+}
+
+.move-btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 22px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.move-btn.cancel {
+  background: #f5f6fa;
+  color: #666;
+}
+
+.move-btn.confirm {
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  color: #fff;
+  font-weight: 600;
 }
 </style>

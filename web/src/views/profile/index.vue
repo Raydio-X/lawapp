@@ -175,7 +175,8 @@
     </div>
 
     <div class="version-info">
-      <span>法硕背诵助手 v1.0.0</span>
+      <span>律卡 v1.0.0</span>
+      <a class="icp" href="http://beian.miit.gov.cn/" target="_blank">浙ICP备2026028213号</a>
     </div>
 
     <div class="bottom-placeholder"></div>
@@ -824,6 +825,19 @@ const onLogout = () => {
   padding: 24px 0;
   font-size: 12px;
   color: #94A3B8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.version-info .icp {
+  font-size: 11px;
+  color: #CBD5E1;
+  text-decoration: none;
+  
+  &:hover {
+    color: #94A3B8;
+  }
 }
 
 .bottom-placeholder {

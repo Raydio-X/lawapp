@@ -14,11 +14,13 @@ class SentenceEmbedding {
     async initialize() {
         if (this.initialized) return;
 
+        console.log('SentenceEmbedding: Initializing...');
         const [rows] = await db.query(
             'SELECT id, question, answer, tags, created_by FROM cards WHERE is_public = 1'
         );
 
         const docCount = rows.length;
+        console.log('SentenceEmbedding: Found', docCount, 'public cards');
         const allTokens = new Map();
 
         for (const row of rows) {

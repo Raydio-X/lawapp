@@ -53,7 +53,7 @@
               </div>
               <div class="card-answer">
                 <span class="highlight-tag answer-tag">答</span>
-                <span class="card-text answer-text" v-html="highlightText(card.answer, keyword)"></span>
+                <span class="card-text answer-text" v-html="card.answer"></span>
               </div>
             </div>
             <div class="card-footer">
@@ -135,7 +135,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { cardAPI, libraryAPI } from '@/utils/api'
@@ -173,6 +173,10 @@ const cardsPage = ref(1)
 const libsPage = ref(1)
 
 const pageSize = 20
+const DEBOUNCE_DELAY = 400
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let currentSearchId = 0
 
 onMounted(() => {
   const q = router.currentRoute.value.query.keyword as string
@@ -182,27 +186,59 @@ onMounted(() => {
   }
 })
 
+onUnmounted(() => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+  }
+})
+
+watch(keyword, (newVal, oldVal) => {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
+  
+  if (!newVal.trim()) {
+    cards.value = []
+    libraries.value = []
+    cardsTotal.value = 0
+    libsTotal.value = 0
+    return
+  }
+  
+  debounceTimer = setTimeout(() => {
+    onSearch()
+  }, DEBOUNCE_DELAY)
+})
+
 const clearKeyword = () => {
   keyword.value = ''
   cards.value = []
   libraries.value = []
   cardsTotal.value = 0
   libsTotal.value = 0
+  if (debounceTimer) {
+    clearTimeout(debounceTimer)
+    debounceTimer = null
+  }
 }
 
 const onSearch = async () => {
   if (!keyword.value.trim()) return
+  
+  currentSearchId++
+  const searchId = currentSearchId
   
   cardsPage.value = 1
   libsPage.value = 1
   cards.value = []
   libraries.value = []
   
-  searchCards()
-  searchLibraries()
+  searchCards(searchId)
+  searchLibraries(searchId)
 }
 
-const searchCards = async () => {
+const searchCards = async (searchId: number) => {
   if (!keyword.value.trim()) return
   
   cardsLoading.value = true
@@ -211,6 +247,9 @@ const searchCards = async () => {
       page: cardsPage.value, 
       pageSize 
     })
+    
+    if (searchId !== currentSearchId) return
+    
     if (res.success && res.data) {
       const list = res.data.list || res.data || []
       if (cardsPage.value === 1) {
@@ -224,11 +263,13 @@ const searchCards = async () => {
   } catch (error) {
     console.error('搜索卡片失败:', error)
   } finally {
-    cardsLoading.value = false
+    if (searchId === currentSearchId) {
+      cardsLoading.value = false
+    }
   }
 }
 
-const searchLibraries = async () => {
+const searchLibraries = async (searchId: number) => {
   if (!keyword.value.trim()) return
   
   libsLoading.value = true
@@ -237,6 +278,9 @@ const searchLibraries = async () => {
       page: libsPage.value, 
       pageSize 
     })
+    
+    if (searchId !== currentSearchId) return
+    
     if (res.success && res.data) {
       const list = res.data.list || res.data || []
       if (libsPage.value === 1) {
@@ -250,18 +294,20 @@ const searchLibraries = async () => {
   } catch (error) {
     console.error('搜索知识库失败:', error)
   } finally {
-    libsLoading.value = false
+    if (searchId === currentSearchId) {
+      libsLoading.value = false
+    }
   }
 }
 
 const loadMoreCards = () => {
   cardsPage.value++
-  searchCards()
+  searchCards(currentSearchId)
 }
 
 const loadMoreLibraries = () => {
   libsPage.value++
-  searchLibraries()
+  searchLibraries(currentSearchId)
 }
 
 const highlightText = (text: string, kw: string) => {
@@ -447,6 +493,30 @@ const onLibraryTap = (library: Library) => {
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
+  
+  :deep(ol), :deep(ul) {
+    padding-left: 1.5em;
+    margin: 4px 0;
+  }
+  
+  :deep(li) {
+    margin-bottom: 2px;
+  }
+  
+  :deep(table) {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 4px 0;
+    
+    td {
+      border: 1px solid #ddd;
+      padding: 4px;
+    }
+  }
+  
+  :deep(p) {
+    margin: 0 0 4px 0;
+  }
 }
 
 .card-footer {

@@ -1,21 +1,9 @@
 <template>
   <div class="container">
     <div class="search-section">
-      <div class="search-box">
+      <div class="search-box" @click="goToSearch">
         <t-icon name="search" size="20px" color="#60A5FA" />
-        <input 
-          class="search-input" 
-          placeholder="搜索知识卡片 / 知识库"
-          v-model="searchValue"
-          @keyup.enter="onSearchConfirm"
-        />
-        <t-icon 
-          v-if="searchValue" 
-          name="close-circle-filled" 
-          size="20px" 
-          color="#BFDBFE" 
-          @click="clearSearch"
-        />
+        <span class="search-placeholder">搜索知识卡片 / 知识库</span>
       </div>
     </div>
 
@@ -119,15 +107,11 @@
             </div>
           </div>
           <div class="library-card-right">
-            <div 
-              class="fav-btn" 
-              :class="{ favorited: item.isFavorited }"
-              @click.stop="onFavoriteLibrary(item, index)"
-            >
+            <div class="fav-icon">
               <t-icon 
-                :name="item.isFavorited ? 'star-filled' : 'star'" 
+                name="star-filled" 
                 size="18px" 
-                :color="item.isFavorited ? '#F59E0B' : '#CBD5E1'" 
+                color="#F59E0B" 
               />
             </div>
             <span class="fav-count">{{ item.favorites || 0 }}</span>
@@ -184,7 +168,6 @@ const SUBJECT_TYPE_MAP: Record<string, string> = {
   '行政法': 'admin'
 }
 
-const searchValue = ref('')
 const currentSort = ref('hot')
 const hotCards = ref<HotCard[]>([])
 const allLibraries = ref<Library[]>([])
@@ -268,16 +251,8 @@ const sortLibraries = (sortType: string) => {
   libraries.value = all
 }
 
-const onSearchConfirm = () => {
-  if (!searchValue.value.trim()) {
-    MessagePlugin.warning('请输入搜索关键词')
-    return
-  }
-  router.push({ path: '/home/search', query: { keyword: searchValue.value } })
-}
-
-const clearSearch = () => {
-  searchValue.value = ''
+const goToSearch = () => {
+  router.push('/home/search')
 }
 
 const onSortChange = (sort: string) => {
@@ -338,35 +313,6 @@ const onLikeCard = async (card: HotCard, index: number) => {
     MessagePlugin.error(error.message || '操作失败')
   }
 }
-
-const onFavoriteLibrary = async (library: Library, index: number) => {
-  if (!isLoggedIn()) {
-    MessagePlugin.warning('请先登录后再进行收藏操作')
-    return
-  }
-
-  try {
-    const res = await libraryAPI.toggleFavorite(library.id)
-    
-    if (res.success) {
-      const isFavorited = Boolean(res.data.isFavorited)
-      const favoriteCount = res.data.favoriteCount
-
-      libraries.value[index].isFavorited = isFavorited
-      libraries.value[index].favorites = favoriteCount
-
-      const allIndex = allLibraries.value.findIndex(item => item.id === library.id)
-      if (allIndex !== -1) {
-        allLibraries.value[allIndex].isFavorited = isFavorited
-        allLibraries.value[allIndex].favorites = favoriteCount
-      }
-
-      MessagePlugin.success(isFavorited ? '收藏成功' : '已取消收藏')
-    }
-  } catch (error: any) {
-    MessagePlugin.error(error.message || '操作失败')
-  }
-}
 </script>
 
 <style lang="scss" scoped>
@@ -388,25 +334,17 @@ const onFavoriteLibrary = async (library: Library, index: number) => {
   padding: 10px 14px;
   gap: 8px;
   border: 1px solid #E2E8F0;
-  transition: all 0.3s ease;
+  cursor: pointer;
   
-  &:focus-within {
-    border-color: #60A5FA;
-    background-color: #FFFFFF;
-    box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.15);
+  &:active {
+    background-color: #F1F5F9;
   }
 }
 
-.search-input {
+.search-placeholder {
   flex: 1;
   font-size: 14px;
-  color: #1E293B;
-  height: 24px;
-  background: transparent;
-  
-  &::placeholder {
-    color: #94A3B8;
-  }
+  color: #94A3B8;
 }
 
 .section {
@@ -787,24 +725,12 @@ const onFavoriteLibrary = async (library: Library, index: number) => {
   margin-top: -4px;
 }
 
-.fav-btn {
+.fav-icon {
   width: 36px;
   height: 36px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
-  transition: all 0.25s ease;
-  cursor: pointer;
-  
-  &.favorited {
-    background: transparent;
-  }
-  
-  &:active {
-    transform: scale(0.9);
-  }
 }
 
 .fav-count {

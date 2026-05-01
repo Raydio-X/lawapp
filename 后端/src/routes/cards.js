@@ -751,12 +751,13 @@ router.post('/:id/mastery', auth, async (req, res) => {
             });
         }
 
-        const { mastered } = req.body;
+        const { mastered, feedback = 'normal' } = req.body;
         const result = await MasteryModel.setMastery(
             req.user.id,
             req.params.id,
             card.library_id,
-            mastered
+            mastered,
+            feedback
         );
 
         res.json({
@@ -785,10 +786,12 @@ router.post('/:id/mastery/toggle', auth, async (req, res) => {
             });
         }
 
+        const { feedback = 'normal' } = req.body;
         const result = await MasteryModel.toggle(
             req.user.id,
             req.params.id,
-            card.library_id
+            card.library_id,
+            feedback
         );
 
         res.json({
@@ -801,6 +804,44 @@ router.post('/:id/mastery/toggle', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '切换掌握状态失败'
+        });
+    }
+});
+
+router.post('/:id/difficulty', auth, async (req, res) => {
+    try {
+        const { rating } = req.body;
+        
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '难度评分必须在1-5之间'
+            });
+        }
+
+        const card = await CardModel.findById(req.params.id);
+        
+        if (!card) {
+            return res.status(404).json({
+                success: false,
+                code: 404,
+                message: '卡片不存在'
+            });
+        }
+
+        const result = await CardModel.rateDifficulty(req.params.id, rating);
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Rate difficulty error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '评分失败'
         });
     }
 });
@@ -844,11 +885,13 @@ router.get('/review/count', auth, async (req, res) => {
 router.get('/:id/related', optionalAuth, async (req, res) => {
     try {
         const { limit } = req.query;
+        console.log('Get related cards for card:', req.params.id, 'user:', req.user?.id);
         const cards = await CardModel.getRelatedCards(
             parseInt(req.params.id),
             req.user?.id,
             parseInt(limit) || 5
         );
+        console.log('Related cards found:', cards.length);
 
         res.json({
             success: true,

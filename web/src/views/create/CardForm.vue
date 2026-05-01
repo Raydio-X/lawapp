@@ -1,13 +1,5 @@
 <template>
   <div class="container">
-    <div class="custom-nav">
-      <div class="nav-left" @click="router.back()">
-        <t-icon name="chevron-left" size="20px" color="#333" />
-      </div>
-      <div class="nav-title">{{ isEdit ? '编辑卡片' : '创建新卡片' }}</div>
-      <div class="nav-right"></div>
-    </div>
-    
     <div class="header-decoration"></div>
     
     <div class="loading-container" v-if="loading">
@@ -77,27 +69,84 @@
               <span class="label-text">答案</span>
               <span class="label-required">*</span>
             </div>
-            <div class="textarea-card answer-card" :class="{ focused: answerFocused }">
-              <textarea
-                class="form-textarea answer-textarea"
-                placeholder="输入答案解析，支持分点作答..."
-                v-model="answer"
-                maxlength="500"
-                @focus="answerFocused = true"
-                @blur="answerFocused = false"
-              ></textarea>
-              <div class="textarea-footer">
+            <div class="editor-card" :class="{ focused: answerFocused }">
+              <div class="editor-toolbar" ref="toolbarRef">
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="有序列表" @click="formatOrderedList">
+                    <t-icon name="order-list" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="无序列表" @click="formatBulletList">
+                    <t-icon name="bulletpoint" size="16px" />
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="增加缩进" @click="formatIndent">
+                    <t-icon name="indent-right" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="减少缩进" @click="formatOutdent">
+                    <t-icon name="indent-left" size="16px" />
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="首行缩进" @click="formatTextIndent">
+                    <span class="indent-icon">⇥</span>
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="插入表格" @click="showTableDialog = true">
+                    <t-icon name="table" size="16px" />
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="加粗" @click="formatBold">
+                    <t-icon name="textformat-bold" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="斜体" @click="formatItalic">
+                    <t-icon name="textformat-italic" size="16px" />
+                  </button>
+                </div>
+              </div>
+              <div class="editor-content" ref="editorRef"></div>
+              <div class="editor-footer">
                 <span class="hint-text">详细解析，加深理解记忆</span>
-                <span class="char-count">{{ answer.length }}/500</span>
+                <span class="char-count">{{ answerCharCount }}/500</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
+      <div class="table-dialog" v-if="showTableDialog">
+        <div class="table-dialog-mask" @click="showTableDialog = false"></div>
+        <div class="table-dialog-content">
+          <div class="table-dialog-header">
+            <span class="table-dialog-title">插入表格</span>
+            <t-icon name="close" size="20px" class="close-btn" @click="showTableDialog = false" />
+          </div>
+          <div class="table-dialog-body">
+            <div class="table-input-row">
+              <span class="table-label">行数</span>
+              <input type="number" v-model="tableRows" min="1" max="10" class="table-input" />
+            </div>
+            <div class="table-input-row">
+              <span class="table-label">列数</span>
+              <input type="number" v-model="tableCols" min="1" max="6" class="table-input" />
+            </div>
+          </div>
+          <div class="table-dialog-footer">
+            <button class="table-btn cancel" @click="showTableDialog = false">取消</button>
+            <button class="table-btn confirm" @click="insertTable">确定</button>
+          </div>
+        </div>
+      </div>
+
       <div class="footer">
         <div class="btn-cancel" @click="onCancel">取消</div>
-        <div class="btn-submit" :class="{ disabled: !canSubmit }" @click="onSubmit">
+        <div class="btn-submit" :class="{ disabled: !canSubmit }" @click="onSubmitClick">
           <t-icon name="check" size="16px" color="#fff" />
           <span>{{ isEdit ? '保存修改' : '创建卡片' }}</span>
         </div>
@@ -123,11 +172,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
 import Picker from '@/components/Picker.vue'
+import Quill from 'quill'
+import 'quill/dist/quill.snow.css'
 
 interface Library {
   id: number
@@ -165,6 +216,19 @@ const chapters = ref<Chapter[]>([])
 const showLibraryPicker = ref(false)
 const showChapterPicker = ref(false)
 
+const editorRef = ref<HTMLElement | null>(null)
+const toolbarRef = ref<HTMLElement | null>(null)
+const quillInstance = shallowRef<Quill | null>(null)
+const answerText = ref('')
+
+const showTableDialog = ref(false)
+const tableRows = ref(3)
+const tableCols = ref(3)
+
+const answerCharCount = computed(() => {
+  return answerText.value.length
+})
+
 const libraryOptions = computed<PickerOption[]>(() => {
   return libraries.value.map(lib => ({
     label: lib.name,
@@ -180,10 +244,131 @@ const chapterOptions = computed<PickerOption[]>(() => {
 })
 
 const canSubmit = computed(() => {
-  return question.value.trim() && answer.value.trim() && selectedLibrary.value
+  const text = answerText.value.replace(/\s/g, '')
+  const result = question.value.trim() && text && selectedLibrary.value
+  console.log('canSubmit:', {
+    question: question.value.trim(),
+    text: text,
+    selectedLibrary: selectedLibrary.value,
+    result: result
+  })
+  return result
 })
 
-onMounted(() => {
+const initQuill = () => {
+  if (!editorRef.value) {
+    console.log('initQuill: editorRef is null')
+    return
+  }
+  
+  console.log('initQuill: initializing Quill')
+  quillInstance.value = new Quill(editorRef.value, {
+    theme: 'snow',
+    placeholder: '输入答案解析，支持分点作答...',
+    modules: {
+      toolbar: false
+    }
+  })
+  
+  console.log('initQuill: Quill initialized', quillInstance.value)
+
+  if (answer.value) {
+    quillInstance.value.root.innerHTML = answer.value
+    answerText.value = quillInstance.value.getText().replace(/\s/g, '')
+  }
+
+  quillInstance.value.on('text-change', () => {
+    const html = quillInstance.value!.root.innerHTML
+    const text = quillInstance.value!.getText().replace(/\s/g, '')
+    console.log('Quill text-change:', { html: html.substring(0, 50), text: text.substring(0, 50) })
+    answer.value = html
+    answerText.value = text
+  })
+
+  quillInstance.value.on('selection-change', (range) => {
+    answerFocused.value = !!range
+  })
+}
+
+const formatOrderedList = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('list', 'ordered')
+}
+
+const formatBulletList = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('list', 'bullet')
+}
+
+const formatIndent = () => {
+  if (!quillInstance.value) return
+  const currentIndent = quillInstance.value.getFormat().indent || 0
+  if (currentIndent < 4) {
+    quillInstance.value.format('indent', currentIndent + 1)
+  }
+}
+
+const formatOutdent = () => {
+  if (!quillInstance.value) return
+  const currentIndent = quillInstance.value.getFormat().indent || 0
+  if (currentIndent > 0) {
+    quillInstance.value.format('indent', currentIndent - 1)
+  }
+}
+
+const formatTextIndent = () => {
+  if (!quillInstance.value) return
+  const selection = quillInstance.value.getSelection()
+  if (selection) {
+    const currentFormat = quillInstance.value.getFormat(selection.index, selection.length)
+    const indentStyle = currentFormat.indent ? '0em' : '2em'
+    quillInstance.value.format('indent', currentFormat.indent ? false : 1)
+    
+    const [block] = quillInstance.value.getLine(selection.index)
+    if (block) {
+      const blot = block.domNode as HTMLElement
+      if (indentStyle === '2em') {
+        blot.style.textIndent = '2em'
+      } else {
+        blot.style.textIndent = ''
+      }
+    }
+  }
+}
+
+const formatBold = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('bold', !quillInstance.value.getFormat().bold)
+}
+
+const formatItalic = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('italic', !quillInstance.value.getFormat().italic)
+}
+
+const insertTable = () => {
+  if (!quillInstance.value) return
+  
+  const rows = tableRows.value
+  const cols = tableCols.value
+  
+  let tableHtml = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0;">'
+  for (let i = 0; i < rows; i++) {
+    tableHtml += '<tr>'
+    for (let j = 0; j < cols; j++) {
+      tableHtml += '<td style="border: 1px solid #ddd; padding: 8px; min-width: 50px;">&nbsp;</td>'
+    }
+    tableHtml += '</tr>'
+  }
+  tableHtml += '</table><p><br></p>'
+  
+  const selection = quillInstance.value.getSelection(true)
+  quillInstance.value.clipboard.dangerouslyPasteHTML(selection.index, tableHtml)
+  
+  showTableDialog.value = false
+}
+
+onMounted(async () => {
   const q = route.query.question as string
   const a = route.query.answer as string
   const editId = route.query.id as string
@@ -193,13 +378,17 @@ onMounted(() => {
   if (editId) {
     isEdit.value = true
     cardId.value = parseInt(editId)
-    loadCardData()
+    await loadCardData()
   } else {
     if (q) question.value = decodeURIComponent(q)
     if (a) answer.value = decodeURIComponent(a)
   }
   
-  loadLibraries()
+  await loadLibraries()
+})
+
+onBeforeUnmount(() => {
+  quillInstance.value = null
 })
 
 const loadCardData = async () => {
@@ -219,14 +408,32 @@ const loadLibraries = async () => {
   loading.value = true
   try {
     const res = await libraryAPI.getMyLibraries({ page: 1, pageSize: 100 })
+    console.log('loadLibraries response:', res)
+    console.log('res.data:', res.data)
+    console.log('res.data type:', typeof res.data, Array.isArray(res.data))
+    
     if (res.success && res.data) {
-      libraries.value = (res.data.list || res.data || []).map((lib: any) => ({
+      let list = []
+      if (Array.isArray(res.data)) {
+        list = res.data
+      } else if (res.data.list && Array.isArray(res.data.list)) {
+        list = res.data.list
+      } else if (res.data.data && Array.isArray(res.data.data)) {
+        list = res.data.data
+      }
+      
+      console.log('list:', list)
+      
+      libraries.value = list.map((lib: any) => ({
         id: lib.id,
         name: lib.name
       }))
       
+      console.log('libraries:', libraries.value)
+      
       if (libraries.value.length === 0) {
         MessagePlugin.warning('请先创建知识库')
+        loading.value = false
         setTimeout(() => router.back(), 1500)
         return
       }
@@ -238,12 +445,18 @@ const loadLibraries = async () => {
           selectedLibrary.value = lib
           selectedLibraryIndex.value = [lib.id]
           loadChapters(lib.id)
+        } else {
+          selectedLibrary.value = libraries.value[0]
+          selectedLibraryIndex.value = [libraries.value[0].id]
+          loadChapters(libraries.value[0].id)
         }
       } else {
         selectedLibrary.value = libraries.value[0]
         selectedLibraryIndex.value = [libraries.value[0].id]
         loadChapters(libraries.value[0].id)
       }
+      
+      console.log('selectedLibrary:', selectedLibrary.value)
     }
   } catch (error) {
     console.error('加载知识库失败:', error)
@@ -251,6 +464,8 @@ const loadLibraries = async () => {
     setTimeout(() => router.back(), 1500)
   } finally {
     loading.value = false
+    await nextTick()
+    initQuill()
   }
 }
 
@@ -316,7 +531,7 @@ const onChapterConfirm = (value: (string | number)[]) => {
 }
 
 const onCancel = () => {
-  if (question.value.trim() || answer.value.trim()) {
+  if (question.value.trim() || answerText.value) {
     const confirmDialog = DialogPlugin.confirm({
       header: '确认取消',
       body: '确定要放弃当前编辑的内容吗？',
@@ -332,15 +547,40 @@ const onCancel = () => {
   }
 }
 
+const onSubmitClick = () => {
+  console.log('onSubmitClick called, canSubmit:', canSubmit.value)
+  
+  if (!selectedLibrary.value) {
+    MessagePlugin.warning('请选择知识库')
+    return
+  }
+  
+  if (!question.value.trim()) {
+    MessagePlugin.warning('请输入题目')
+    return
+  }
+  
+  const text = answerText.value.replace(/\s/g, '')
+  console.log('onSubmitClick text:', text)
+  if (!text) {
+    MessagePlugin.warning('请输入答案')
+    return
+  }
+  
+  onSubmit()
+}
+
 const onSubmit = async () => {
   if (!canSubmit.value) return
 
   try {
+    const html = quillInstance.value ? quillInstance.value.root.innerHTML : answer.value
+    
     const data = {
       library_id: selectedLibrary.value!.id,
       chapter_id: selectedChapter.value?.id || null,
       question: question.value.trim(),
-      answer: answer.value.trim(),
+      answer: html,
       tags: [],
       is_public: 1
     }
@@ -368,47 +608,8 @@ const onSubmit = async () => {
   min-height: 100vh;
   background: linear-gradient(180deg, #f0f4f8 0%, #f8fafc 100%);
   padding: 16px;
-  padding-top: 60px;
   padding-bottom: 100px;
   box-sizing: border-box;
-}
-
-.custom-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 44px;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  z-index: 100;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.nav-left {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.8;
-  }
-}
-
-.nav-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.nav-right {
-  width: 40px;
 }
 
 .loading-container {
@@ -427,7 +628,7 @@ const onSubmit = async () => {
 
 .header-decoration {
   position: fixed;
-  top: 44px;
+  top: 0;
   left: 0;
   right: 0;
   height: 120px;
@@ -611,6 +812,255 @@ const onSubmit = async () => {
   font-size: 12px;
   color: #95a5a6;
   font-weight: 500;
+}
+
+.editor-card {
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e8ecf0;
+  border-left: 3px solid #10B981;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  
+  &.focused {
+    background: #ffffff;
+    border-color: #10B981;
+    box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
+  }
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #f0f4f8;
+  border-bottom: 1px solid #e8ecf0;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #2c3e50;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #e8ecf0;
+  }
+  
+  &:active {
+    background: #d4d9e0;
+  }
+}
+
+.indent-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #d4d9e0;
+  margin: 0 6px;
+}
+
+.editor-content {
+  min-height: 200px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 12px;
+  
+  :deep(.ql-editor) {
+    font-size: 15px;
+    line-height: 1.7;
+    color: #2c3e50;
+    padding: 0;
+    min-height: 180px;
+    
+    &.ql-blank::before {
+      font-style: normal;
+      color: #95a5a6;
+    }
+    
+    p {
+      margin: 0 0 8px 0;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    ul, ol {
+      margin: 0 0 8px 0;
+    }
+    
+    li {
+      margin-bottom: 4px;
+    }
+    
+    li > .ql-ui:before {
+      font-size: 15px;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0;
+      
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        min-width: 50px;
+      }
+    }
+  }
+}
+
+.editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-top: 1px solid #e8ecf0;
+  background: #fafbfc;
+}
+
+.table-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-dialog-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.table-dialog-content {
+  position: relative;
+  background: #ffffff;
+  border-radius: 12px;
+  width: 280px;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.table-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #e8ecf0;
+}
+
+.table-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.close-btn {
+  cursor: pointer;
+  color: #95a5a6;
+  
+  &:hover {
+    color: #2c3e50;
+  }
+}
+
+.table-dialog-body {
+  padding: 16px;
+}
+
+.table-input-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.table-label {
+  width: 50px;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.table-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #e8ecf0;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  
+  &:focus {
+    border-color: #3B82F6;
+  }
+}
+
+.table-dialog-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #e8ecf0;
+}
+
+.table-btn {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &.cancel {
+    background: #f8fafc;
+    color: #7f8c8d;
+    border: 1px solid #e8ecf0;
+    
+    &:hover {
+      background: #e8ecf0;
+    }
+  }
+  
+  &.confirm {
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    color: #ffffff;
+    
+    &:hover {
+      opacity: 0.9;
+    }
+  }
 }
 
 .footer {

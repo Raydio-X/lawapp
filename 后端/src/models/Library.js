@@ -107,16 +107,22 @@ class LibraryModel {
         return rows;
     }
 
-    static async findById(id) {
+    static async findById(id, userId = null) {
         const [rows] = await db.execute(
             `SELECT l.*, u.nickname as creator_name,
-             (SELECT COUNT(*) FROM cards c WHERE c.library_id = l.id) as card_count
+             (SELECT COUNT(*) FROM cards c WHERE c.library_id = l.id) as card_count,
+             (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id) as favorite_count,
+             (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id AND f.user_id = ?) as is_favorited
              FROM libraries l 
              LEFT JOIN users u ON l.created_by = u.id 
              WHERE l.id = ?`,
-            [id]
+            [userId || 0, id]
         );
-        return rows[0];
+        const row = rows[0];
+        if (row) {
+            row.is_favorited = row.is_favorited > 0;
+        }
+        return row;
     }
 
     static async create(data) {

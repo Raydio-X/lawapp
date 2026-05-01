@@ -166,8 +166,8 @@ export const cardAPI = {
   recordStudy: (id: number, data?: any) => api.post(`/cards/${id}/study`, data),
   addWrong: (id: number) => api.post(`/cards/${id}/wrong`),
   markAsMastered: (id: number) => api.post(`/cards/${id}/master`),
-  setMastery: (id: number, mastered: boolean) => api.post(`/cards/${id}/mastery`, { mastered }),
-  toggleMastery: (id: number) => api.post(`/cards/${id}/mastery/toggle`),
+  setMastery: (id: number, mastered: boolean, feedback?: string) => api.post(`/cards/${id}/mastery`, { mastered, feedback }),
+  toggleMastery: (id: number, feedback?: string) => api.post(`/cards/${id}/mastery/toggle`, { feedback }),
   like: (id: number) => api.post(`/cards/${id}/like`),
   unlike: (id: number) => api.post(`/cards/${id}/unlike`),
   toggleLike: (id: number) => api.post(`/cards/${id}/like`),
@@ -180,7 +180,8 @@ export const cardAPI = {
   batchMove: (cardIds: number[], chapterId: number) => api.post('/cards/batch-move', { cardIds, chapterId }),
   getRelated: (id: number, limit?: number) => api.get(`/cards/${id}/related`, { limit }),
   updateMastery: (id: number, level: number) => api.post(`/cards/${id}/mastery`, { level }),
-  getMyCards: (params?: any) => api.get('/cards/my', params)
+  getMyCards: (params?: any) => api.get('/cards/my', params),
+  rateDifficulty: (id: number, rating: number) => api.post(`/cards/${id}/difficulty`, { rating })
 }
 
 export const chapterAPI = {

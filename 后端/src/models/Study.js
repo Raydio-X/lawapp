@@ -366,8 +366,13 @@ class StudyModel {
             [userId, today]
         );
 
+        const durationInSeconds = rows[0]?.duration || 0;
+        const durationInMinutes = Math.floor(durationInSeconds / 60);
+
         return {
-            todayStudyTime: rows[0]?.duration || 0
+            seconds: durationInSeconds,
+            minutes: durationInMinutes,
+            todayStudyTime: durationInSeconds
         };
     }
 

@@ -38,14 +38,14 @@
         <div class="outline-list" v-if="outline.length > 0">
           <div 
             class="outline-item"
-            :class="{ 'sub-item': item.level > 1, dragging: dragIndex === index }"
+            :class="{ 'sub-item': item.level > 1, dragging: dragIndex === index, 'level-changing': levelChangingIndex === index }"
+            :style="{ '--level-offset': (item.level - 1) * 24 + 'px' }"
             v-for="(item, index) in outline" 
             :key="item.id"
-            draggable="true"
-            @dragstart="onDragStart($event, index)"
-            @dragover.prevent="onDragOver($event, index)"
-            @drop="onDrop($event, index)"
-            @dragend="onDragEnd"
+            @touchstart="onTouchStart($event, index)"
+            @touchmove="onTouchMove($event, index)"
+            @touchend="onTouchEnd"
+            @mousedown="onMouseDown($event, index)"
           >
             <div class="outline-drag-handle">
               <t-icon name="move" size="16px" color="#ccc" />
@@ -64,15 +64,12 @@
               </div>
             </div>
             <div class="outline-actions">
-              <div class="action-btn" @click="onChangeLevel(index, -1)" v-if="item.level > 1">
-                <t-icon name="chevron-left" size="16px" color="#999" />
-              </div>
-              <div class="action-btn" @click="onChangeLevel(index, 1)" v-if="item.level < 3">
-                <t-icon name="chevron-right" size="16px" color="#999" />
-              </div>
               <div class="action-btn" @click="onDeleteOutline(index)">
                 <t-icon name="close" size="18px" color="#999" />
               </div>
+            </div>
+            <div class="level-hint" v-if="levelChangingIndex === index">
+              <span>{{ levelHintText }}</span>
             </div>
           </div>
         </div>
@@ -89,7 +86,7 @@
       </div>
 
       <div class="outline-tips">
-        <span>提示：拖动可排序，点击箭头可改变标题层级</span>
+        <span>提示：上下拖动可排序，左右拖动可改变层级</span>
       </div>
     </div>
 
@@ -98,7 +95,10 @@
 
   <div class="bottom-bar">
     <div class="btn-cancel" @click="onCancel">取消</div>
-    <div class="btn-submit" @click="onSubmit">创建知识库</div>
+    <div class="btn-submit" :class="{ loading: loading }" @click="onSubmit">
+      <span v-if="loading">{{ isEdit ? '保存中...' : '创建中...' }}</span>
+      <span v-else>{{ isEdit ? '保存知识库' : '创建知识库' }}</span>
+    </div>
   </div>
 
   <t-dialog
@@ -112,8 +112,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI, chapterAPI } from '@/utils/api'
 
@@ -125,13 +125,27 @@ interface OutlineItem {
 }
 
 const router = useRouter()
+const route = useRoute()
 
+const libraryId = ref<number | null>(null)
+const isEdit = ref(false)
 const libraryName = ref('')
 const isPublic = ref(true)
 const outline = ref<OutlineItem[]>([])
 const showCancelDialog = ref(false)
-const dragIndex = ref(-1)
 const existingLibraryNames = ref<string[]>([])
+const loading = ref(false)
+
+const touchStartX = ref(0)
+const touchStartY = ref(0)
+const touchCurrentX = ref(0)
+const isDragging = ref(false)
+const dragStartIndex = ref(-1)
+const dragIndex = ref(-1)
+const levelChangingIndex = ref(-1)
+const levelHintText = ref('')
+
+const LEVEL_THRESHOLD = 50
 
 const SUBJECTS = ['民法', '刑法', '宪法', '行政法']
 
@@ -140,8 +154,22 @@ const getRandomSubject = () => {
   return SUBJECTS[randomIndex]
 }
 
-onMounted(() => {
-  loadExistingLibraryNames()
+onMounted(async () => {
+  const id = route.query.id
+  if (id) {
+    libraryId.value = parseInt(id as string)
+    isEdit.value = true
+    await loadLibraryDetail(libraryId.value)
+  } else {
+    await loadExistingLibraryNames()
+  }
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
 })
 
 const loadExistingLibraryNames = async () => {
@@ -156,17 +184,37 @@ const loadExistingLibraryNames = async () => {
   }
 }
 
+const loadLibraryDetail = async (id: number) => {
+  loading.value = true
+  try {
+    const res = await libraryAPI.getDetail(id)
+    if (res.success && res.data) {
+      libraryName.value = res.data.name
+      isPublic.value = res.data.is_public === 1
+      
+      const chaptersRes = await chapterAPI.getList(id)
+      if (chaptersRes.success && chaptersRes.data) {
+        outline.value = chaptersRes.data.map((ch: any) => ({
+          id: ch.id,
+          title: ch.name,
+          level: ch.level || 1,
+          parentId: ch.parent_id
+        }))
+      }
+    }
+  } catch (error) {
+    console.error('加载知识库详情失败:', error)
+    MessagePlugin.error('加载失败')
+  } finally {
+    loading.value = false
+  }
+}
+
 const onTogglePublic = () => {
   isPublic.value = !isPublic.value
 }
 
 const onAddOutline = () => {
-  const hasEmptyTitle = outline.value.some(item => !item.title.trim())
-  if (hasEmptyTitle) {
-    MessagePlugin.warning('请先填写已有标题')
-    return
-  }
-
   const newId = Date.now()
   outline.value.push({
     id: newId,
@@ -191,69 +239,155 @@ const onDeleteOutline = (index: number) => {
   toDelete.reverse().forEach(i => outline.value.splice(i, 1))
 }
 
-const onChangeLevel = (index: number, delta: number) => {
-  const item = outline.value[index]
-  const newLevel = item.level + delta
+const canChangeLevel = (index: number, newLevel: number): boolean => {
+  if (newLevel < 1 || newLevel > 3) return false
   
-  if (newLevel < 1 || newLevel > 3) return
-  
-  if (delta > 0) {
-    if (index > 0) {
-      const prevItem = outline.value[index - 1]
-      if (prevItem.level < item.level) {
-        return
-      }
-    } else {
-      return
-    }
+  if (newLevel > 1) {
+    if (index === 0) return false
+    const prevItem = outline.value[index - 1]
+    if (prevItem.level < newLevel - 1) return false
   }
   
+  return true
+}
+
+const updateItemLevel = (index: number, newLevel: number) => {
+  if (!canChangeLevel(index, newLevel)) return
+  
+  const oldLevel = outline.value[index].level
   outline.value[index].level = newLevel
-}
-
-const onDragStart = (e: DragEvent, index: number) => {
-  dragIndex.value = index
-  if (e.dataTransfer) {
-    e.dataTransfer.effectAllowed = 'move'
-  }
-}
-
-const onDragOver = (e: DragEvent, index: number) => {
-  e.preventDefault()
-  if (e.dataTransfer) {
-    e.dataTransfer.dropEffect = 'move'
-  }
-}
-
-const onDrop = (e: DragEvent, targetIndex: number) => {
-  if (dragIndex.value < 0 || dragIndex.value === targetIndex) return
   
-  const dragItem = outline.value[dragIndex.value]
-  if (!dragItem) return
-  
-  const movingItems = [dragItem]
-  for (let i = dragIndex.value + 1; i < outline.value.length; i++) {
-    if (outline.value[i].level > dragItem.level) {
-      movingItems.push(outline.value[i])
+  const levelDiff = newLevel - oldLevel
+  for (let i = index + 1; i < outline.value.length; i++) {
+    if (outline.value[i].level > oldLevel) {
+      const newChildLevel = outline.value[i].level + levelDiff
+      if (newChildLevel >= 1 && newChildLevel <= 3) {
+        outline.value[i].level = newChildLevel
+      }
     } else {
       break
     }
   }
-  
-  const newOutline = [...outline.value]
-  newOutline.splice(dragIndex.value, movingItems.length)
-  
-  let insertIndex = targetIndex
-  if (targetIndex > dragIndex.value) {
-    insertIndex = targetIndex - movingItems.length + 1
-  }
-  
-  newOutline.splice(insertIndex, 0, ...movingItems)
-  outline.value = newOutline
 }
 
-const onDragEnd = () => {
+const onTouchStart = (e: TouchEvent, index: number) => {
+  const touch = e.touches[0]
+  touchStartX.value = touch.clientX
+  touchStartY.value = touch.clientY
+  touchCurrentX.value = touch.clientX
+  dragStartIndex.value = index
+  isDragging.value = false
+}
+
+const onTouchMove = (e: TouchEvent, index: number) => {
+  if (dragStartIndex.value !== index) return
+  
+  const touch = e.touches[0]
+  const deltaX = touch.clientX - touchStartX.value
+  const deltaY = touch.clientY - touchStartY.value
+  
+  touchCurrentX.value = touch.clientX
+  
+  if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+    isDragging.value = true
+  }
+  
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > LEVEL_THRESHOLD) {
+    e.preventDefault()
+    
+    const item = outline.value[index]
+    const direction = deltaX > 0 ? 1 : -1
+    const newLevel = item.level + direction
+    
+    if (canChangeLevel(index, newLevel)) {
+      levelChangingIndex.value = index
+      levelHintText.value = newLevel > item.level ? '→ 增加层级' : '← 减少层级'
+    } else {
+      levelChangingIndex.value = index
+      levelHintText.value = '无法调整'
+    }
+  } else {
+    levelChangingIndex.value = -1
+  }
+}
+
+const onTouchEnd = () => {
+  if (levelChangingIndex.value >= 0) {
+    const index = levelChangingIndex.value
+    const deltaX = touchCurrentX.value - touchStartX.value
+    const item = outline.value[index]
+    const direction = deltaX > 0 ? 1 : -1
+    const newLevel = item.level + direction
+    
+    if (Math.abs(deltaX) > LEVEL_THRESHOLD && canChangeLevel(index, newLevel)) {
+      updateItemLevel(index, newLevel)
+    }
+  }
+  
+  levelChangingIndex.value = -1
+  dragStartIndex.value = -1
+  isDragging.value = false
+}
+
+const onMouseDown = (e: MouseEvent, index: number) => {
+  if ((e.target as HTMLElement).tagName === 'INPUT') return
+  if ((e.target as HTMLElement).closest('.action-btn')) return
+  
+  touchStartX.value = e.clientX
+  touchStartY.value = e.clientY
+  touchCurrentX.value = e.clientX
+  dragStartIndex.value = index
+  isDragging.value = false
+  dragIndex.value = index
+}
+
+const onMouseMove = (e: MouseEvent) => {
+  if (dragStartIndex.value < 0) return
+  
+  const deltaX = e.clientX - touchStartX.value
+  const deltaY = e.clientY - touchStartY.value
+  
+  touchCurrentX.value = e.clientX
+  
+  if (Math.abs(deltaX) > 10 || Math.abs(deltaY) > 10) {
+    isDragging.value = true
+  }
+  
+  if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > LEVEL_THRESHOLD) {
+    const index = dragStartIndex.value
+    const item = outline.value[index]
+    const direction = deltaX > 0 ? 1 : -1
+    const newLevel = item.level + direction
+    
+    if (canChangeLevel(index, newLevel)) {
+      levelChangingIndex.value = index
+      levelHintText.value = newLevel > item.level ? '→ 增加层级' : '← 减少层级'
+    } else {
+      levelChangingIndex.value = index
+      levelHintText.value = '无法调整'
+    }
+  } else {
+    levelChangingIndex.value = -1
+  }
+}
+
+const onMouseUp = () => {
+  if (levelChangingIndex.value >= 0) {
+    const index = levelChangingIndex.value
+    const deltaX = touchCurrentX.value - touchStartX.value
+    const item = outline.value[index]
+    const direction = deltaX > 0 ? 1 : -1
+    const newLevel = item.level + direction
+    
+    if (Math.abs(deltaX) > LEVEL_THRESHOLD && canChangeLevel(index, newLevel)) {
+      updateItemLevel(index, newLevel)
+    }
+  }
+  
+  levelChangingIndex.value = -1
+  dragStartIndex.value = -1
   dragIndex.value = -1
+  isDragging.value = false
 }
 
 const onCancel = () => {
@@ -275,24 +409,37 @@ const onSubmit = async () => {
     return
   }
 
-  const newName = libraryName.value.trim().toLowerCase()
-  if (existingLibraryNames.value.includes(newName)) {
-    MessagePlugin.warning('知识库名称已存在')
-    return
+  if (!isEdit.value) {
+    const newName = libraryName.value.trim().toLowerCase()
+    if (existingLibraryNames.value.includes(newName)) {
+      MessagePlugin.warning('知识库名称已存在')
+      return
+    }
   }
 
+  loading.value = true
   try {
     const randomSubject = getRandomSubject()
     
-    const result = await libraryAPI.create({
-      name: libraryName.value.trim(),
-      subject: randomSubject,
-      description: '',
-      is_public: isPublic.value ? 1 : 0
-    })
+    let result
+    if (isEdit.value && libraryId.value) {
+      result = await libraryAPI.update(libraryId.value, {
+        name: libraryName.value.trim(),
+        subject: randomSubject,
+        description: '',
+        is_public: isPublic.value ? 1 : 0
+      })
+    } else {
+      result = await libraryAPI.create({
+        name: libraryName.value.trim(),
+        subject: randomSubject,
+        description: '',
+        is_public: isPublic.value ? 1 : 0
+      })
+    }
 
     if (result.success) {
-      const libraryId = result.data.id
+      const targetLibraryId = isEdit.value ? libraryId.value : result.data.id
 
       if (outline.value.length > 0) {
         const validOutline = outline.value.filter(item => item.title.trim())
@@ -318,21 +465,23 @@ const onSubmit = async () => {
             }
           })
           
-          await chapterAPI.batchCreate(libraryId, chapters)
+          await chapterAPI.batchCreate(targetLibraryId!, chapters)
         }
       }
 
-      MessagePlugin.success('创建成功')
+      MessagePlugin.success(isEdit.value ? '保存成功' : '创建成功')
       
       setTimeout(() => {
         router.back()
       }, 1500)
     } else {
-      MessagePlugin.error(result.message || '创建失败')
+      MessagePlugin.error(result.message || (isEdit.value ? '保存失败' : '创建失败'))
     }
   } catch (error: any) {
-    console.error('创建知识库失败:', error)
-    MessagePlugin.error(error.message || '创建失败')
+    console.error(isEdit.value ? '保存知识库失败:' : '创建知识库失败:', error)
+    MessagePlugin.error(error.message || (isEdit.value ? '保存失败' : '创建失败'))
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -481,6 +630,10 @@ const onSubmit = async () => {
   padding: 10px 12px;
   border: 1px solid transparent;
   cursor: move;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, margin-left 0.2s ease;
+  margin-left: var(--level-offset, 0);
+  user-select: none;
 }
 
 .outline-item.sub-item {
@@ -492,6 +645,12 @@ const onSubmit = async () => {
   border-color: #3B82F6;
   box-shadow: 0 4px 12px rgba(0, 82, 217, 0.2);
   transform: scale(1.02);
+}
+
+.outline-item.level-changing {
+  border-color: #10B981;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  background-color: #f0fdf4;
 }
 
 .outline-drag-handle {
@@ -572,6 +731,44 @@ const onSubmit = async () => {
   
   &:active {
     background-color: #e8e9eb;
+  }
+}
+
+.level-hint {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #10B981;
+  color: #fff;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  z-index: 10;
+  animation: fadeIn 0.2s ease;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid #10B981;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
   }
 }
 
@@ -668,6 +865,12 @@ const onSubmit = async () => {
   &:active {
     transform: scale(0.98);
     box-shadow: 0 2px 6px rgba(0, 82, 217, 0.2);
+  }
+  
+  &.loading {
+    opacity: 0.7;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 }
 </style>

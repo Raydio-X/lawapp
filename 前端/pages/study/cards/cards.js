@@ -267,7 +267,7 @@ Page({
         this.studiedCards.add(currentCard.id);
       }
 
-      const res = await cardAPI.setMastery(currentCard.id, false);
+      const res = await cardAPI.setMastery(currentCard.id, true, 'difficult');
       
       if (res.success) {
         const updatedCard = {
@@ -317,7 +317,7 @@ Page({
         this.studiedCards.add(currentCard.id);
       }
 
-      const res = await cardAPI.setMastery(currentCard.id, true);
+      const res = await cardAPI.setMastery(currentCard.id, true, 'easy');
       
       if (res.success) {
         const updatedCard = {

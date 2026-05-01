@@ -388,13 +388,13 @@ const cardAPI = {
   },
 
   // 设置掌握状态
-  setMastery: (id, mastered) => {
-    return post(`/cards/${id}/mastery`, { mastered });
+  setMastery: (id, mastered, feedback) => {
+    return post(`/cards/${id}/mastery`, { mastered, feedback });
   },
 
   // 切换掌握状态
-  toggleMastery: (id) => {
-    return post(`/cards/${id}/mastery/toggle`);
+  toggleMastery: (id, feedback) => {
+    return post(`/cards/${id}/mastery/toggle`, { feedback });
   },
 
   // 点赞卡片
