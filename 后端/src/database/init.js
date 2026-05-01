@@ -121,6 +121,7 @@ async function initDatabase() {
                 library_id INT NOT NULL,
                 feedback ENUM('easy', 'normal', 'difficult') DEFAULT 'normal',
                 study_duration INT DEFAULT 0,
+                is_formal_study TINYINT(1) DEFAULT 1,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_user_id (user_id),
                 INDEX idx_card_id (card_id),
@@ -251,6 +252,23 @@ async function initDatabase() {
         console.log('Created study_time_records table');
 
         await connection.query(`
+            CREATE TABLE study_progress (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL UNIQUE,
+                library_ids JSON,
+                library_names TEXT,
+                card_list JSON,
+                current_index INT DEFAULT 0,
+                learned INT DEFAULT 0,
+                total INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created study_progress table');
+
+        await connection.query(`
             CREATE TABLE messages (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 user_id INT NOT NULL,
@@ -301,6 +319,44 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created comment_likes table');
+
+        await connection.query(
+            `INSERT INTO users (openid, nickname, avatar, bio) VALUES (?, ?, ?, ?)`,
+            ['admin_account', '管理员', '', '系统管理员']
+        );
+        console.log('Created default admin user');
+
+        const blockedWords = [
+            { word: '傻逼', category: 'profanity' },
+            { word: '操你', category: 'profanity' },
+            { word: '妈的', category: 'profanity' },
+            { word: '他妈的', category: 'profanity' },
+            { word: '草泥马', category: 'profanity' },
+            { word: '王八蛋', category: 'profanity' },
+            { word: '滚蛋', category: 'profanity' },
+            { word: '混蛋', category: 'profanity' },
+            { word: '贱人', category: 'profanity' },
+            { word: '婊子', category: 'profanity' },
+            { word: '垃圾', category: 'insult' },
+            { word: '废物', category: 'insult' },
+            { word: '智障', category: 'insult' },
+            { word: '脑残', category: 'insult' },
+            { word: '白痴', category: 'insult' },
+            { word: '弱智', category: 'insult' },
+            { word: '傻X', category: 'profanity' },
+            { word: 'SB', category: 'profanity' },
+            { word: 'sb', category: 'profanity' },
+            { word: 'NC', category: 'insult' },
+            { word: 'nc', category: 'insult' }
+        ];
+
+        for (const bw of blockedWords) {
+            await connection.query(
+                'INSERT INTO blocked_words (word, category) VALUES (?, ?)',
+                [bw.word, bw.category]
+            );
+        }
+        console.log('Inserted default blocked words');
 
         console.log('Database and tables created successfully!');
     } catch (error) {
