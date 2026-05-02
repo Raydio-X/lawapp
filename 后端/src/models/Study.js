@@ -1,6 +1,23 @@
 const db = require('../config/database');
 const MasteryModel = require('./Mastery');
 
+function formatDateToLocal(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function getTodayLocal() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+function getDateDaysAgo(days) {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 class StudyModel {
     static async recordStudy(userId, cardId, libraryId, feedback = 'normal', duration = 0, isFormalStudy = false) {
         const [result] = await db.execute(
@@ -39,6 +56,10 @@ class StudyModel {
     }
 
     static async getStats(userId) {
+        const today = getTodayLocal();
+        const weekAgo = getDateDaysAgo(7);
+        const twoWeeksAgo = getDateDaysAgo(14);
+        
         const [stats] = await db.execute(
             'SELECT * FROM user_stats WHERE user_id = ?',
             [userId]
@@ -51,8 +72,8 @@ class StudyModel {
 
         const [todayCards] = await db.execute(
             `SELECT COUNT(*) as count FROM study_records 
-             WHERE user_id = ? AND DATE(created_at) = CURDATE() AND is_formal_study = 1`,
-            [userId]
+             WHERE user_id = ? AND DATE(created_at) = ? AND is_formal_study = 1`,
+            [userId, today]
         );
 
         const [totalCards] = await db.execute(
@@ -79,25 +100,24 @@ class StudyModel {
 
         const [todayNew] = await db.execute(
             `SELECT COUNT(DISTINCT sr.card_id) as count FROM study_records sr
-             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE() AND sr.is_formal_study = 1
+             WHERE sr.user_id = ? AND DATE(sr.created_at) = ? AND sr.is_formal_study = 1
              AND sr.card_id NOT IN (
                  SELECT DISTINCT card_id FROM study_records 
-                 WHERE user_id = ? AND is_formal_study = 1 AND DATE(created_at) < CURDATE()
+                 WHERE user_id = ? AND is_formal_study = 1 AND DATE(created_at) < ?
              )`,
-            [userId, userId]
+            [userId, today, userId, today]
         );
 
         const [weekTime] = await db.execute(
             `SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records 
-             WHERE user_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
-            [userId]
+             WHERE user_id = ? AND study_date >= ?`,
+            [userId, weekAgo]
         );
 
         const [lastWeekTime] = await db.execute(
             `SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records 
-             WHERE user_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 14 DAY) 
-             AND study_date < DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
-            [userId]
+             WHERE user_id = ? AND study_date >= ? AND study_date < ?`,
+            [userId, twoWeeksAgo, weekAgo]
         );
 
         const currentWeekSeconds = weekTime[0]?.total || 0;
@@ -136,14 +156,15 @@ class StudyModel {
     }
 
     static async getTodayRecords(userId) {
+        const today = getTodayLocal();
         const [rows] = await db.execute(
             `SELECT sr.*, c.question, l.name as library_name
              FROM study_records sr
              LEFT JOIN cards c ON sr.card_id = c.id
              LEFT JOIN libraries l ON sr.library_id = l.id
-             WHERE sr.user_id = ? AND DATE(sr.created_at) = CURDATE() AND sr.is_formal_study = 1
+             WHERE sr.user_id = ? AND DATE(sr.created_at) = ? AND sr.is_formal_study = 1
              ORDER BY sr.created_at DESC`,
-            [userId]
+            [userId, today]
         );
         return rows;
     }
@@ -202,13 +223,14 @@ class StudyModel {
     }
 
     static async getTrend(userId, days = 7) {
+        const daysAgo = getDateDaysAgo(parseInt(days));
         const [rows] = await db.execute(
             `SELECT DATE(created_at) as date, COUNT(*) as count
              FROM study_records
-             WHERE user_id = ? AND created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY) AND is_formal_study = 1
+             WHERE user_id = ? AND created_at >= ? AND is_formal_study = 1
              GROUP BY DATE(created_at)
              ORDER BY date ASC`,
-            [userId, parseInt(days)]
+            [userId, daysAgo]
         );
         return rows;
     }
@@ -228,8 +250,7 @@ class StudyModel {
         const [timeRows] = await db.execute(
             `SELECT study_date as date, duration
              FROM study_time_records
-             WHERE user_id = ? AND YEAR(study_date) = ? AND MONTH(study_date) = ?
-             AND study_date < CURDATE()`,
+             WHERE user_id = ? AND YEAR(study_date) = ? AND MONTH(study_date) = ?`,
             [userId, year, month]
         );
 
@@ -237,7 +258,7 @@ class StudyModel {
             `SELECT DATE(created_at) as date, COUNT(DISTINCT card_id) as count
              FROM study_records
              WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?
-             AND DATE(created_at) < CURDATE() AND is_formal_study = 1
+             AND is_formal_study = 1
              GROUP BY DATE(created_at)`,
             [userId, year, month]
         );
@@ -245,7 +266,7 @@ class StudyModel {
         const stats = {};
         
         timeRows.forEach(row => {
-            const dateStr = row.date.toISOString().split('T')[0];
+            const dateStr = formatDateToLocal(row.date);
             stats[dateStr] = {
                 duration: row.duration || 0,
                 cards: 0
@@ -253,7 +274,7 @@ class StudyModel {
         });
 
         cardRows.forEach(row => {
-            const dateStr = row.date.toISOString().split('T')[0];
+            const dateStr = formatDateToLocal(row.date);
             if (stats[dateStr]) {
                 stats[dateStr].cards = row.count || 0;
             } else {
@@ -268,7 +289,7 @@ class StudyModel {
     }
 
     static async recordStudyTime(userId, libraryId, duration) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayLocal();
         
         const [existing] = await db.execute(
             'SELECT * FROM study_time_records WHERE user_id = ? AND study_date = ?',
@@ -302,7 +323,7 @@ class StudyModel {
             );
             
             const lastStudyDate = stats[0]?.last_study_date;
-            const lastStudyDateStr = lastStudyDate ? new Date(lastStudyDate).toISOString().split('T')[0] : null;
+            const lastStudyDateStr = formatDateToLocal(lastStudyDate);
             
             if (lastStudyDateStr !== today) {
                 wasCheckedIn = true;
@@ -359,7 +380,7 @@ class StudyModel {
     }
 
     static async getTodayStudyTime(userId) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayLocal();
         
         const [rows] = await db.execute(
             'SELECT duration FROM study_time_records WHERE user_id = ? AND study_date = ?',
@@ -377,7 +398,8 @@ class StudyModel {
     }
 
     static async getStudyTimeStats(userId) {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayLocal();
+        const weekAgo = getDateDaysAgo(7);
         
         const [todayTime] = await db.execute(
             'SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records WHERE user_id = ? AND study_date = ?',
@@ -391,8 +413,8 @@ class StudyModel {
 
         const [weeklyTime] = await db.execute(
             `SELECT COALESCE(SUM(duration), 0) as total FROM study_time_records 
-             WHERE user_id = ? AND study_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)`,
-            [userId]
+             WHERE user_id = ? AND study_date >= ?`,
+            [userId, weekAgo]
         );
 
         return {
@@ -403,6 +425,8 @@ class StudyModel {
     }
 
     static async getMonthlyAvgStats(year, month) {
+        const today = getTodayLocal();
+        
         const [timeRows] = await db.execute(
             `SELECT 
                 AVG(study_days) as avg_study_days,
@@ -417,10 +441,10 @@ class StudyModel {
                     MAX(duration) as max_daily_time
                 FROM study_time_records
                 WHERE YEAR(study_date) = ? AND MONTH(study_date) = ?
-                AND study_date < CURDATE()
+                AND study_date < ?
                 GROUP BY user_id
             ) as user_stats`,
-            [year, month]
+            [year, month, today]
         );
 
         const [cardRows] = await db.execute(
@@ -429,10 +453,10 @@ class StudyModel {
                 SELECT COUNT(DISTINCT card_id) as total_cards
                 FROM study_records
                 WHERE YEAR(created_at) = ? AND MONTH(created_at) = ?
-                AND DATE(created_at) < CURDATE() AND is_formal_study = 1
+                AND DATE(created_at) < ? AND is_formal_study = 1
                 GROUP BY user_id
             ) as card_stats`,
-            [year, month]
+            [year, month, today]
         );
 
         const timeStats = timeRows[0] || {};

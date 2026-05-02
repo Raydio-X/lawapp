@@ -12,9 +12,25 @@
       </div>
     </div>
 
-    <div class="tips-bar">
-      <t-icon name="info-circle" size="16px" color="#3B82F6" />
-      <span class="tips-text">请选择要学习的知识库，可多选</span>
+    <div class="continue-section" v-if="lastStudyProgress">
+      <div class="continue-card" @click="onContinueStudy">
+        <div class="continue-icon">
+          <t-icon name="play-circle" size="24px" color="#fff" />
+        </div>
+        <div class="continue-info">
+          <span class="continue-title">{{ lastStudyProgress.isRandomMode ? '继续随机学习' : '继续学习' }}</span>
+          <span class="continue-desc">{{ lastStudyProgress.libraryNames }}</span>
+          <div class="continue-progress">
+            <span>进度 {{ lastStudyProgress.learned }}/{{ lastStudyProgress.total }}</span>
+          </div>
+        </div>
+        <t-icon name="chevron-right" size="20px" color="#fff" />
+      </div>
+    </div>
+
+    <div class="section-header">
+      <span class="section-title">切换知识库</span>
+      <span class="section-hint">可多选</span>
     </div>
 
     <div class="loading-container" v-if="loading">
@@ -37,8 +53,12 @@
         <div class="library-info">
           <div class="library-header">
             <span class="library-name">{{ library.name }}</span>
-            <div class="source-tag" :class="library.source">
+            <div class="source-tag" :class="library.source" v-if="library.source !== 'favorite_cards'">
               <span>{{ library.source === 'my' ? '我的' : '收藏' }}</span>
+            </div>
+            <div class="favorite-cards-tag" v-else>
+              <t-icon name="star-filled" size="12px" color="#F59E0B" />
+              <span>收藏</span>
             </div>
             <div class="library-badge" v-if="library.unlearned > 0">
               <span>{{ library.unlearned }}张待学</span>
@@ -101,7 +121,7 @@ import { libraryAPI, cardAPI, favoriteAPI, studyAPI } from '@/utils/api'
 const router = useRouter()
 
 interface Library {
-  id: number
+  id: number | string
   name: string
   totalCards: number
   learnedCards: number
@@ -111,8 +131,19 @@ interface Library {
   source: string
 }
 
+interface LastStudyProgress {
+  cardList: any[]
+  libraryIds: number[]
+  libraryNames: string
+  total: number
+  learned: number
+  currentIndex: number
+  isRandomMode: boolean
+}
+
 const libraries = ref<Library[]>([])
 const loading = ref(true)
+const lastStudyProgress = ref<LastStudyProgress | null>(null)
 
 const selectedCount = computed(() => {
   return libraries.value.filter(lib => lib.selected).length
@@ -129,8 +160,75 @@ const totalUnlearned = computed(() => {
 })
 
 onMounted(() => {
+  loadLastStudyProgress()
   loadLibraries()
 })
+
+const loadLastStudyProgress = () => {
+  try {
+    const saved = localStorage.getItem('studyCardsData')
+    if (saved) {
+      const data = JSON.parse(saved)
+      if (data.cardList && data.cardList.length > 0) {
+        const learned = data.cardList.filter((c: any) => c.learned).length
+        lastStudyProgress.value = {
+          cardList: data.cardList,
+          libraryIds: data.libraryIds,
+          libraryNames: data.libraryNames,
+          total: data.totalCards || data.cardList.length,
+          learned: learned,
+          currentIndex: data.currentIndex || learned,
+          isRandomMode: data.isRandomMode || false
+        }
+      }
+    }
+  } catch (error) {
+    console.error('加载学习进度失败:', error)
+  }
+}
+
+const onContinueStudy = () => {
+  if (!lastStudyProgress.value) return
+  
+  const cardList = lastStudyProgress.value.cardList
+  const isRandomMode = lastStudyProgress.value.isRandomMode
+  
+  let targetIndex = lastStudyProgress.value.currentIndex
+  
+  if (isRandomMode) {
+    const unlearnedIndices: number[] = []
+    cardList.forEach((card: any, index: number) => {
+      if (!card.learned) {
+        unlearnedIndices.push(index)
+      }
+    })
+    
+    if (unlearnedIndices.length > 0) {
+      const randomIdx = Math.floor(Math.random() * unlearnedIndices.length)
+      targetIndex = unlearnedIndices[randomIdx]
+    } else {
+      MessagePlugin.success('恭喜完成学习！')
+      return
+    }
+  }
+  
+  localStorage.setItem('studyCardsData', JSON.stringify({
+    cardList: cardList,
+    libraryIds: lastStudyProgress.value.libraryIds,
+    libraryNames: lastStudyProgress.value.libraryNames,
+    totalCards: cardList.length,
+    currentIndex: targetIndex,
+    isRandomMode: isRandomMode
+  }))
+
+  router.push({
+    path: '/study/cards',
+    query: { 
+      index: targetIndex, 
+      total: cardList.length 
+    }
+  })
+}
 
 const loadLibraries = async () => {
   loading.value = true
@@ -170,10 +268,44 @@ const loadLibraries = async () => {
       }
     })
 
+    let favoriteCardsLibrary: Library | null = null
+    try {
+      const favCardsRes = await favoriteAPI.getCards({ page: 1, pageSize: 1000 })
+      if (favCardsRes.success && favCardsRes.data) {
+        const totalCards = favCardsRes.data.total || 0
+        const learnedCards = favCardsRes.data.learned || 0
+        favoriteCardsLibrary = {
+          id: 'favorites' as any,
+          name: '我的收藏夹',
+          totalCards,
+          learnedCards,
+          unlearned: totalCards - learnedCards,
+          progress: totalCards > 0 ? Math.round((learnedCards / totalCards) * 100) : 0,
+          selected: false,
+          source: 'favorite_cards'
+        }
+      }
+    } catch (error) {
+      console.error('加载收藏卡片失败:', error)
+    }
+
+    if (!favoriteCardsLibrary) {
+      favoriteCardsLibrary = {
+        id: 'favorites' as any,
+        name: '我的收藏夹',
+        totalCards: 0,
+        learnedCards: 0,
+        unlearned: 0,
+        progress: 0,
+        selected: false,
+        source: 'favorite_cards'
+      }
+    }
+
     const myIds = new Set(myLibraries.map((lib: Library) => lib.id))
     const uniqueFavLibraries = favLibraries.filter((lib: Library) => !myIds.has(lib.id))
     
-    const allLibraries = [...myLibraries, ...uniqueFavLibraries]
+    const allLibraries: Library[] = [favoriteCardsLibrary, ...myLibraries, ...uniqueFavLibraries]
     
     libraries.value = allLibraries
   } catch (error) {
@@ -191,7 +323,7 @@ const onToggleAll = () => {
   })
 }
 
-const onToggleLibrary = (id: number) => {
+const onToggleLibrary = (id: number | string) => {
   const library = libraries.value.find(lib => lib.id === id)
   if (library) {
     library.selected = !library.selected
@@ -199,6 +331,11 @@ const onToggleLibrary = (id: number) => {
 }
 
 const onResetProgress = (library: Library) => {
+  if (library.id === 'favorites') {
+    MessagePlugin.warning('我的收藏夹不支持重置进度')
+    return
+  }
+  
   const confirmDialog = DialogPlugin.confirm({
     header: '重置学习进度',
     body: `确定要重置「${library.name}」的学习进度吗？重置后该知识库的所有卡片将恢复为未学习状态。`,
@@ -206,7 +343,7 @@ const onResetProgress = (library: Library) => {
     cancelBtn: '取消',
     onConfirm: async () => {
       try {
-        const res = await studyAPI.resetLibraryProgress(library.id)
+        const res = await studyAPI.resetLibraryProgress(library.id as number)
         if (res.success) {
           MessagePlugin.success('重置成功')
           library.learnedCards = 0
@@ -241,24 +378,44 @@ const onStartStudy = async () => {
     const unlearnedCards: any[] = []
 
     for (const lib of selectedLibraries) {
-      const cardsRes = await cardAPI.getList({ library_id: lib.id, page: 1, pageSize: 1000 })
-      
-      if (cardsRes.success && cardsRes.data) {
-        const cards = cardsRes.data.list || cardsRes.data || []
+      if (lib.id === 'favorites') {
+        const favCardsRes = await favoriteAPI.getCards({ page: 1, pageSize: 1000 })
+        if (favCardsRes.success && favCardsRes.data) {
+          const cards = favCardsRes.data.cards || []
+          cards.forEach((card: any) => {
+            if (!card.is_learned) {
+              unlearnedCards.push({
+                id: card.id,
+                question: card.question,
+                answer: card.answer || '',
+                tags: card.tags || [],
+                learned: false,
+                libraryId: 'favorites',
+                libraryName: '我的收藏夹'
+              })
+            }
+          })
+        }
+      } else {
+        const cardsRes = await cardAPI.getList({ library_id: lib.id, page: 1, pageSize: 1000 })
         
-        cards.forEach((card: any) => {
-          if (!card.is_learned) {
-            unlearnedCards.push({
-              id: card.id,
-              question: card.question,
-              answer: card.answer || '',
-              tags: card.tags || [],
-              learned: false,
-              libraryId: lib.id,
-              libraryName: lib.name
-            })
-          }
-        })
+        if (cardsRes.success && cardsRes.data) {
+          const cards = cardsRes.data.list || cardsRes.data || []
+          
+          cards.forEach((card: any) => {
+            if (!card.is_learned) {
+              unlearnedCards.push({
+                id: card.id,
+                question: card.question,
+                answer: card.answer || '',
+                tags: card.tags || [],
+                learned: false,
+                libraryId: lib.id,
+                libraryName: lib.name
+              })
+            }
+          })
+        }
       }
     }
 
@@ -276,7 +433,8 @@ const onStartStudy = async () => {
       cardList: unlearnedCards,
       libraryIds: libraryIds,
       libraryNames: libraryNames,
-      totalCards: unlearnedCards.length
+      totalCards: unlearnedCards.length,
+      isRandomMode: false
     }))
 
     router.push({
@@ -301,49 +459,72 @@ const onRandomStudy = async () => {
   MessagePlugin.loading({ content: '准备中...', duration: 0 })
 
   try {
-    const allCards: any[] = []
+    const unlearnedCards: any[] = []
 
     for (const lib of selectedLibraries) {
-      const cardsRes = await cardAPI.getList({ library_id: lib.id, page: 1, pageSize: 1000 })
-      
-      if (cardsRes.success && cardsRes.data) {
-        const cards = cardsRes.data.list || cardsRes.data || []
-        
-        cards.forEach((card: any) => {
-          allCards.push({
-            id: card.id,
-            question: card.question,
-            answer: card.answer || '',
-            tags: card.tags || [],
-            learned: card.is_learned || false,
-            libraryId: lib.id,
-            libraryName: lib.name
+      if (lib.id === 'favorites') {
+        const favCardsRes = await favoriteAPI.getCards({ page: 1, pageSize: 1000 })
+        if (favCardsRes.success && favCardsRes.data) {
+          const cards = favCardsRes.data.cards || []
+          cards.forEach((card: any) => {
+            if (!card.is_learned) {
+              unlearnedCards.push({
+                id: card.id,
+                question: card.question,
+                answer: card.answer || '',
+                tags: card.tags || [],
+                learned: false,
+                libraryId: 'favorites',
+                libraryName: '我的收藏夹'
+              })
+            }
           })
-        })
+        }
+      } else {
+        const cardsRes = await cardAPI.getList({ library_id: lib.id, page: 1, pageSize: 1000 })
+        
+        if (cardsRes.success && cardsRes.data) {
+          const cards = cardsRes.data.list || cardsRes.data || []
+          
+          cards.forEach((card: any) => {
+            if (!card.is_learned) {
+              unlearnedCards.push({
+                id: card.id,
+                question: card.question,
+                answer: card.answer || '',
+                tags: card.tags || [],
+                learned: false,
+                libraryId: lib.id,
+                libraryName: lib.name
+              })
+            }
+          })
+        }
       }
     }
 
     MessagePlugin.closeAll()
 
-    if (allCards.length === 0) {
-      MessagePlugin.warning('所选知识库没有卡片')
+    if (unlearnedCards.length === 0) {
+      MessagePlugin.warning('所选知识库已全部掌握')
       return
     }
 
-    const randomIndex = Math.floor(Math.random() * allCards.length)
+    const randomIndex = Math.floor(Math.random() * unlearnedCards.length)
     const libraryNames = selectedLibraries.map(lib => lib.name).join('、')
     const libraryIds = selectedLibraries.map(lib => lib.id)
     
     localStorage.setItem('studyCardsData', JSON.stringify({
-      cardList: allCards,
+      cardList: unlearnedCards,
       libraryIds: libraryIds,
       libraryNames: libraryNames,
-      totalCards: allCards.length
+      totalCards: unlearnedCards.length,
+      isRandomMode: true
     }))
 
     router.push({
       path: '/study/cards',
-      query: { index: randomIndex, total: allCards.length }
+      query: { index: randomIndex, total: unlearnedCards.length }
     })
   } catch (error) {
     MessagePlugin.closeAll()
@@ -405,6 +586,82 @@ const onRandomStudy = async () => {
 
 .nav-right {
   width: 40px;
+}
+
+.continue-section {
+  padding: 12px 16px;
+}
+
+.continue-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+  border-radius: 12px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+}
+
+.continue-icon {
+  width: 44px;
+  height: 44px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.continue-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.continue-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.continue-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.continue-progress {
+  margin-top: 4px;
+  
+  span {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.2);
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px 8px;
+}
+
+.section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.section-hint {
+  font-size: 12px;
+  color: #999;
 }
 
 .tips-bar {
@@ -545,6 +802,24 @@ const onRandomStudy = async () => {
   &.favorite {
     background: #fff7e6;
     span { color: #FF9500; }
+  }
+}
+
+.favorite-cards-tag {
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 18px;
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+  
+  span {
+    font-size: 10px;
+    line-height: 1;
+    color: #D97706;
+    font-weight: 500;
   }
 }
 

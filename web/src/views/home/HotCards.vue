@@ -31,15 +31,6 @@
       >
         <div class="card-header">
           <div class="card-number">NO.{{ index + 1 }}</div>
-          <div class="card-tags">
-            <t-tag 
-              v-for="tag in card.tags.slice(0, 2)" 
-              :key="tag"
-              theme="primary" 
-              variant="light"
-              size="small"
-            >{{ tag }}</t-tag>
-          </div>
         </div>
 
         <div class="card-content">

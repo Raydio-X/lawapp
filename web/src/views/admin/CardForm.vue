@@ -1,407 +1,597 @@
 <template>
-  <div class="card-form-container">
-    <div class="custom-nav">
-      <div class="nav-content">
-        <div class="nav-back" @click="onCancel">
-          <t-icon name="chevron-left" size="20px" color="#333" />
-        </div>
-        <span class="nav-title">{{ isEdit ? '编辑卡片' : isHot ? '添加热门卡片' : '创建卡片' }}</span>
-        <div class="nav-placeholder"></div>
-      </div>
+  <div class="container">
+    <div class="header-decoration"></div>
+    
+    <div class="loading-container" v-if="loading">
+      <t-icon name="loading" size="40px" color="#3B82F6" />
+      <span class="loading-text">加载中...</span>
     </div>
-
-    <div class="batch-import-entry" @click="showBatchImport = true" v-if="!isEdit && !isHot">
-      <t-icon name="upload" size="18px" color="#3B82F6" />
-      <span class="batch-import-text">批量导入卡片</span>
-      <t-icon name="chevron-right" size="14px" color="#ccc" />
-    </div>
-
-    <div class="form-section">
-      <div class="form-item" v-if="!isHot">
-        <div class="form-label">
-          <span class="label-text">所属知识库</span>
-          <span class="label-required">*</span>
-        </div>
-        <div class="picker-wrapper" @click="showLibraryPicker = true">
-          <div class="picker-content" :class="{ selected: selectedLibrary }">
-            <span>{{ selectedLibrary ? selectedLibrary.name : '请选择知识库' }}</span>
+    
+    <template v-else-if="!loading && libraries.length > 0">
+      <div class="form-card">
+        <div class="card-header">
+          <div class="header-icon">
+            <t-icon name="edit-1" size="20px" color="#fff" />
           </div>
-          <t-icon name="chevron-right" size="16px" color="#ccc" />
-        </div>
-      </div>
-
-      <div class="form-item" v-if="selectedLibrary && !isHot">
-        <div class="form-label">
-          <span class="label-text">所属章节</span>
-        </div>
-        <div class="picker-wrapper" @click="showChapterPicker = true">
-          <div class="picker-content" :class="{ selected: selectedChapter }">
-            <span>{{ selectedChapter ? selectedChapter.name : '请选择章节（可选）' }}</span>
+          <div class="header-text">
+            <span class="header-title">{{ isEdit ? '编辑卡片' : isHot ? '添加热门卡片' : '创建新卡片' }}</span>
+            <span class="header-subtitle">记录知识点，构建你的法律知识体系</span>
           </div>
-          <t-icon name="chevron-right" size="16px" color="#ccc" />
         </div>
-      </div>
 
-      <div class="form-item">
-        <div class="form-label">
-          <span class="label-text">题目 / 问题</span>
-          <span class="label-required">*</span>
-        </div>
-        <div class="textarea-wrapper">
-          <textarea
-            class="form-textarea"
-            placeholder="请输入题目或问题，例如：正当防卫的构成要件有哪些？"
-            v-model="question"
-            maxlength="100"
-          ></textarea>
-          <div class="char-count">{{ question.length }}/100</div>
-        </div>
-      </div>
+        <div class="form-body">
+          <div class="form-item" v-if="!isHot">
+            <div class="form-label">
+              <span class="label-text">所属知识库</span>
+              <span class="label-required">*</span>
+            </div>
+            <div class="picker-card" @click="onSelectLibrary">
+              <span class="picker-value" :class="{ active: selectedLibrary }">{{ selectedLibrary ? selectedLibrary.name : '选择知识库' }}</span>
+              <t-icon name="chevron-right" size="16px" color="#c0c4cc" />
+            </div>
+          </div>
 
-      <div class="form-item">
-        <div class="form-label">
-          <span class="label-text">答案 / 解析</span>
-          <span class="label-required">*</span>
-        </div>
-        <div class="textarea-wrapper">
-          <textarea
-            class="form-textarea answer-textarea"
-            placeholder="请输入答案或解析内容，支持换行"
-            v-model="answer"
-            maxlength="500"
-          ></textarea>
-          <div class="char-count">{{ answer.length }}/500</div>
-        </div>
-      </div>
+          <div class="form-item" v-if="selectedLibrary && !isHot">
+            <div class="form-label">
+              <span class="label-text">所属章节</span>
+            </div>
+            <div class="picker-card" @click="onSelectChapter">
+              <span class="picker-value" :class="{ active: selectedChapter }">{{ selectedChapter ? selectedChapter.name : '选择章节（可选）' }}</span>
+              <t-icon name="chevron-right" size="16px" color="#c0c4cc" />
+            </div>
+          </div>
 
-      <div class="form-item">
-        <div class="form-label">
-          <span class="label-text">标签</span>
-          <span class="label-optional">最多3个</span>
-        </div>
-        <div class="tags-input-container">
-          <div class="tags-list-horizontal">
-            <div class="tag-item-horizontal" v-for="(tag, index) in tagList" :key="index">
-              <input 
-                class="tag-input-horizontal" 
-                v-model="tagList[index]" 
-                :placeholder="'标签' + (index + 1)"
-                maxlength="10"
-              />
-              <div class="tag-remove-horizontal" @click="onRemoveTag(index)">
-                <t-icon name="close" size="12px" color="#999" />
+          <div class="divider" v-if="!isHot"></div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span class="label-text">题目</span>
+              <span class="label-required">*</span>
+            </div>
+            <div class="textarea-card question-card" :class="{ focused: questionFocused }">
+              <textarea
+                class="form-textarea"
+                placeholder="输入法律问题或考点..."
+                v-model="question"
+                maxlength="100"
+                @focus="questionFocused = true"
+                @blur="questionFocused = false"
+              ></textarea>
+              <div class="textarea-footer">
+                <span class="hint-text">简洁明了，突出核心考点</span>
+                <span class="char-count">{{ question.length }}/100</span>
               </div>
             </div>
-            <div class="tag-add-btn-horizontal" v-if="tagList.length < 3" @click="onAddTag">
-              <t-icon name="add" size="14px" color="#3B82F6" />
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span class="label-text">关键词</span>
+              <span class="label-hint">可选</span>
+            </div>
+            <div class="keywords-input-container">
+              <div class="keywords-list-horizontal">
+                <div class="keyword-item-horizontal" v-for="(keyword, index) in keywords" :key="index">
+                  <input 
+                    class="keyword-input-horizontal" 
+                    v-model="keywords[index]" 
+                    :placeholder="'关键词' + (index + 1)"
+                    maxlength="10"
+                  />
+                  <div class="keyword-remove-horizontal" @click="removeKeyword(index)">
+                    <t-icon name="close" size="12px" color="#999" />
+                  </div>
+                </div>
+                <div class="keyword-add-btn-horizontal" @click="addKeywordSlot">
+                  <t-icon name="add" size="14px" color="#3B82F6" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
+              <span class="label-text">答案</span>
+              <span class="label-required">*</span>
+            </div>
+            <div class="editor-card" :class="{ focused: answerFocused }">
+              <div class="editor-toolbar" ref="toolbarRef">
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="有序列表" @click="formatOrderedList">
+                    <t-icon name="order-list" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="无序列表" @click="formatBulletList">
+                    <t-icon name="bulletpoint" size="16px" />
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="增加缩进" @click="formatIndent">
+                    <t-icon name="indent-right" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="减少缩进" @click="formatOutdent">
+                    <t-icon name="indent-left" size="16px" />
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="首行缩进" @click="formatTextIndent">
+                    <span class="indent-icon">⇥</span>
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="插入表格" @click="showTableDialog = true">
+                    <t-icon name="table" size="16px" />
+                  </button>
+                </div>
+                <div class="toolbar-divider"></div>
+                <div class="toolbar-group">
+                  <button class="toolbar-btn" title="加粗" @click="formatBold">
+                    <t-icon name="textformat-bold" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="斜体" @click="formatItalic">
+                    <t-icon name="textformat-italic" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="下划线" @click="formatUnderline">
+                    <t-icon name="textformat-underline" size="16px" />
+                  </button>
+                </div>
+              </div>
+              <div class="editor-content" ref="editorRef"></div>
+              <div class="editor-footer">
+                <span class="hint-text">详细解析，加深理解记忆</span>
+                <span class="char-count">{{ answerCharCount }}/500</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <div class="footer">
-      <div class="btn-group">
+      <div class="table-dialog" v-if="showTableDialog">
+        <div class="table-dialog-mask" @click="showTableDialog = false"></div>
+        <div class="table-dialog-content">
+          <div class="table-dialog-header">
+            <span class="table-dialog-title">插入表格</span>
+            <t-icon name="close" size="20px" class="close-btn" @click="showTableDialog = false" />
+          </div>
+          <div class="table-dialog-body">
+            <div class="table-input-row">
+              <span class="table-label">行数</span>
+              <input type="number" v-model="tableRows" min="1" max="10" class="table-input" />
+            </div>
+            <div class="table-input-row">
+              <span class="table-label">列数</span>
+              <input type="number" v-model="tableCols" min="1" max="6" class="table-input" />
+            </div>
+          </div>
+          <div class="table-dialog-footer">
+            <button class="table-btn cancel" @click="showTableDialog = false">取消</button>
+            <button class="table-btn confirm" @click="insertTable">确定</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer">
         <div class="btn-cancel" @click="onCancel">取消</div>
-        <div class="btn-submit" :class="{ disabled: !canSubmit }" @click="onSubmit">
-          {{ isEdit ? '保存修改' : '创建卡片' }}
+        <div class="btn-submit" :class="{ disabled: !canSubmit }" @click="onSubmitClick">
+          <t-icon name="check" size="16px" color="#fff" />
+          <span>{{ isEdit ? '保存修改' : '创建卡片' }}</span>
         </div>
       </div>
-    </div>
 
-    <t-popup v-model="showLibraryPicker" placement="bottom">
-      <div class="picker-popup" v-if="showLibraryPicker">
-        <div class="picker-header">
-          <span class="picker-title">选择知识库</span>
-          <div class="picker-close" @click="showLibraryPicker = false">
-            <t-icon name="close" size="20px" color="#999" />
-          </div>
-        </div>
-        <div class="picker-list">
-          <div 
-            class="picker-item"
-            :class="{ selected: selectedLibrary?.id === library.id }"
-            v-for="library in libraries" 
-            :key="library.id"
-            @click="onSelectLibrary(library)"
-          >
-            <span>{{ library.name }}</span>
-            <t-icon v-if="selectedLibrary?.id === library.id" name="check" size="18px" color="#3B82F6" />
-          </div>
-        </div>
-      </div>
-    </t-popup>
+      <Picker
+        v-model:visible="showLibraryPicker"
+        title="选择知识库"
+        :options="libraryOptions"
+        :value="selectedLibraryIndex"
+        @confirm="onLibraryConfirm"
+      />
 
-    <t-popup v-model="showChapterPicker" placement="bottom">
-      <div class="picker-popup" v-if="showChapterPicker">
-        <div class="picker-header">
-          <span class="picker-title">选择章节</span>
-          <div class="picker-close" @click="showChapterPicker = false">
-            <t-icon name="close" size="20px" color="#999" />
-          </div>
-        </div>
-        <div class="picker-list">
-          <div 
-            class="picker-item"
-            :class="{ selected: selectedChapter?.id === chapter.id }"
-            v-for="chapter in chapters" 
-            :key="chapter.id"
-            @click="onSelectChapter(chapter)"
-          >
-            <span>{{ chapter.name }}</span>
-            <t-icon v-if="selectedChapter?.id === chapter.id" name="check" size="18px" color="#3B82F6" />
-          </div>
-        </div>
-      </div>
-    </t-popup>
+      <Picker
+        v-model:visible="showChapterPicker"
+        title="选择章节"
+        :options="chapterOptions"
+        :value="selectedChapterIndex"
+        @confirm="onChapterConfirm"
+      />
+    </template>
 
-    <div class="batch-popup" v-if="showBatchImport" @click.self="showBatchImport = false">
-      <div class="batch-container">
-        <div class="batch-header">
-          <span class="batch-title">批量导入</span>
-          <div class="batch-close" @click="showBatchImport = false">
-            <t-icon name="close" size="16px" color="#999" />
-          </div>
-        </div>
-
-        <div class="batch-step" v-if="batchStep === 1">
-          <div class="batch-step-header">
-            <span class="batch-step-num">1</span>
-            <span class="batch-step-title">选择目标知识库</span>
-          </div>
-          <div class="batch-library-list">
-            <div 
-              class="batch-library-item"
-              :class="{ selected: batchLibraryId === library.id }" 
-              v-for="library in libraries" 
-              :key="library.id"
-              @click="batchLibraryId = library.id"
-            >
-              <div class="batch-library-radio">
-                <div class="batch-radio-dot" v-if="batchLibraryId === library.id"></div>
-              </div>
-              <div class="batch-library-info">
-                <span class="batch-library-name">{{ library.name }}</span>
-                <span class="batch-library-count">{{ library.card_count || 0 }}张卡片</span>
-              </div>
-            </div>
-          </div>
-          <div class="batch-empty" v-if="libraries.length === 0">
-            <span>请先创建知识库</span>
-          </div>
-          <div class="batch-step-footer">
-            <div class="batch-next-btn" :class="{ disabled: !batchLibraryId }" @click="batchStep = 2">下一步</div>
-          </div>
-        </div>
-
-        <div class="batch-step" v-if="batchStep === 2">
-          <div class="batch-step-header">
-            <span class="batch-step-num">2</span>
-            <span class="batch-step-title">上传Excel文件</span>
-          </div>
-          
-          <div class="batch-upload-area" @click="onChooseFile">
-            <div class="batch-upload-content" v-if="!batchFileName">
-              <t-icon name="upload" size="32px" color="#00A870" />
-              <span class="batch-upload-text">点击选择Excel文件</span>
-              <span class="batch-upload-hint">支持 .xlsx / .xls 格式</span>
-            </div>
-            <div class="batch-upload-done" v-else>
-              <t-icon name="file" size="24px" color="#00A870" />
-              <span class="batch-file-name">{{ batchFileName }}</span>
-              <span class="batch-file-change">点击更换文件</span>
-            </div>
-          </div>
-
-          <div class="batch-template-section">
-            <div class="batch-template-title">
-              <t-icon name="info-circle" size="14px" color="#999" />
-              <span>模板格式说明</span>
-            </div>
-            <div class="batch-template-info">
-              <span class="batch-template-row"><span class="col-a">A列</span><span class="col-b">问题</span></span>
-              <span class="batch-template-row"><span class="col-a">B列</span><span class="col-b">答案</span></span>
-              <span class="batch-template-row"><span class="col-a">C列（可选）</span><span class="col-b">章节</span></span>
-            </div>
-            <div class="batch-download-template" @click="onDownloadTemplate">
-              <t-icon name="download" size="14px" color="#3B82F6" />
-              <span>下载模板</span>
-            </div>
-          </div>
-
-          <div class="batch-step-actions">
-            <div class="batch-prev-btn" @click="batchStep = 1">上一步</div>
-            <div class="batch-next-btn" :class="{ disabled: !batchFileName }" @click="onBatchParse">解析文件</div>
-          </div>
-        </div>
-
-        <div class="batch-step" v-if="batchStep === 3">
-          <div class="batch-step-header">
-            <span class="batch-step-num">3</span>
-            <span class="batch-step-title">预览并确认</span>
-          </div>
-
-          <div class="batch-preview-summary">
-            <span class="batch-preview-total">共解析到 <span class="highlight">{{ batchCards.length }}</span> 张卡片</span>
-          </div>
-
-          <div class="batch-preview-list">
-            <div class="batch-preview-item" v-for="(card, index) in batchCards" :key="index">
-              <div class="batch-preview-index">{{ index + 1 }}</div>
-              <div class="batch-preview-content">
-                <span class="batch-preview-q">Q: {{ card.question }}</span>
-                <span class="batch-preview-a">A: {{ card.answer }}</span>
-                <span class="batch-preview-chapter" v-if="card.chapter">{{ card.chapter }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="batch-step-actions">
-            <div class="batch-prev-btn" @click="batchStep = 2">上一步</div>
-            <div class="batch-next-btn" :class="{ disabled: batchImporting }" @click="onBatchConfirmImport">
-              {{ batchImporting ? '导入中...' : '确认导入' }}
-            </div>
-          </div>
-        </div>
-
-        <div class="batch-step" v-if="batchStep === 4">
-          <div class="batch-result">
-            <div class="batch-result-icon">
-              <t-icon :name="batchImportSuccess ? 'check-circle' : 'error-circle'" size="48px" :color="batchImportSuccess ? '#00A870' : '#E34D59'" />
-            </div>
-            <span class="batch-result-title">{{ batchImportSuccess ? '导入成功' : '导入失败' }}</span>
-            <span class="batch-result-desc" v-if="batchImportSuccess">成功导入 {{ batchImportCount }} 张卡片</span>
-            <span class="batch-result-desc" v-else>{{ batchImportError || '请检查文件格式后重试' }}</span>
-          </div>
-          <div class="batch-step-footer">
-            <div class="batch-next-btn" @click="showBatchImport = false">完成</div>
-          </div>
-        </div>
-      </div>
+    <div class="empty-state" v-else-if="!loading && libraries.length === 0">
+      <t-icon name="folder-open" size="48px" color="#ccc" />
+      <span class="empty-text">请先创建知识库</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick, onBeforeUnmount, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { MessagePlugin } from 'tdesign-vue-next'
-import api from '@/utils/api'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
+import Picker from '@/components/Picker.vue'
+import Quill from 'quill'
+import 'quill/dist/quill.snow.css'
+
+interface Library {
+  id: number
+  name: string
+}
+
+interface Chapter {
+  id: number
+  name: string
+}
+
+interface PickerOption {
+  label: string
+  value: string | number
+}
 
 const router = useRouter()
 const route = useRoute()
 
-const isEdit = computed(() => !!route.query.id)
-const isHot = computed(() => route.query.isHot === 'true')
-
+const loading = ref(true)
+const isEdit = ref(false)
+const isHot = ref(false)
+const cardId = ref(0)
 const question = ref('')
 const answer = ref('')
-const tagList = ref<string[]>([])
+const questionFocused = ref(false)
+const answerFocused = ref(false)
 
-const libraries = ref<any[]>([])
-const chapters = ref<any[]>([])
-const selectedLibrary = ref<any>(null)
-const selectedChapter = ref<any>(null)
+const selectedLibrary = ref<Library | null>(null)
+const selectedChapter = ref<Chapter | null>(null)
+const selectedLibraryIndex = ref<(string | number)[]>([])
+const selectedChapterIndex = ref<(string | number)[]>([])
 
+const libraries = ref<Library[]>([])
+const chapters = ref<Chapter[]>([])
 const showLibraryPicker = ref(false)
 const showChapterPicker = ref(false)
 
-const showBatchImport = ref(false)
-const batchStep = ref(1)
-const batchLibraryId = ref('')
-const batchFileName = ref('')
-const batchCards = ref<any[]>([])
-const batchImporting = ref(false)
-const batchImportSuccess = ref(false)
-const batchImportCount = ref(0)
-const batchImportError = ref('')
+const editorRef = ref<HTMLElement | null>(null)
+const toolbarRef = ref<HTMLElement | null>(null)
+const quillInstance = shallowRef<Quill | null>(null)
+const answerText = ref('')
+
+const showTableDialog = ref(false)
+const tableRows = ref(3)
+const tableCols = ref(3)
+
+const keywords = ref<string[]>([])
+
+const answerCharCount = computed(() => {
+  return answerText.value.length
+})
+
+const libraryOptions = computed<PickerOption[]>(() => {
+  return libraries.value.map(lib => ({
+    label: lib.name,
+    value: lib.id
+  }))
+})
+
+const chapterOptions = computed<PickerOption[]>(() => {
+  return chapters.value.map(ch => ({
+    label: ch.name,
+    value: ch.id
+  }))
+})
 
 const canSubmit = computed(() => {
-  if (!question.value.trim() || !answer.value.trim()) return false
-  if (!isHot.value && !selectedLibrary.value) return false
-  return true
+  const text = answerText.value.replace(/\s/g, '')
+  if (isHot.value) {
+    return question.value.trim() && text
+  }
+  return question.value.trim() && text && selectedLibrary.value
 })
 
-onMounted(() => {
-  loadLibraries()
-  if (isEdit.value) {
-    loadCardDetail()
+const initQuill = () => {
+  if (!editorRef.value) return
+  
+  quillInstance.value = new Quill(editorRef.value, {
+    theme: 'snow',
+    placeholder: '输入答案解析，支持分点作答...',
+    modules: {
+      toolbar: false
+    }
+  })
+
+  if (answer.value) {
+    quillInstance.value.root.innerHTML = answer.value
+    answerText.value = quillInstance.value.getText().replace(/\s/g, '')
   }
+
+  quillInstance.value.on('text-change', () => {
+    const html = quillInstance.value!.root.innerHTML
+    const text = quillInstance.value!.getText().replace(/\s/g, '')
+    answer.value = html
+    answerText.value = text
+  })
+
+  quillInstance.value.on('selection-change', (range) => {
+    answerFocused.value = !!range
+  })
+}
+
+const formatOrderedList = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('list', 'ordered')
+}
+
+const formatBulletList = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('list', 'bullet')
+}
+
+const formatIndent = () => {
+  if (!quillInstance.value) return
+  const currentIndent = quillInstance.value.getFormat().indent || 0
+  if (currentIndent < 4) {
+    quillInstance.value.format('indent', currentIndent + 1)
+  }
+}
+
+const formatOutdent = () => {
+  if (!quillInstance.value) return
+  const currentIndent = quillInstance.value.getFormat().indent || 0
+  if (currentIndent > 0) {
+    quillInstance.value.format('indent', currentIndent - 1)
+  }
+}
+
+const formatTextIndent = () => {
+  if (!quillInstance.value) return
+  const selection = quillInstance.value.getSelection()
+  if (selection) {
+    const currentFormat = quillInstance.value.getFormat(selection.index, selection.length)
+    quillInstance.value.format('indent', currentFormat.indent ? false : 1)
+    
+    const [block] = quillInstance.value.getLine(selection.index)
+    if (block) {
+      const blot = block.domNode as HTMLElement
+      if (!currentFormat.indent) {
+        blot.style.textIndent = '2em'
+      } else {
+        blot.style.textIndent = ''
+      }
+    }
+  }
+}
+
+const formatBold = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('bold', !quillInstance.value.getFormat().bold)
+}
+
+const formatItalic = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('italic', !quillInstance.value.getFormat().italic)
+}
+
+const formatUnderline = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('underline', !quillInstance.value.getFormat().underline)
+}
+
+const insertTable = () => {
+  if (!quillInstance.value) return
+  
+  const rows = tableRows.value
+  const cols = tableCols.value
+  
+  let tableHtml = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0;">'
+  for (let i = 0; i < rows; i++) {
+    tableHtml += '<tr>'
+    for (let j = 0; j < cols; j++) {
+      tableHtml += '<td style="border: 1px solid #ddd; padding: 8px; min-width: 50px;">&nbsp;</td>'
+    }
+    tableHtml += '</tr>'
+  }
+  tableHtml += '</table><p><br></p>'
+  
+  const selection = quillInstance.value.getSelection(true)
+  quillInstance.value.clipboard.dangerouslyPasteHTML(selection.index, tableHtml)
+  
+  showTableDialog.value = false
+}
+
+const addKeywordSlot = () => {
+  keywords.value.push('')
+}
+
+const removeKeyword = (index: number) => {
+  keywords.value.splice(index, 1)
+}
+
+onMounted(async () => {
+  const editId = route.query.id as string
+  const hotFlag = route.query.isHot as string
+  
+  isHot.value = hotFlag === 'true'
+  
+  if (editId) {
+    isEdit.value = true
+    cardId.value = parseInt(editId)
+    await loadCardData()
+  }
+  
+  await loadLibraries()
 })
+
+onBeforeUnmount(() => {
+  quillInstance.value = null
+})
+
+const loadCardData = async () => {
+  try {
+    const res = await cardAPI.getDetail(cardId.value)
+    if (res.success && res.data) {
+      question.value = res.data.question
+      answer.value = res.data.answer
+      if (res.data.tags && Array.isArray(res.data.tags)) {
+        keywords.value = res.data.tags
+      }
+    }
+  } catch (error) {
+    console.error('加载卡片失败:', error)
+    MessagePlugin.error('加载失败')
+  }
+}
 
 const loadLibraries = async () => {
+  loading.value = true
   try {
-    const res = await api.get('/libraries', { pageSize: 100 })
+    const res = await libraryAPI.getList({ page: 1, pageSize: 100 })
+    
     if (res.success && res.data) {
-      libraries.value = res.data.list || res.data
+      let list = []
+      if (Array.isArray(res.data)) {
+        list = res.data
+      } else if (res.data.list && Array.isArray(res.data.list)) {
+        list = res.data.list
+      } else if (res.data.data && Array.isArray(res.data.data)) {
+        list = res.data.data
+      }
+      
+      libraries.value = list.map((lib: any) => ({
+        id: lib.id,
+        name: lib.name
+      }))
+      
+      if (libraries.value.length === 0 && !isHot.value) {
+        MessagePlugin.warning('请先创建知识库')
+        loading.value = false
+        setTimeout(() => router.push('/admin'), 1500)
+        return
+      }
+      
+      if (libraries.value.length > 0 && !isHot.value) {
+        selectedLibrary.value = libraries.value[0]
+        selectedLibraryIndex.value = [libraries.value[0].id]
+        loadChapters(libraries.value[0].id)
+      }
     }
   } catch (error) {
-    console.error('加载知识库失败', error)
+    console.error('加载知识库失败:', error)
+    MessagePlugin.error('加载失败')
+    setTimeout(() => router.push('/admin'), 1500)
+  } finally {
+    loading.value = false
+    await nextTick()
+    initQuill()
   }
 }
 
-const loadCardDetail = async () => {
+const loadChapters = async (libraryId: number) => {
   try {
-    const res = await api.get(`/cards/${route.query.id}`)
+    const res = await chapterAPI.getList(libraryId)
     if (res.success && res.data) {
-      const card = res.data
-      question.value = card.question
-      answer.value = card.answer
-      tagList.value = card.tags || []
-      if (card.library_id) {
-        selectedLibrary.value = { id: card.library_id, name: card.library_name }
-      }
-      if (card.chapter_id) {
-        selectedChapter.value = { id: card.chapter_id, name: card.chapter_name }
+      chapters.value = res.data || []
+      
+      if (chapters.value.length > 0) {
+        selectedChapter.value = chapters.value[0]
+        selectedChapterIndex.value = [chapters.value[0].id]
+      } else {
+        selectedChapter.value = null
+        selectedChapterIndex.value = []
       }
     }
   } catch (error) {
-    console.error('加载卡片详情失败', error)
+    console.error('加载章节失败:', error)
+    chapters.value = []
+    selectedChapter.value = null
+    selectedChapterIndex.value = []
   }
 }
 
-const onSelectLibrary = async (library: any) => {
-  selectedLibrary.value = library
-  showLibraryPicker.value = false
-  selectedChapter.value = null
+const onSelectLibrary = () => {
+  showLibraryPicker.value = true
+}
+
+const onSelectChapter = () => {
+  if (!selectedLibrary.value) {
+    MessagePlugin.warning('请先选择知识库')
+    return
+  }
+  showChapterPicker.value = true
+}
+
+const onLibraryConfirm = (value: (string | number)[]) => {
+  const libraryId = value[0]
+  const library = libraries.value.find(lib => lib.id === libraryId)
   
-  try {
-    const res = await api.get(`/libraries/${library.id}/chapters`)
-    if (res.success && res.data) {
-      chapters.value = res.data
-    }
-  } catch (error) {
-    console.error('加载章节失败', error)
-  }
+  if (!library) return
+  
+  selectedLibrary.value = library
+  selectedLibraryIndex.value = value
+  showLibraryPicker.value = false
+  
+  selectedChapter.value = null
+  selectedChapterIndex.value = []
+  
+  loadChapters(library.id)
 }
 
-const onSelectChapter = (chapter: any) => {
+const onChapterConfirm = (value: (string | number)[]) => {
+  const chapterId = value[0]
+  const chapter = chapters.value.find(ch => ch.id === chapterId)
+  
+  if (!chapter) return
+  
   selectedChapter.value = chapter
+  selectedChapterIndex.value = value
   showChapterPicker.value = false
 }
 
-const onAddTag = () => {
-  if (tagList.value.length < 3) {
-    tagList.value.push('')
+const onCancel = () => {
+  if (question.value.trim() || answerText.value) {
+    const confirmDialog = DialogPlugin.confirm({
+      header: '确认取消',
+      body: '确定要放弃当前编辑的内容吗？',
+      confirmBtn: '确定',
+      theme: 'danger',
+      onConfirm: () => {
+        router.push('/admin')
+        confirmDialog.hide()
+      }
+    })
+  } else {
+    router.push('/admin')
   }
 }
 
-const onRemoveTag = (index: number) => {
-  tagList.value.splice(index, 1)
-}
-
-const onCancel = () => {
-  router.push('/admin')
+const onSubmitClick = () => {
+  if (!isHot.value && !selectedLibrary.value) {
+    MessagePlugin.warning('请选择知识库')
+    return
+  }
+  
+  if (!question.value.trim()) {
+    MessagePlugin.warning('请输入题目')
+    return
+  }
+  
+  const text = answerText.value.replace(/\s/g, '')
+  if (!text) {
+    MessagePlugin.warning('请输入答案')
+    return
+  }
+  
+  onSubmit()
 }
 
 const onSubmit = async () => {
   if (!canSubmit.value) return
 
   try {
+    const html = quillInstance.value ? quillInstance.value.root.innerHTML : answer.value
+    
     const data: any = {
-      question: question.value,
-      answer: answer.value,
-      tags: tagList.value.filter(t => t.trim()),
+      question: question.value.trim(),
+      answer: html,
+      tags: keywords.value.filter(k => k.trim()),
       is_hot: isHot.value
     }
     
@@ -414,13 +604,13 @@ const onSubmit = async () => {
 
     let res
     if (isEdit.value) {
-      res = await api.put(`/cards/${route.query.id}`, data)
+      res = await cardAPI.update(cardId.value, data)
     } else {
-      res = await api.post('/cards', data)
+      res = await cardAPI.create(data)
     }
 
     if (res.success) {
-      MessagePlugin.success(isEdit.value ? '修改成功' : '创建成功')
+      MessagePlugin.success(isEdit.value ? '保存成功' : '创建成功')
       router.push('/admin')
     } else {
       MessagePlugin.error(res.message || '操作失败')
@@ -429,144 +619,93 @@ const onSubmit = async () => {
     MessagePlugin.error('操作失败，请重试')
   }
 }
-
-const onChooseFile = () => {
-  const input = document.createElement('input')
-  input.type = 'file'
-  input.accept = '.xlsx,.xls'
-  input.onchange = (e: any) => {
-    const file = e.target.files[0]
-    if (file) {
-      batchFileName.value = file.name
-      parseExcelFile(file)
-    }
-  }
-  input.click()
-}
-
-const parseExcelFile = async (file: File) => {
-  MessagePlugin.info('文件解析功能需要集成xlsx库')
-}
-
-const onBatchParse = () => {
-  if (!batchFileName.value) return
-  batchStep.value = 3
-}
-
-const onDownloadTemplate = () => {
-  const template = '问题,答案,章节\n示例问题1,示例答案1,第一章\n示例问题2,示例答案2,'
-  const blob = new Blob(['\ufeff' + template], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = '卡片导入模板.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
-const onBatchConfirmImport = async () => {
-  if (batchImporting.value) return
-  
-  batchImporting.value = true
-  try {
-    const res = await api.post('/cards/batch', {
-      library_id: batchLibraryId.value,
-      cards: batchCards.value
-    })
-    if (res.data.code === 0) {
-      batchImportSuccess.value = true
-      batchImportCount.value = res.data.data.count || batchCards.value.length
-      batchStep.value = 4
-    } else {
-      batchImportSuccess.value = false
-      batchImportError.value = res.data.message
-      batchStep.value = 4
-    }
-  } catch (error) {
-    batchImportSuccess.value = false
-    batchImportError.value = '导入失败，请重试'
-    batchStep.value = 4
-  } finally {
-    batchImporting.value = false
-  }
-}
 </script>
 
 <style lang="scss" scoped>
-.card-form-container {
+.container {
   min-height: 100vh;
   background-color: #f5f6fa;
-  padding-bottom: 120px;
-  padding-top: 60px;
-  box-sizing: border-box;
+  padding-bottom: 100px;
 }
 
-.custom-nav {
+.header-decoration {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background-color: #fff;
-  z-index: 999;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+  height: 200px;
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  z-index: 0;
 }
 
-.nav-content {
-  height: 44px;
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 12px;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #64748B;
+}
+
+.form-card {
+  position: relative;
+  margin: 16px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  z-index: 1;
+}
+
+.card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 16px;
+  gap: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #fff 100%);
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.nav-back {
-  width: 32px;
-  height: 32px;
+.header-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
 }
 
-.nav-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #000;
-}
-
-.nav-placeholder {
-  width: 32px;
-}
-
-.batch-import-entry {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  background-color: #fff;
-  margin-bottom: 8px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &:active {
-    background-color: #f5f5f5;
-  }
-}
-
-.batch-import-text {
+.header-text {
   flex: 1;
-  margin-left: 8px;
-  font-size: 14px;
-  color: #3B82F6;
 }
 
-.form-section {
-  background-color: #fff;
-  padding: 16px;
+.header-title {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.header-subtitle {
+  display: block;
+  font-size: 12px;
+  color: #94A3B8;
+  margin-top: 2px;
+}
+
+.form-body {
+  padding: 20px;
 }
 
 .form-item {
   margin-bottom: 20px;
-
+  
   &:last-child {
     margin-bottom: 0;
   }
@@ -575,94 +714,109 @@ const onBatchConfirmImport = async () => {
 .form-label {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .label-text {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: #334155;
 }
 
 .label-required {
-  font-size: 15px;
-  color: #e34d59;
+  font-size: 14px;
+  color: #EF4444;
   margin-left: 4px;
 }
 
-.label-optional {
+.label-hint {
   font-size: 12px;
-  color: #999;
+  color: #94A3B8;
   margin-left: 8px;
 }
 
-.picker-wrapper {
+.picker-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e8e8e8;
+  padding: 14px 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
   cursor: pointer;
-  transition: all 0.2s;
-
+  transition: all 0.2s ease;
+  
   &:active {
-    background-color: #f0f0f0;
+    background: #f1f5f9;
   }
 }
 
-.picker-content {
-  flex: 1;
-  font-size: 15px;
-  color: #999;
-
-  &.selected {
-    color: #333;
+.picker-value {
+  font-size: 14px;
+  color: #94A3B8;
+  
+  &.active {
+    color: #334155;
   }
 }
 
-.textarea-wrapper {
-  position: relative;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e8e8e8;
-  padding: 12px;
+.divider {
+  height: 1px;
+  background: #E2E8F0;
+  margin: 20px 0;
+}
+
+.textarea-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  padding: 14px;
+  transition: all 0.2s ease;
+  
+  &.focused {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
 }
 
 .form-textarea {
   width: 100%;
   min-height: 80px;
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.6;
-  color: #333;
+  color: #334155;
   background: transparent;
   border: none;
   outline: none;
   resize: none;
-  box-sizing: border-box;
-
-  &.answer-textarea {
-    min-height: 120px;
-  }
-
+  
   &::placeholder {
-    color: #bbb;
+    color: #94A3B8;
   }
+}
+
+.textarea-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #94A3B8;
 }
 
 .char-count {
-  text-align: right;
   font-size: 12px;
-  color: #999;
-  margin-top: 8px;
+  color: #94A3B8;
 }
 
-.tags-input-container {
+.keywords-input-container {
   width: 100%;
 }
 
-.tags-list-horizontal {
+.keywords-list-horizontal {
   display: flex;
   flex-direction: row;
   align-items: center;
@@ -670,7 +824,7 @@ const onBatchConfirmImport = async () => {
   flex-wrap: wrap;
 }
 
-.tag-item-horizontal {
+.keyword-item-horizontal {
   display: flex;
   align-items: center;
   background-color: #f5f6fa;
@@ -679,7 +833,7 @@ const onBatchConfirmImport = async () => {
   height: 36px;
 }
 
-.tag-input-horizontal {
+.keyword-input-horizontal {
   width: 60px;
   height: 32px;
   font-size: 13px;
@@ -689,7 +843,7 @@ const onBatchConfirmImport = async () => {
   outline: none;
 }
 
-.tag-remove-horizontal {
+.keyword-remove-horizontal {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -697,43 +851,250 @@ const onBatchConfirmImport = async () => {
   height: 20px;
   border-radius: 50%;
   cursor: pointer;
-
+  
   &:active {
     background-color: rgba(0, 0, 0, 0.05);
   }
 }
 
-.tag-add-btn-horizontal {
+.keyword-add-btn-horizontal {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 36px;
+  height: 36px;
+  background-color: rgba(59, 130, 246, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  
+  &:active {
+    background-color: rgba(59, 130, 246, 0.2);
+  }
+}
+
+.editor-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  overflow: hidden;
+  transition: all 0.2s ease;
+  
+  &.focused {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: #fff;
+  border-bottom: 1px solid #E2E8F0;
+  gap: 4px;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.toolbar-btn {
   width: 32px;
   height: 32px;
-  border: 1px dashed #ddd;
-  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
-
+  color: #64748B;
+  
+  &:hover {
+    background: #f1f5f9;
+    color: #3B82F6;
+  }
+  
   &:active {
-    background-color: rgba(0, 82, 217, 0.04);
+    background: #E2E8F0;
+  }
+}
+
+.indent-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #E2E8F0;
+  margin: 0 4px;
+}
+
+.editor-content {
+  min-height: 150px;
+  padding: 14px;
+  
+  :deep(.ql-editor) {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #334155;
+    padding: 0;
+    
+    &.ql-blank::before {
+      color: #94A3B8;
+      font-style: normal;
+    }
+    
+    ol, ul {
+      padding-left: 20px;
+    }
+    
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 8px 0;
+      
+      td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        min-width: 50px;
+      }
+    }
+  }
+}
+
+.editor-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #fff;
+  border-top: 1px solid #E2E8F0;
+}
+
+.table-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-dialog-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.table-dialog-content {
+  position: relative;
+  width: 300px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.table-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.table-dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1E293B;
+}
+
+.close-btn {
+  cursor: pointer;
+}
+
+.table-dialog-body {
+  padding: 20px 16px;
+}
+
+.table-input-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.table-label {
+  width: 60px;
+  font-size: 14px;
+  color: #64748B;
+}
+
+.table-input {
+  flex: 1;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  
+  &:focus {
     border-color: #3B82F6;
+  }
+}
+
+.table-dialog-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #E2E8F0;
+}
+
+.table-btn {
+  flex: 1;
+  height: 40px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  
+  &.cancel {
+    background: #f1f5f9;
+    color: #64748B;
+  }
+  
+  &.confirm {
+    background: #3B82F6;
+    color: #fff;
   }
 }
 
 .footer {
   position: fixed;
+  bottom: 0;
   left: 0;
   right: 0;
-  bottom: 0;
-  background-color: #fff;
-  padding: 12px 16px;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
-  z-index: 100;
-}
-
-.btn-group {
   display: flex;
   gap: 12px;
+  padding: 12px 16px;
+  background: #fff;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  z-index: 100;
 }
 
 .btn-cancel {
@@ -742,536 +1103,52 @@ const onBatchConfirmImport = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 22px;
-  font-size: 16px;
-  color: #666;
-  background-color: #f5f6fa;
+  background: #f1f5f9;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #64748B;
   cursor: pointer;
-  transition: opacity 0.2s;
-
+  
   &:active {
-    opacity: 0.8;
+    background: #E2E8F0;
   }
 }
 
 .btn-submit {
-  flex: 1;
+  flex: 2;
   height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 22px;
-  font-size: 16px;
+  gap: 6px;
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  border-radius: 12px;
+  font-size: 15px;
   color: #fff;
-  background-color: #3B82F6;
+  font-weight: 500;
   cursor: pointer;
-  transition: opacity 0.2s;
-
+  
   &.disabled {
     opacity: 0.5;
     cursor: not-allowed;
   }
-
+  
   &:active:not(.disabled) {
-    opacity: 0.8;
+    transform: scale(0.98);
   }
 }
 
-.picker-popup {
-  background-color: #fff;
-  border-radius: 16px 16px 0 0;
-  max-height: 60vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.picker-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.picker-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.picker-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.picker-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 8px 0;
-}
-
-.picker-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  font-size: 15px;
-  color: #333;
-  cursor: pointer;
-  transition: background-color 0.2s;
-
-  &.selected {
-    background-color: #f0f5ff;
-    color: #3B82F6;
-  }
-
-  &:active {
-    background-color: #f5f5f5;
-  }
-}
-
-.batch-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 1000;
-  display: flex;
-  align-items: flex-end;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.batch-container {
-  width: 100%;
-  background: #fff;
-  border-radius: 16px 16px 0 0;
-  max-height: 85vh;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
-}
-
-.batch-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.batch-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #333;
-}
-
-.batch-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f5f5f5;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.batch-step {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  overflow: hidden;
-}
-
-.batch-step-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.batch-step-num {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #3B82F6;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.batch-step-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-
-.batch-library-list {
-  flex: 1;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.batch-library-item {
-  display: flex;
-  align-items: center;
-  padding: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  border: 1px solid transparent;
-  transition: all 0.2s;
-  cursor: pointer;
-
-  &.selected {
-    border-color: #3B82F6;
-    background: #f0f5ff;
-  }
-}
-
-.batch-library-radio {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  border: 2px solid #ddd;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 10px;
-  flex-shrink: 0;
-}
-
-.batch-library-item.selected .batch-library-radio {
-  border-color: #3B82F6;
-}
-
-.batch-radio-dot {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: #3B82F6;
-}
-
-.batch-library-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.batch-library-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-}
-
-.batch-library-count {
-  font-size: 12px;
-  color: #999;
-}
-
-.batch-empty {
-  text-align: center;
-  padding: 24px;
-  color: #999;
-  font-size: 14px;
-}
-
-.batch-upload-area {
-  border: 1px dashed #ddd;
-  border-radius: 10px;
-  padding: 24px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 16px;
-  transition: all 0.2s;
-  cursor: pointer;
-
-  &:active {
-    border-color: #00A870;
-    background: #f8fdfb;
-  }
-}
-
-.batch-upload-content {
+.empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-}
-
-.batch-upload-text {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.batch-upload-hint {
-  font-size: 12px;
-  color: #999;
-}
-
-.batch-upload-done {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-}
-
-.batch-file-name {
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-}
-
-.batch-file-change {
-  font-size: 12px;
-  color: #00A870;
-}
-
-.batch-template-section {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 12px;
-  margin-bottom: 16px;
-}
-
-.batch-template-title {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #666;
-  margin-bottom: 8px;
-}
-
-.batch-template-info {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.batch-template-row {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  color: #666;
-}
-
-.batch-template-row .col-a {
-  width: 80px;
-  color: #999;
-}
-
-.batch-template-row .col-b {
-  color: #333;
-  font-weight: 500;
-}
-
-.batch-download-template {
-  display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 8px;
-  border: 1px solid #3B82F6;
-  border-radius: 6px;
-  color: #3B82F6;
-  font-size: 13px;
-  cursor: pointer;
-
-  &:active {
-    background: #f0f5ff;
-  }
-}
-
-.batch-step-actions {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-  margin-top: auto;
-  padding-top: 12px;
-}
-
-.batch-step-footer {
-  display: flex;
-  justify-content: center;
-  margin-top: auto;
-  padding-top: 12px;
-}
-
-.batch-prev-btn {
-  flex: 0.5;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 500;
-  background: #f5f5f5;
-  color: #666;
-  cursor: pointer;
-
-  &:active {
-    background: #e8e8e8;
-  }
-}
-
-.batch-next-btn {
-  flex: 0.5;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 500;
-  background: #3B82F6;
-  color: #fff;
-  cursor: pointer;
-
-  &.disabled {
-    background: #ccc;
-    color: #fff;
-    cursor: not-allowed;
-  }
-}
-
-.batch-preview-summary {
-  margin-bottom: 12px;
-}
-
-.batch-preview-total {
-  font-size: 14px;
-  color: #666;
-}
-
-.batch-preview-total .highlight {
-  color: #3B82F6;
-  font-weight: 600;
-  font-size: 16px;
-}
-
-.batch-preview-list {
-  flex: 1;
-  max-height: 200px;
-  overflow-y: auto;
-}
-
-.batch-preview-item {
-  display: flex;
-  padding: 10px 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  margin-bottom: 6px;
-}
-
-.batch-preview-index {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #e8f4ff;
-  color: #3B82F6;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 8px;
-  flex-shrink: 0;
-}
-
-.batch-preview-content {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.batch-preview-q {
-  font-size: 13px;
-  color: #333;
-  font-weight: 500;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.batch-preview-a {
-  font-size: 12px;
-  color: #666;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.batch-preview-chapter {
-  font-size: 11px;
-  color: #999;
-  background: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 3px;
-  align-self: flex-start;
-}
-
-.batch-result {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px 0;
+  min-height: 100vh;
   gap: 12px;
 }
 
-.batch-result-icon {
-  margin-bottom: 8px;
-}
-
-.batch-result-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
-.batch-result-desc {
+.empty-text {
   font-size: 14px;
-  color: #666;
-}
-
-@media (max-width: 768px) {
-  .card-form-container {
-    padding: 16px;
-    padding-top: 60px;
-    padding-bottom: 120px;
-  }
-
-  .form-section {
-    padding: 16px;
-  }
+  color: #94A3B8;
 }
 </style>

@@ -66,6 +66,31 @@
 
           <div class="form-item">
             <div class="form-label">
+              <span class="label-text">关键词</span>
+              <span class="label-hint">可选</span>
+            </div>
+            <div class="keywords-input-container">
+              <div class="keywords-list-horizontal">
+                <div class="keyword-item-horizontal" v-for="(keyword, index) in keywords" :key="index">
+                  <input 
+                    class="keyword-input-horizontal" 
+                    v-model="keywords[index]" 
+                    :placeholder="'关键词' + (index + 1)"
+                    maxlength="10"
+                  />
+                  <div class="keyword-remove-horizontal" @click="removeKeyword(index)">
+                    <t-icon name="close" size="12px" color="#999" />
+                  </div>
+                </div>
+                <div class="keyword-add-btn-horizontal" @click="addKeywordSlot">
+                  <t-icon name="add" size="14px" color="#3B82F6" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-item">
+            <div class="form-label">
               <span class="label-text">答案</span>
               <span class="label-required">*</span>
             </div>
@@ -107,6 +132,9 @@
                   </button>
                   <button class="toolbar-btn" title="斜体" @click="formatItalic">
                     <t-icon name="textformat-italic" size="16px" />
+                  </button>
+                  <button class="toolbar-btn" title="下划线" @click="formatUnderline">
+                    <t-icon name="textformat-underline" size="16px" />
                   </button>
                 </div>
               </div>
@@ -224,6 +252,8 @@ const answerText = ref('')
 const showTableDialog = ref(false)
 const tableRows = ref(3)
 const tableCols = ref(3)
+
+const keywords = ref<string[]>([])
 
 const answerCharCount = computed(() => {
   return answerText.value.length
@@ -346,6 +376,11 @@ const formatItalic = () => {
   quillInstance.value.format('italic', !quillInstance.value.getFormat().italic)
 }
 
+const formatUnderline = () => {
+  if (!quillInstance.value) return
+  quillInstance.value.format('underline', !quillInstance.value.getFormat().underline)
+}
+
 const insertTable = () => {
   if (!quillInstance.value) return
   
@@ -366,6 +401,14 @@ const insertTable = () => {
   quillInstance.value.clipboard.dangerouslyPasteHTML(selection.index, tableHtml)
   
   showTableDialog.value = false
+}
+
+const addKeywordSlot = () => {
+  keywords.value.push('')
+}
+
+const removeKeyword = (index: number) => {
+  keywords.value.splice(index, 1)
 }
 
 onMounted(async () => {
@@ -397,6 +440,9 @@ const loadCardData = async () => {
     if (res.success && res.data) {
       question.value = res.data.question
       answer.value = res.data.answer
+      if (res.data.tags && Array.isArray(res.data.tags)) {
+        keywords.value = res.data.tags
+      }
     }
   } catch (error) {
     console.error('加载卡片失败:', error)
@@ -581,7 +627,7 @@ const onSubmit = async () => {
       chapter_id: selectedChapter.value?.id || null,
       question: question.value.trim(),
       answer: html,
-      tags: [],
+      tags: keywords.value.filter(k => k.trim()),
       is_public: 1
     }
 
@@ -715,10 +761,78 @@ const onSubmit = async () => {
   margin-left: 4px;
 }
 
+.label-hint {
+  font-size: 13px;
+  color: #95a5a6;
+  margin-left: 4px;
+}
+
 .divider {
   height: 1px;
   background: linear-gradient(90deg, transparent, #e8ecf0, transparent);
   margin: 16px 0;
+}
+
+.keywords-input-container {
+  width: 100%;
+}
+
+.keywords-list-horizontal {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.keyword-item-horizontal {
+  display: flex;
+  align-items: center;
+  background-color: #f5f6fa;
+  border-radius: 6px;
+  padding: 0 4px 0 8px;
+  height: 36px;
+}
+
+.keyword-input-horizontal {
+  width: 60px;
+  height: 32px;
+  font-size: 13px;
+  color: #333;
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.keyword-remove-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  cursor: pointer;
+
+  &:active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.keyword-add-btn-horizontal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px dashed #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:active {
+    background-color: rgba(0, 82, 217, 0.04);
+    border-color: #3B82F6;
+  }
 }
 
 .picker-card {

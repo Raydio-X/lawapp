@@ -104,4 +104,22 @@ router.post('/broadcast', adminAuth, async (req, res) => {
     }
 });
 
+router.get('/broadcast', adminAuth, async (req, res) => {
+    try {
+        const { page, pageSize } = req.query;
+        const result = await MessageModel.getBroadcastList({
+            page: page || 1,
+            pageSize: pageSize || 20
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Get broadcast list error:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取广播列表失败' });
+    }
+});
+
 module.exports = router;

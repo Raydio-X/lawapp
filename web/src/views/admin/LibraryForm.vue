@@ -23,28 +23,6 @@
         />
         <span class="form-count">{{ libraryName.length }}/20</span>
       </div>
-
-      <div class="form-item">
-        <span class="form-label">标签 <span class="form-label-tip">最多3个</span></span>
-        <div class="tags-input-container">
-          <div class="tags-list-horizontal">
-            <div class="tag-item-horizontal" v-for="(tag, index) in tags" :key="index">
-              <input 
-                class="tag-input-horizontal" 
-                v-model="tags[index]" 
-                :placeholder="'标签' + (index + 1)"
-                maxlength="10"
-              />
-              <div class="tag-remove-horizontal" @click="onRemoveTag(index)">
-                <t-icon name="close" size="12px" color="#999" />
-              </div>
-            </div>
-            <div class="tag-add-btn-horizontal" v-if="tags.length < 3" @click="onAddTag">
-              <t-icon name="add" size="14px" color="#3B82F6" />
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
 
     <div class="form-section">
@@ -136,7 +114,6 @@ const route = useRoute()
 const isEdit = computed(() => !!route.query.id)
 
 const libraryName = ref('')
-const tags = ref<string[]>([])
 const outline = ref<{ id: string; title: string; level: number }[]>([])
 
 const showCancelDialog = ref(false)
@@ -154,22 +131,11 @@ const loadLibraryDetail = async () => {
     if (res.success && res.data) {
       const library = res.data
       libraryName.value = library.name
-      tags.value = library.tags || []
       outline.value = library.outline || []
     }
   } catch (error) {
     console.error('加载知识库详情失败', error)
   }
-}
-
-const onAddTag = () => {
-  if (tags.value.length < 3) {
-    tags.value.push('')
-  }
-}
-
-const onRemoveTag = (index: number) => {
-  tags.value.splice(index, 1)
 }
 
 const onAddOutline = () => {
@@ -207,7 +173,7 @@ const onDragEnd = () => {
 }
 
 const onCancel = () => {
-  if (libraryName.value || tags.value.some(t => t) || outline.value.some(o => o.title)) {
+  if (libraryName.value || outline.value.some(o => o.title)) {
     showCancelDialog.value = true
   } else {
     router.push('/admin')
@@ -227,7 +193,6 @@ const onSubmit = async () => {
   try {
     const data = {
       name: libraryName.value,
-      tags: tags.value.filter(t => t.trim()),
       outline: outline.value.filter(o => o.title.trim())
     }
 
@@ -344,13 +309,6 @@ const onSubmit = async () => {
   color: #e34d59;
 }
 
-.form-label-tip {
-  font-size: 12px;
-  color: #999;
-  font-weight: normal;
-  margin-left: 4px;
-}
-
 .form-input {
   width: 100%;
   height: 44px;
@@ -374,68 +332,6 @@ const onSubmit = async () => {
   bottom: 14px;
   font-size: 12px;
   color: #bbb;
-}
-
-.tags-input-container {
-  width: 100%;
-}
-
-.tags-list-horizontal {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.tag-item-horizontal {
-  display: flex;
-  align-items: center;
-  background-color: #f5f6fa;
-  border-radius: 6px;
-  padding: 0 4px 0 8px;
-  height: 36px;
-}
-
-.tag-input-horizontal {
-  width: 60px;
-  height: 32px;
-  font-size: 13px;
-  color: #333;
-  background: transparent;
-  border: none;
-  outline: none;
-}
-
-.tag-remove-horizontal {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  cursor: pointer;
-
-  &:active {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
-}
-
-.tag-add-btn-horizontal {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px dashed #ddd;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:active {
-    background-color: rgba(0, 82, 217, 0.04);
-    border-color: #3B82F6;
-  }
 }
 
 .outline-container {

@@ -14,44 +14,24 @@
     <div class="main-actions">
       <div class="action-card primary" @click="onStartStudy">
         <div class="action-decor">
-          <t-icon name="book" size="60px" color="rgba(255, 255, 255, 0.15)" />
+          <t-icon name="book" size="50px" color="rgba(255, 255, 255, 0.15)" />
         </div>
         <div class="action-content">
           <div class="action-main">
             <div class="action-text-wrap">
               <span class="action-title">开始学习</span>
-              <span class="action-desc">学习未掌握的卡片</span>
+              <span class="action-desc" v-if="lastStudyProgress">{{ lastStudyProgress.libraryNames }} · 进度 {{ lastStudyProgress.learned }}/{{ lastStudyProgress.total }}</span>
+              <span class="action-desc" v-else>选择知识库开始学习</span>
             </div>
             <div class="action-icon-wrap">
-              <t-icon name="play-circle" size="24px" color="#fff" />
-            </div>
-          </div>
-          <div class="action-badge" v-if="unlearnedCount > 0">
-            <span>{{ unlearnedCount }}张待学</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="action-card continue" @click="onContinueStudy">
-        <div class="action-decor">
-          <t-icon name="history" size="55px" color="rgba(255, 255, 255, 0.12)" />
-        </div>
-        <div class="action-content">
-          <div class="action-main">
-            <div class="action-text-wrap">
-              <span class="action-title">继续学习</span>
-              <span class="action-desc" v-if="lastStudyProgress">{{ lastStudyProgress.libraryNames }}</span>
-              <span class="action-desc" v-else>暂无学习记录</span>
-            </div>
-            <div class="action-icon-wrap">
-              <t-icon name="play-circle-stroke" size="24px" color="#fff" />
+              <t-icon name="play-circle" size="20px" color="#fff" />
             </div>
           </div>
           <div class="action-badge" v-if="lastStudyProgress">
-            <span>进度 {{ lastStudyProgress.learned }}/{{ lastStudyProgress.total }}</span>
+            <span>{{ lastStudyProgress.isRandomMode ? '随机模式' : '继续上次' }}</span>
           </div>
-          <div class="action-badge empty" v-else>
-            <span>点击开始</span>
+          <div class="action-badge" v-else-if="unlearnedCount > 0">
+            <span>{{ unlearnedCount }}张待学</span>
           </div>
         </div>
       </div>
@@ -125,6 +105,7 @@ interface LastStudyProgress {
   currentIndex: number
   learned: number
   total: number
+  isRandomMode: boolean
 }
 
 const router = useRouter()
@@ -183,12 +164,24 @@ const loadStats = async () => {
 
 const loadLastStudyProgress = async () => {
   try {
-    const res = await studyAPI.getLastProgress()
-    if (res.success && res.data && res.data.cardList && res.data.cardList.length > 0) {
-      lastStudyProgress.value = res.data
-    } else {
-      lastStudyProgress.value = null
+    const saved = localStorage.getItem('studyCardsData')
+    if (saved) {
+      const data = JSON.parse(saved)
+      if (data.cardList && data.cardList.length > 0) {
+        const learned = data.cardList.filter((c: any) => c.learned).length
+        lastStudyProgress.value = {
+          cardList: data.cardList,
+          libraryIds: data.libraryIds,
+          libraryNames: data.libraryNames,
+          total: data.totalCards || data.cardList.length,
+          learned: learned,
+          currentIndex: data.currentIndex || learned,
+          isRandomMode: data.isRandomMode || false
+        }
+        return
+      }
     }
+    lastStudyProgress.value = null
   } catch (error) {
     console.error('加载学习进度失败:', error)
     lastStudyProgress.value = null
@@ -197,30 +190,6 @@ const loadLastStudyProgress = async () => {
 
 const onStartStudy = () => {
   router.push('/study/select')
-}
-
-const onContinueStudy = () => {
-  if (!lastStudyProgress.value) {
-    router.push('/study/select')
-    return
-  }
-  
-  const cardList = lastStudyProgress.value.cardList
-  
-  localStorage.setItem('studyCardsData', JSON.stringify({
-    cardList: cardList,
-    libraryIds: lastStudyProgress.value.libraryIds,
-    libraryNames: lastStudyProgress.value.libraryNames,
-    totalCards: cardList.length
-  }))
-
-  router.push({
-    path: '/study/cards',
-    query: { 
-      index: lastStudyProgress.value.currentIndex, 
-      total: cardList.length 
-    }
-  })
 }
 
 const onSmartExam = () => {
@@ -334,7 +303,7 @@ const onDifficulty = () => {
 .action-card.primary {
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   border-radius: 10px;
-  padding: 20px 18px;
+  padding: 14px 18px;
   margin-bottom: 8px;
   position: relative;
   overflow: hidden;
@@ -367,8 +336,8 @@ const onDifficulty = () => {
 }
 
 .action-icon-wrap {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   display: flex;
@@ -383,7 +352,7 @@ const onDifficulty = () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 10px;
+  margin-top: 8px;
   
   span {
     font-size: 12px;
@@ -393,7 +362,7 @@ const onDifficulty = () => {
 }
 
 .action-card.primary .action-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #fff;
 }
@@ -401,36 +370,6 @@ const onDifficulty = () => {
 .action-card.primary .action-desc {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.8);
-}
-
-.action-card.continue {
-  background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
-  border-radius: 10px;
-  padding: 20px 18px;
-  margin-bottom: 8px;
-  position: relative;
-  overflow: hidden;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
-  cursor: pointer;
-}
-
-.action-card.continue .action-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-}
-
-.action-card.continue .action-desc {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.action-card.continue .action-badge {
-  background: rgba(255, 255, 255, 0.25);
-  
-  &.empty {
-    background: rgba(255, 255, 255, 0.2);
-  }
 }
 
 .action-row {

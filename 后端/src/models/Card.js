@@ -475,6 +475,39 @@ class CardModel {
             difficultyCount: newCount
         };
     }
+
+    static async getMyCards(userId, params = {}) {
+        const { page = 1, pageSize = 20 } = params;
+        const offset = (page - 1) * pageSize;
+
+        const [rows] = await db.execute(
+            `SELECT c.*, l.name as library_name
+             FROM cards c 
+             LEFT JOIN libraries l ON c.library_id = l.id 
+             WHERE c.created_by = ?
+             ORDER BY c.created_at DESC
+             LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
+            [userId]
+        );
+
+        const [countRows] = await db.execute(
+            'SELECT COUNT(*) as total FROM cards WHERE created_by = ?',
+            [userId]
+        );
+
+        return {
+            list: rows.map(row => ({
+                ...row,
+                tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
+            })),
+            pagination: {
+                page: parseInt(page),
+                pageSize: parseInt(pageSize),
+                total: countRows[0].total,
+                totalPages: Math.ceil(countRows[0].total / pageSize)
+            }
+        };
+    }
 }
 
 module.exports = CardModel;

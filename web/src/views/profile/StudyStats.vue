@@ -91,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onActivated, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { studyAPI } from '@/utils/api'
 import RadarChart from '@/components/RadarChart.vue'
@@ -140,6 +140,10 @@ onMounted(() => {
   currentMonth.value = now.getMonth() + 1
   updateDate.value = `${now.getMonth() + 1}月${now.getDate()}日`
   
+  loadStudyData()
+})
+
+onActivated(() => {
   loadStudyData()
 })
 

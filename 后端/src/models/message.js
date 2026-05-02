@@ -102,6 +102,39 @@ class MessageModel {
 
         return { count: users.length };
     }
+
+    static async getBroadcastList(params = {}) {
+        const { page = 1, pageSize = 20 } = params;
+        const offset = (page - 1) * pageSize;
+
+        const countSql = `SELECT COUNT(DISTINCT sender_id, title, content, created_at) as total 
+                          FROM messages WHERE type = 'announcement' AND sender_id IS NOT NULL`;
+
+        const [countRows] = await db.execute(countSql);
+
+        const limitNum = parseInt(pageSize);
+        const offsetNum = parseInt(offset);
+        
+        const sql = `SELECT DISTINCT sender_id, title, content, created_at, 
+                     (SELECT COUNT(*) FROM messages m2 WHERE m2.title = messages.title 
+                      AND m2.content = messages.content AND m2.created_at = messages.created_at) as recipient_count
+                     FROM messages 
+                     WHERE type = 'announcement' AND sender_id IS NOT NULL
+                     ORDER BY created_at DESC 
+                     LIMIT ${limitNum} OFFSET ${offsetNum}`;
+
+        const [rows] = await db.execute(sql);
+
+        return {
+            list: rows,
+            pagination: {
+                page: parseInt(page),
+                pageSize: parseInt(pageSize),
+                total: countRows[0].total,
+                totalPages: Math.ceil(countRows[0].total / pageSize)
+            }
+        };
+    }
 }
 
 module.exports = MessageModel;

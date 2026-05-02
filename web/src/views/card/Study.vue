@@ -18,15 +18,6 @@
         <div class="card-header">
           <div class="card-meta">
             <span class="card-number">卡片 {{ currentIndex + 1 }} / {{ totalCards }}</span>
-            <div class="card-tags">
-              <t-tag 
-                v-for="tag in currentCard.tags" 
-                :key="tag" 
-                theme="primary" 
-                variant="light" 
-                size="small"
-              >{{ tag }}</t-tag>
-            </div>
           </div>
           <div class="progress-bar">
             <div class="progress-track">
@@ -37,6 +28,20 @@
         
         <div class="question-content">
           <span class="question-title">{{ currentCard.question }}</span>
+        </div>
+      </div>
+
+      <div class="keyword-section" v-if="currentCard.tags && currentCard.tags.length > 0">
+        <div class="keyword-header">
+          <div class="keyword-label">
+            <t-icon name="bookmark" size="16px" color="#3B82F6" />
+            <span>关键词</span>
+          </div>
+        </div>
+        <div class="keyword-content">
+          <div class="keyword-tags">
+            <t-tag v-for="tag in currentCard.tags" :key="tag" theme="primary" variant="light" size="large">{{ tag }}</t-tag>
+          </div>
         </div>
       </div>
 
@@ -66,44 +71,43 @@
             <span class="related-title">派生学习</span>
             <span class="related-vip-tag">VIP</span>
           </div>
+          <div class="related-actions">
+            <div class="link-search-btn" @click="goToLinkSearch">
+              <t-icon name="add" size="16px" color="#B8860B" />
+              <span>关联卡片</span>
+            </div>
+          </div>
         </div>
 
-        <div class="related-loading" v-if="relatedLoading">
-          <t-icon name="loading" size="20px" color="#B8860B" />
-          <span>正在发现相关知识点...</span>
-        </div>
-
-        <div class="related-empty" v-else-if="relatedCards.length === 0 && !relatedLoading">
-          <t-icon name="info-circle" size="20px" color="#D4AF37" />
-          <span>暂未发现相关知识点</span>
-        </div>
-
-        <div class="related-list-scroll" v-else>
-          <div class="related-list">
-            <div 
-              class="related-item"
-              v-for="item in relatedCards"
-              :key="item.id"
-              @click="onRelatedCardTap(item)"
-            >
-              <div class="related-card">
-                <div class="related-card-header">
-                  <span class="related-card-library">{{ item.library_name || '未知知识库' }}</span>
-                  <div class="related-card-tags" v-if="item.tags && item.tags.length > 0">
-                    <span class="related-tag" v-for="tag in item.tags.slice(0, 2)" :key="tag">{{ tag }}</span>
+        <div class="linked-section" v-if="linkedCards.length > 0">
+          <div class="linked-header">
+            <span class="linked-label">已关联卡片</span>
+            <span class="linked-count">{{ linkedCards.length }} 张</span>
+          </div>
+          <div class="linked-list-scroll">
+            <div class="linked-list">
+              <div 
+                class="linked-item"
+                v-for="item in linkedCards"
+                :key="item.id"
+              >
+                <div class="linked-card" @click="onRelatedCardTap(item)">
+                  <div class="linked-card-question">
+                    <span>{{ item.question }}</span>
                   </div>
+                  <div class="linked-card-library" v-if="item.library_name">{{ item.library_name }}</div>
                 </div>
-                <div class="related-card-question">
-                  <span>{{ item.question }}</span>
+                <div class="unlink-btn" @click.stop="onUnlinkCard(item.id)">
+                  <t-icon name="close" size="14px" color="#999" />
                 </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="related-tip" v-if="relatedCards.length > 0">
-          <t-icon name="star" size="12px" color="#D4AF37" />
-          <span>智能推荐相关知识点</span>
+        <div class="related-empty" v-if="linkedCards.length === 0">
+          <t-icon name="info-circle" size="20px" color="#D4AF37" />
+          <span>点击上方按钮手动关联卡片</span>
         </div>
       </div>
 
@@ -221,7 +225,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, onActivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, favoriteAPI, commentAPI } from '@/utils/api'
@@ -265,6 +269,7 @@ const libraryName = ref('')
 
 const relatedLoading = ref(false)
 const relatedCards = ref<Card[]>([])
+const linkedCards = ref<Card[]>([])
 
 const comments = ref<Comment[]>([])
 const commentText = ref('')
@@ -342,6 +347,12 @@ onUnmounted(() => {
   saveStudyProgress()
 })
 
+onActivated(() => {
+  if (currentCard.value && answerRevealed.value) {
+    loadLinkedCards()
+  }
+})
+
 const loadCardData = async (cardId: string | undefined, index: number) => {
   loading.value = true
   
@@ -389,6 +400,7 @@ const loadSingleCard = async (cardId: number) => {
       
       if (!singleCard.value && mode.value !== 'study') {
         loadRelatedCards()
+        loadLinkedCards()
       }
     }
   } catch (error) {
@@ -430,6 +442,7 @@ const loadHotCards = async (cardId: string | undefined, index: number) => {
       
       if (!singleCard.value && mode.value !== 'study') {
         loadRelatedCards()
+        loadLinkedCards()
       }
     }
   } catch (error) {
@@ -462,6 +475,7 @@ const loadLibraryCards = async (cardId: string | undefined, index: number) => {
         
         if (!singleCard.value && mode.value !== 'study') {
           loadRelatedCards()
+          loadLinkedCards()
         }
         return
       }
@@ -502,6 +516,7 @@ const loadLibraryCards = async (cardId: string | undefined, index: number) => {
       
       if (!singleCard.value && mode.value !== 'study') {
         loadRelatedCards()
+        loadLinkedCards()
       }
     }
   } catch (error) {
@@ -568,6 +583,7 @@ const onRevealAnswer = () => {
   recordCardStudy()
   if (!singleCard.value) {
     loadRelatedCards()
+    loadLinkedCards()
   }
 }
 
@@ -594,6 +610,39 @@ const loadRelatedCards = async () => {
     console.error('加载相关卡片失败:', error)
   } finally {
     relatedLoading.value = false
+  }
+}
+
+const loadLinkedCards = async () => {
+  if (!currentCard.value) return
+  
+  try {
+    const res = await cardAPI.getLinkedCards(currentCard.value.id)
+    if (res.success && res.data) {
+      linkedCards.value = res.data
+    }
+  } catch (error) {
+    console.error('加载已关联卡片失败:', error)
+  }
+}
+
+const goToLinkSearch = () => {
+  if (!currentCard.value) return
+  router.push(`/card/link-search?cardId=${currentCard.value.id}`)
+}
+
+const onUnlinkCard = async (linkedCardId: number) => {
+  if (!currentCard.value) return
+  
+  try {
+    const res = await cardAPI.unlinkCard(currentCard.value.id, linkedCardId)
+    if (res.success) {
+      linkedCards.value = linkedCards.value.filter(card => card.id !== linkedCardId)
+      MessagePlugin.success('已取消关联')
+    }
+  } catch (error) {
+    console.error('取消关联失败:', error)
+    MessagePlugin.error('取消关联失败')
   }
 }
 
@@ -926,6 +975,44 @@ const saveStudyProgress = () => {
   font-weight: 500;
 }
 
+.keyword-section {
+  background: #fff;
+  margin: 0 12px 12px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+.keyword-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.keyword-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #3B82F6;
+  }
+}
+
+.keyword-content {
+  min-height: 32px;
+}
+
+.keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .answer-section {
   background: #fff;
   margin: 0 12px 12px;
@@ -1076,6 +1163,138 @@ const saveStudyProgress = () => {
   margin-left: 4px;
 }
 
+.related-actions {
+  display: flex;
+  align-items: center;
+}
+
+.link-search-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: rgba(184, 134, 11, 0.1);
+  border-radius: 16px;
+  cursor: pointer;
+  
+  span {
+    font-size: 13px;
+    color: #B8860B;
+    font-weight: 500;
+  }
+  
+  &:active {
+    background: rgba(184, 134, 11, 0.2);
+  }
+}
+
+.linked-section {
+  margin-bottom: 12px;
+}
+
+.linked-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.linked-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #B8860B;
+}
+
+.linked-count {
+  font-size: 12px;
+  color: #C9A227;
+}
+
+.linked-list-scroll {
+  overflow-x: auto;
+  margin: 0 -8px;
+  padding: 0 8px;
+  
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.linked-list {
+  display: flex;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.linked-item {
+  display: inline-block;
+  cursor: pointer;
+  position: relative;
+}
+
+.linked-card {
+  width: 210px;
+  background: #F8FAFC;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #8cb6f9;
+  transition: all 0.2s ease;
+  white-space: normal;
+  
+  &:active {
+    transform: scale(0.98);
+    border-color: #2563EB;
+    background: #EFF6FF;
+  }
+}
+
+.linked-card-question {
+  min-height: 40px;
+  
+  span {
+    font-size: 13px;
+    color: #1E293B;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+}
+
+.linked-card-library {
+  font-size: 11px;
+  color: #3B82F6;
+  background: rgba(59, 130, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: inline-block;
+  margin-top: 8px;
+}
+
+.unlink-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  flex-shrink: 0;
+  
+  &:active {
+    background: rgba(0, 0, 0, 0.15);
+  }
+}
+
 .related-loading,
 .related-empty {
   display: flex;
@@ -1171,20 +1390,6 @@ const saveStudyProgress = () => {
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 2;
     overflow: hidden;
-  }
-}
-
-.related-tip {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  margin-top: 10px;
-  padding-top: 8px;
-  
-  span {
-    font-size: 11px;
-    color: #C9A227;
   }
 }
 

@@ -203,4 +203,62 @@ router.post('/toggle', auth, async (req, res) => {
     }
 });
 
+router.get('/cards', auth, async (req, res) => {
+    try {
+        const { page = 1, pageSize = 100 } = req.query;
+        const offset = (page - 1) * pageSize;
+
+        const [rows] = await db.execute(
+            `SELECT c.*, l.name as library_name,
+                    (SELECT mastered FROM card_mastery cm WHERE cm.card_id = c.id AND cm.user_id = ?) as is_learned
+             FROM favorites f
+             JOIN cards c ON c.id = f.target_id
+             LEFT JOIN libraries l ON c.library_id = l.id
+             WHERE f.user_id = ? AND f.target_type = 'card'
+             ORDER BY f.created_at DESC
+             LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
+            [req.user.id, req.user.id]
+        );
+
+        const [countRows] = await db.execute(
+            'SELECT COUNT(*) as total FROM favorites WHERE user_id = ? AND target_type = ?',
+            [req.user.id, 'card']
+        );
+
+        const [learnedRows] = await db.execute(
+            `SELECT COUNT(*) as count FROM favorites f
+             JOIN card_mastery cm ON cm.card_id = f.target_id AND cm.mastered = 1
+             WHERE f.user_id = ? AND f.target_type = 'card'`,
+            [req.user.id]
+        );
+
+        const cards = rows.map(row => ({
+            ...row,
+            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+            is_learned: row.is_learned === 1
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                cards,
+                total: countRows[0].total,
+                learned: learnedRows[0].count,
+                pagination: {
+                    page: parseInt(page),
+                    pageSize: parseInt(pageSize),
+                    total: countRows[0].total
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Get favorite cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取收藏卡片失败'
+        });
+    }
+});
+
 module.exports = router;

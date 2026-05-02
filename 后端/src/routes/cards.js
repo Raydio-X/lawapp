@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const xlsx = require('xlsx');
 const path = require('path');
+const db = require('../config/database');
 const CardModel = require('../models/Card');
 const ChapterModel = require('../models/Chapter');
 const StudyModel = require('../models/Study');
@@ -9,6 +10,7 @@ const CommentModel = require('../models/Comment');
 const FavoriteModel = require('../models/Favorite');
 const LikeModel = require('../models/Like');
 const MasteryModel = require('../models/Mastery');
+const CardLinkModel = require('../models/CardLink');
 const bm25Engine = require('../services/bm25');
 const sentenceEmbedding = require('../services/sentenceEmbedding');
 const resultFusion = require('../services/resultFusion');
@@ -109,6 +111,28 @@ router.get('/search', async (req, res) => {
             success: false,
             code: 500,
             message: '搜索失败'
+        });
+    }
+});
+
+router.get('/my', auth, async (req, res) => {
+    try {
+        const { page, pageSize } = req.query;
+        const result = await CardModel.getMyCards(req.user.id, {
+            page: parseInt(page) || 1,
+            pageSize: parseInt(pageSize) || 20
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Get my cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取我的卡片失败'
         });
     }
 });
@@ -520,6 +544,98 @@ router.post('/batch-move', auth, async (req, res) => {
     }
 });
 
+router.post('/batch-copy', auth, async (req, res) => {
+    try {
+        const { cardIds, libraryId, chapterId } = req.body;
+
+        if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '请选择要复制的卡片'
+            });
+        }
+
+        if (!libraryId) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '请选择目标知识库'
+            });
+        }
+
+        const [libCheck] = await db.execute(
+            'SELECT id FROM libraries WHERE id = ? AND created_by = ?',
+            [libraryId, req.user.id]
+        );
+
+        if (libCheck.length === 0) {
+            return res.status(403).json({
+                success: false,
+                code: 403,
+                message: '无权操作该知识库'
+            });
+        }
+
+        if (chapterId) {
+            const [chapterCheck] = await db.execute(
+                'SELECT id FROM chapters WHERE id = ? AND library_id = ?',
+                [chapterId, libraryId]
+            );
+            if (chapterCheck.length === 0) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '章节不存在或不属于该知识库'
+                });
+            }
+        }
+
+        const [cards] = await db.execute(
+            'SELECT * FROM cards WHERE id IN (' + cardIds.map(() => '?').join(',') + ')',
+            cardIds
+        );
+
+        let copiedCount = 0;
+        for (const card of cards) {
+            let cardTags = card.tags;
+            if (typeof cardTags === 'string') {
+                try {
+                    cardTags = JSON.parse(cardTags);
+                } catch (e) {
+                    cardTags = [];
+                }
+            }
+            if (!Array.isArray(cardTags)) {
+                cardTags = [];
+            }
+            
+            await CardModel.create({
+                library_id: libraryId,
+                chapter_id: chapterId || null,
+                question: card.question,
+                answer: card.answer,
+                tags: cardTags,
+                created_by: req.user.id,
+                is_public: 0
+            });
+            copiedCount++;
+        }
+
+        res.json({
+            success: true,
+            data: { count: copiedCount }
+        });
+    } catch (error) {
+        console.error('Batch copy cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '批量复制卡片失败'
+        });
+    }
+});
+
 router.get('/:id/next', async (req, res) => {
     try {
         const card = await CardModel.findById(req.params.id);
@@ -903,6 +1019,98 @@ router.get('/:id/related', optionalAuth, async (req, res) => {
             success: false,
             code: 500,
             message: '获取相关卡片失败'
+        });
+    }
+});
+
+router.post('/:id/link', auth, async (req, res) => {
+    try {
+        const { linkedCardIds } = req.body;
+        const cardId = parseInt(req.params.id);
+        
+        console.log('Link cards request:', { cardId, linkedCardIds, userId: req.user.id });
+        
+        if (!linkedCardIds || !Array.isArray(linkedCardIds) || linkedCardIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '请选择要关联的卡片'
+            });
+        }
+
+        const card = await CardModel.findById(cardId);
+        if (!card) {
+            return res.status(404).json({
+                success: false,
+                code: 404,
+                message: '卡片不存在'
+            });
+        }
+
+        await CardLinkModel.createTable();
+        const count = await CardLinkModel.addLinks(cardId, linkedCardIds, req.user.id);
+        
+        console.log('Link cards result:', count);
+
+        res.json({
+            success: true,
+            data: { count },
+            message: `成功关联 ${count} 张卡片`
+        });
+    } catch (error) {
+        console.error('Link cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '关联卡片失败'
+        });
+    }
+});
+
+router.delete('/:id/link/:linkedId', auth, async (req, res) => {
+    try {
+        const cardId = parseInt(req.params.id);
+        const linkedCardId = parseInt(req.params.linkedId);
+
+        const success = await CardLinkModel.removeLink(cardId, linkedCardId, req.user.id);
+
+        if (success) {
+            res.json({
+                success: true,
+                message: '取消关联成功'
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                code: 404,
+                message: '关联关系不存在'
+            });
+        }
+    } catch (error) {
+        console.error('Unlink card error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '取消关联失败'
+        });
+    }
+});
+
+router.get('/:id/linked', auth, async (req, res) => {
+    try {
+        const cardId = parseInt(req.params.id);
+        const cards = await CardLinkModel.getLinkedCards(cardId, req.user.id);
+
+        res.json({
+            success: true,
+            data: cards
+        });
+    } catch (error) {
+        console.error('Get linked cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取已关联卡片失败'
         });
     }
 });

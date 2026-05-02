@@ -31,15 +31,6 @@
             </div>
             <div class="hot-card-content">
               <div class="hot-card-title">{{ item.title }}</div>
-              <div class="hot-card-tags">
-                <t-tag 
-                  v-for="tag in item.tags" 
-                  :key="tag"
-                  theme="primary" 
-                  variant="light"
-                  size="small"
-                >{{ tag }}</t-tag>
-              </div>
             </div>
             <div class="hot-card-footer">
               <div 
@@ -101,15 +92,13 @@
           <div class="library-card-body">
             <span class="library-name">{{ item.name }}</span>
             <div class="library-meta">
-              <span class="meta-tag" :class="'meta-' + item.subjectType">{{ item.subject }}</span>
-              <span class="meta-dot">·</span>
               <span class="meta-text">{{ item.cardCount }}张卡片</span>
             </div>
           </div>
           <div class="library-card-right">
             <div class="fav-icon">
               <t-icon 
-                name="star-filled" 
+                name="star" 
                 size="18px" 
                 color="#F59E0B" 
               />
@@ -538,12 +527,6 @@ const onLikeCard = async (card: HotCard, index: number) => {
   padding-right: 25px;
 }
 
-.hot-card-tags {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-
 .hot-card-footer {
   display: flex;
   justify-content: flex-end;
@@ -671,43 +654,6 @@ const onLikeCard = async (card: HotCard, index: number) => {
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.meta-tag {
-  font-size: 11px;
-  padding: 3px 7px;
-  border-radius: 4px;
-  font-weight: 500;
-  
-  &.meta-civil {
-    color: #3B82F6;
-    background: rgba(59, 130, 246, 0.08);
-  }
-  
-  &.meta-criminal {
-    color: #EF4444;
-    background: rgba(239, 68, 68, 0.08);
-  }
-  
-  &.meta-constitution {
-    color: #8B5CF6;
-    background: rgba(139, 92, 246, 0.08);
-  }
-  
-  &.meta-admin {
-    color: #10B981;
-    background: rgba(16, 185, 129, 0.08);
-  }
-  
-  &.meta-default {
-    color: #3B82F6;
-    background: rgba(59, 130, 246, 0.08);
-  }
-}
-
-.meta-dot {
-  color: #CBD5E1;
-  font-size: 10px;
 }
 
 .meta-text {

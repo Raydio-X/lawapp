@@ -108,13 +108,12 @@
 
     <div class="menu-section">
       <div class="menu-list">
-        <div class="menu-item" @click="onMenuTap('favorite')">
+        <div class="menu-item" @click="onMenuTap('plan')">
           <div class="menu-left">
-            <t-icon name="star" size="22px" color="#FFAD1F" />
-            <span class="menu-title">我的收藏</span>
+            <t-icon name="calendar" size="22px" color="#00A870" />
+            <span class="menu-title">学习计划</span>
           </div>
           <div class="menu-right">
-            <span class="custom-badge" v-if="stats.favoriteCount > 0">{{ stats.favoriteCount }}</span>
             <t-icon name="chevron-right" size="16px" color="#ccc" />
           </div>
         </div>
@@ -137,15 +136,6 @@
           <div class="menu-left">
             <t-icon name="certificate" size="22px" color="#E37324" />
             <span class="menu-title">我的成就</span>
-          </div>
-          <div class="menu-right">
-            <t-icon name="chevron-right" size="16px" color="#ccc" />
-          </div>
-        </div>
-        <div class="menu-item" @click="onMenuTap('plan')">
-          <div class="menu-left">
-            <t-icon name="calendar" size="22px" color="#00A870" />
-            <span class="menu-title">学习计划</span>
           </div>
           <div class="menu-right">
             <t-icon name="chevron-right" size="16px" color="#ccc" />
@@ -303,6 +293,13 @@ const loadData = async () => {
       studyProgress.value.totalCards = statsRes.data.totalCards || 0
       studyProgress.value.dailyGoal = statsRes.data.dailyGoal || 20
       tempCardCount.value = statsRes.data.dailyGoal || 20
+      
+      const weekSeconds = statsRes.data.weekTime || 0
+      const weekMinutes = Math.floor(weekSeconds / 60)
+      studyProgress.value.weekTime = weekMinutes >= 60 
+        ? `${(weekMinutes / 60).toFixed(1)}小时` 
+        : `${weekMinutes}分钟`
+      studyProgress.value.weekTrend = statsRes.data.weekTrend || 0
     }
     
     if (studyRes.success && studyRes.data) {
@@ -326,7 +323,11 @@ const onEditProfile = () => {
 }
 
 const onStatTap = (type: string) => {
-  if (type === 'favorite') {
+  if (type === 'library') {
+    router.push('/profile/libraries')
+  } else if (type === 'card') {
+    router.push('/profile/cards')
+  } else if (type === 'favorite') {
     router.push('/profile/favorites')
   }
 }

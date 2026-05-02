@@ -62,15 +62,6 @@
                 <span class="meta-divider" v-if="card.library_name && card.study_count">·</span>
                 <span class="meta-item" v-if="card.study_count">{{ card.study_count }}人学习</span>
               </div>
-              <div class="card-tags" v-if="card.tags && card.tags.length > 0">
-                <t-tag 
-                  v-for="tag in card.tags.slice(0, 2)" 
-                  :key="tag" 
-                  theme="primary" 
-                  variant="light"
-                  size="small"
-                >{{ tag }}</t-tag>
-              </div>
             </div>
           </div>
           <div class="load-more" v-if="cardsHasMore" @click="loadMoreCards">

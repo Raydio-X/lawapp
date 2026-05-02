@@ -178,10 +178,14 @@ export const cardAPI = {
   getReviewCount: () => api.get('/cards/review/count'),
   batchImport: (file: File, formData?: any) => api.upload('/cards/batch-import', file, formData),
   batchMove: (cardIds: number[], chapterId: number) => api.post('/cards/batch-move', { cardIds, chapterId }),
+  batchCopy: (cardIds: number[], libraryId: number, chapterId?: number) => api.post('/cards/batch-copy', { cardIds, libraryId, chapterId }),
   getRelated: (id: number, limit?: number) => api.get(`/cards/${id}/related`, { limit }),
   updateMastery: (id: number, level: number) => api.post(`/cards/${id}/mastery`, { level }),
   getMyCards: (params?: any) => api.get('/cards/my', params),
-  rateDifficulty: (id: number, rating: number) => api.post(`/cards/${id}/difficulty`, { rating })
+  rateDifficulty: (id: number, rating: number) => api.post(`/cards/${id}/difficulty`, { rating }),
+  linkCards: (cardId: number, linkedCardIds: number[]) => api.post(`/cards/${cardId}/link`, { linkedCardIds }),
+  unlinkCard: (cardId: number, linkedCardId: number) => api.delete(`/cards/${cardId}/link/${linkedCardId}`),
+  getLinkedCards: (cardId: number) => api.get(`/cards/${cardId}/linked`)
 }
 
 export const chapterAPI = {
@@ -223,6 +227,7 @@ export const commentAPI = {
 export const favoriteAPI = {
   getList: (params?: any) => api.get('/favorites', params),
   getLibraries: (params?: any) => api.get('/favorites/libraries', params),
+  getCards: (params?: any) => api.get('/favorites/cards', params),
   add: (targetType: string, targetId: number) => api.post('/favorites', { targetType, targetId }),
   remove: (targetType: string, targetId: number) => api.delete('/favorites', { targetType, targetId }),
   check: (targetType: string, targetId: number) => api.get('/favorites/check', { targetType, targetId }),

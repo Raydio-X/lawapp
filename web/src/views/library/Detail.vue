@@ -176,15 +176,6 @@
             </div>
             <div class="card-content-large">
               <span class="card-title-large">{{ card.title }}</span>
-              <div class="card-tags-large" v-if="card.tags && card.tags.length > 0">
-                <t-tag 
-                  v-for="tag in card.tags.slice(0, 3)" 
-                  :key="tag"
-                  theme="primary" 
-                  variant="light"
-                  size="small"
-                >{{ tag }}</t-tag>
-              </div>
             </div>
             <div class="card-actions" v-if="isManageMode">
               <div class="action-btn edit" @click.stop="onEditCard(card)">

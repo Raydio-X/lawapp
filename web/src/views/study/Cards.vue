@@ -22,9 +22,6 @@
         <div class="card-header">
           <div class="card-meta">
             <span class="card-number">卡片 {{ currentIndex + 1 }} / {{ totalCards }}</span>
-            <div class="card-tags" v-if="currentCard.tags && currentCard.tags.length > 0">
-              <t-tag v-for="tag in currentCard.tags" :key="tag" theme="primary" variant="light" size="small">{{ tag }}</t-tag>
-            </div>
           </div>
           <div class="progress-bar">
             <div class="progress-track">
@@ -39,18 +36,51 @@
       </div>
 
       <div class="answer-section">
-        <div class="answer-hidden" v-if="!answerRevealed">
+        <div class="answer-hidden" v-if="!answerRevealed && !keywordRevealed">
           <div class="hint-text">先回忆，再查看答案</div>
-          <div class="reveal-btn" @click="onRevealAnswer">
-            <t-icon name="browse" size="20px" color="#fff" />
-            <span>查看答案</span>
+          <div class="reveal-btn-group">
+            <div class="reveal-btn keyword-btn" @click="onRevealKeyword">
+              <t-icon name="bookmark" size="20px" color="#fff" />
+              <span>查看关键词</span>
+            </div>
+            <div class="reveal-btn" @click="onRevealAnswer">
+              <t-icon name="browse" size="20px" color="#fff" />
+              <span>查看答案</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="keyword-revealed" :class="{ show: keywordRevealed }" v-if="keywordRevealed">
+          <div class="keyword-header">
+            <div class="keyword-label">
+              <t-icon name="bookmark" size="16px" color="#F59E0B" />
+              <span>关键词提示</span>
+            </div>
+            <div class="switch-to-answer" @click="onSwitchToAnswer">
+              <t-icon name="browse" size="16px" color="#3B82F6" />
+              <span>查看答案</span>
+            </div>
+          </div>
+          <div class="keyword-content">
+            <div class="keyword-tags" v-if="currentCard.tags && currentCard.tags.length > 0">
+              <t-tag v-for="tag in currentCard.tags" :key="tag" theme="warning" variant="light" size="large">{{ tag }}</t-tag>
+            </div>
+            <div class="keyword-empty" v-else>
+              <span>暂无关键词提示</span>
+            </div>
           </div>
         </div>
 
         <div class="answer-revealed" :class="{ show: answerRevealed }" v-if="answerRevealed">
-          <div class="answer-label">
-            <t-icon name="check-circle" size="16px" color="#00B578" />
-            <span>参考答案</span>
+          <div class="answer-header">
+            <div class="answer-label">
+              <t-icon name="check-circle" size="16px" color="#00B578" />
+              <span>参考答案</span>
+            </div>
+            <div class="switch-to-keyword" @click="onSwitchToKeyword">
+              <t-icon name="bookmark" size="16px" color="#F59E0B" />
+              <span>查看关键词</span>
+            </div>
           </div>
           <div class="answer-content">
             <span class="answer-text" v-html="currentCard.answer || '暂无答案'"></span>
@@ -136,8 +166,8 @@
   </div>
 
   <div class="study-nav-bar study-mode" v-if="!loading && currentCard">
-    <div class="nav-btn prev" :class="{ disabled: currentIndex <= 0 }" @click="onPrevCard">
-      <t-icon name="chevron-left" size="18px" :color="currentIndex <= 0 ? '#ccc' : '#3B82F6'" />
+    <div class="nav-btn prev" :class="{ disabled: currentIndex <= 0 || isRandomMode }" @click="onPrevCard">
+      <t-icon name="chevron-left" size="18px" :color="currentIndex <= 0 || isRandomMode ? '#ccc' : '#3B82F6'" />
       <span class="btn-text">上一张</span>
     </div>
     
@@ -191,11 +221,13 @@ const totalCards = ref(0)
 const currentCard = ref<Card | null>(null)
 const cardList = ref<Card[]>([])
 const answerRevealed = ref(false)
+const keywordRevealed = ref(false)
 const loading = ref(true)
 const comments = ref<Comment[]>([])
 const commentText = ref('')
 const difficultyRating = ref(0)
 const isCurrentCardLearned = ref(false)
+const isRandomMode = ref(false)
 
 const studiedCards = new Set<number>()
 const learnedCardStates = new Map<number, { revealed: boolean, difficulty: number }>()
@@ -226,12 +258,25 @@ const saveProgress = async () => {
       learned: studiedCards.has(card.id) || card.learned
     }))
     
+    const learnedCount = updatedCardList.filter(c => c.learned).length
+    
+    const updatedData = {
+      ...parsed,
+      cardList: updatedCardList,
+      currentIndex: currentIndex.value,
+      totalCards: updatedCardList.length,
+      learned: learnedCount,
+      isRandomMode: isRandomMode.value
+    }
+    
+    localStorage.setItem('studyCardsData', JSON.stringify(updatedData))
+    
     await studyAPI.saveProgress({
       libraryIds: parsed.libraryIds || [],
       libraryNames: parsed.libraryNames || '',
       cardList: updatedCardList,
       currentIndex: currentIndex.value,
-      learned: studiedCards.size,
+      learned: learnedCount,
       total: totalCards.value
     })
   } catch (error) {
@@ -247,6 +292,7 @@ const loadCardData = () => {
       cardList.value = parsed.cardList
       totalCards.value = parsed.totalCards || parsed.cardList.length
       currentCard.value = cardList.value[currentIndex.value]
+      isRandomMode.value = parsed.isRandomMode || false
       loading.value = false
       
       cardList.value.forEach(card => {
@@ -327,7 +373,23 @@ const onBack = () => {
   })
 }
 
+const onRevealKeyword = () => {
+  keywordRevealed.value = true
+}
+
+const onSwitchToKeyword = () => {
+  answerRevealed.value = false
+  keywordRevealed.value = true
+}
+
+const onSwitchToAnswer = () => {
+  keywordRevealed.value = false
+  answerRevealed.value = true
+  recordCardStudy()
+}
+
 const onRevealAnswer = () => {
+  keywordRevealed.value = false
   answerRevealed.value = true
   recordCardStudy()
 }
@@ -405,7 +467,7 @@ const onSaveCommentAsCard = (index: number) => {
 }
 
 const onPrevCard = () => {
-  if (currentIndex.value <= 0) return
+  if (currentIndex.value <= 0 || isRandomMode.value) return
   switchCard(currentIndex.value - 1)
 }
 
@@ -465,16 +527,51 @@ const onLearned = async () => {
 }
 
 const moveToNextCard = () => {
-  if (currentIndex.value >= totalCards.value - 1) {
-    MessagePlugin.success('恭喜完成学习！')
-    setTimeout(() => {
-      router.push('/study')
-    }, 1500)
+  if (isRandomMode.value) {
+    const unlearnedIndices: number[] = []
+    cardList.value.forEach((card, index) => {
+      if (!card.learned && !studiedCards.has(card.id)) {
+        unlearnedIndices.push(index)
+      }
+    })
+    
+    if (unlearnedIndices.length > 0) {
+      const randomIdx = Math.floor(Math.random() * unlearnedIndices.length)
+      setTimeout(() => {
+        switchCard(unlearnedIndices[randomIdx])
+      }, 300)
+    } else {
+      clearStudyData()
+      MessagePlugin.success('恭喜完成学习！')
+      setTimeout(() => {
+        router.push('/study')
+      }, 1500)
+    }
   } else {
-    setTimeout(() => {
-      switchCard(currentIndex.value + 1)
-    }, 300)
+    const unlearnedIndices: number[] = []
+    cardList.value.forEach((card, index) => {
+      if (!card.learned && !studiedCards.has(card.id)) {
+        unlearnedIndices.push(index)
+      }
+    })
+    
+    if (unlearnedIndices.length > 0) {
+      const nextIndex = unlearnedIndices[0]
+      setTimeout(() => {
+        switchCard(nextIndex)
+      }, 300)
+    } else {
+      saveLearnedStatesToStorage()
+      MessagePlugin.success('恭喜完成学习！')
+      setTimeout(() => {
+        router.push('/study')
+      }, 1500)
+    }
   }
+}
+
+const clearStudyData = () => {
+  localStorage.removeItem('studyCardsData')
 }
 
 const switchCard = (index: number) => {
@@ -484,6 +581,7 @@ const switchCard = (index: number) => {
   currentIndex.value = index
   comments.value = []
   commentText.value = ''
+  keywordRevealed.value = false
 
   if (currentCard.value) {
     loadComments(currentCard.value.id)
@@ -517,6 +615,13 @@ const saveLearnedStatesToStorage = () => {
   })
   
   parsed.learnedCardStates = states
+  parsed.cardList = cardList.value.map(card => ({
+    ...card,
+    learned: studiedCards.has(card.id) || card.learned
+  }))
+  parsed.currentIndex = currentIndex.value
+  parsed.isRandomMode = isRandomMode.value
+  
   localStorage.setItem('studyCardsData', JSON.stringify(parsed))
 }
 
@@ -670,15 +775,21 @@ const loadLearnedStatesFromStorage = () => {
   margin-bottom: 16px;
 }
 
+.reveal-btn-group {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
 .reveal-btn {
   display: flex;
   align-items: center;
   gap: 8px;
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
   color: #fff;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
-  padding: 14px 32px;
+  padding: 12px 24px;
   border-radius: 24px;
   box-shadow: 0 4px 12px rgba(0, 82, 217, 0.3);
   cursor: pointer;
@@ -686,6 +797,90 @@ const loadLearnedStatesFromStorage = () => {
   
   &:active {
     transform: scale(0.98);
+  }
+  
+  &.keyword-btn {
+    background: linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    font-size: 15px;
+    padding: 10px 16px;
+  }
+}
+
+.keyword-revealed {
+  padding: 16px;
+  background: #FFFBEB;
+  border-radius: 12px;
+  border: 1px solid #FDE68A;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.4s ease;
+  
+  &.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.keyword-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.keyword-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #D97706;
+  }
+}
+
+.switch-to-answer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #EFF6FF;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  span {
+    font-size: 13px;
+    color: #3B82F6;
+    font-weight: 500;
+  }
+  
+  &:active {
+    background: #DBEAFE;
+  }
+}
+
+.keyword-content {
+  min-height: 60px;
+}
+
+.keyword-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.keyword-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  
+  span {
+    font-size: 14px;
+    color: #9CA3AF;
   }
 }
 
@@ -701,14 +896,41 @@ const loadLearnedStatesFromStorage = () => {
   }
 }
 
+.answer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
 .answer-label {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 12px;
   font-size: 14px;
   font-weight: 600;
   color: #00B578;
+}
+
+.switch-to-keyword {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  background: #FFFBEB;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  span {
+    font-size: 13px;
+    color: #D97706;
+    font-weight: 500;
+  }
+  
+  &:active {
+    background: #FEF3C7;
+  }
 }
 
 .answer-content {

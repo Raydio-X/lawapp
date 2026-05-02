@@ -1831,10 +1831,6 @@ onActivated(() => {
 }
 
 @media (max-width: 480px) {
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-  
   .tab-bar {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;

@@ -76,6 +76,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '卡片学习' }
   },
   {
+    path: '/card/link-search',
+    name: 'CardLinkSearch',
+    component: () => import('@/views/card/CardLinkSearch.vue'),
+    meta: { title: '关联卡片' }
+  },
+  {
     path: '/study/select',
     name: 'StudySelect',
     component: () => import('@/views/study/Select.vue'),
@@ -116,6 +122,18 @@ const routes: RouteRecordRaw[] = [
     name: 'Messages',
     component: () => import('@/views/profile/Messages.vue'),
     meta: { title: '消息中心' }
+  },
+  {
+    path: '/profile/libraries',
+    name: 'MyLibraries',
+    component: () => import('@/views/profile/MyLibraries.vue'),
+    meta: { title: '我的知识库' }
+  },
+  {
+    path: '/profile/cards',
+    name: 'MyCards',
+    component: () => import('@/views/profile/MyCards.vue'),
+    meta: { title: '我的卡片' }
   },
   {
     path: '/profile/study-stats',
