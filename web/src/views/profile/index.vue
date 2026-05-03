@@ -15,7 +15,7 @@
           <t-avatar 
             class="user-avatar"
             :image="userStore.avatarUrl" 
-            size="large"
+            size="60px"
             shape="circle"
           />
           <div class="user-detail">
@@ -66,7 +66,7 @@
           </div>
           <div class="core-stat-content">
             <span class="core-stat-value">{{ studyProgress.streak }}天</span>
-            <span class="core-stat-label">连续打卡</span>
+            <span class="core-stat-label">累计打卡</span>
           </div>
         </div>
       </div>
@@ -123,7 +123,7 @@
             <span class="menu-title">消息中心</span>
           </div>
           <div class="menu-right">
-            <span class="badge-number" v-if="unreadCount > 0">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            <span class="badge-number" v-if="messageStore.unreadCount > 0">{{ messageStore.unreadCount > 99 ? '99+' : messageStore.unreadCount }}</span>
             <t-icon name="chevron-right" size="16px" color="#ccc" />
           </div>
         </div>
@@ -145,6 +145,15 @@
           <div class="menu-left">
             <t-icon name="link" size="22px" color="#7B61FF" />
             <span class="menu-title">激活中心</span>
+          </div>
+          <div class="menu-right">
+            <t-icon name="chevron-right" size="16px" color="#ccc" />
+          </div>
+        </div>
+        <div class="menu-item" @click="onMenuTap('feedback')">
+          <div class="menu-left">
+            <t-icon name="chat" size="22px" color="#0594FA" />
+            <span class="menu-title">意见反馈</span>
           </div>
           <div class="menu-right">
             <t-icon name="chevron-right" size="16px" color="#ccc" />
@@ -174,27 +183,71 @@
     <div class="nickname-popup" v-if="showNicknamePopup" @click.self="showNicknamePopup = false">
       <div class="nickname-popup-container" @click.stop>
         <div class="nickname-popup-header">
-          <span class="nickname-popup-title">修改昵称</span>
-          <div class="nickname-popup-close" @click="showNicknamePopup = false">
-            <t-icon name="close" size="16px" color="#999" />
+          <template v-if="editStep === 'menu'">
+            <span class="nickname-popup-title">编辑资料</span>
+            <div class="nickname-popup-close" @click="showNicknamePopup = false">
+              <t-icon name="close" size="16px" color="#999" />
+            </div>
+          </template>
+          <template v-else>
+            <div class="back-btn" @click="editStep = 'menu'">
+              <t-icon name="chevron-left" size="18px" color="#666" />
+            </div>
+            <span class="nickname-popup-title">{{ editStep === 'avatar' ? '编辑头像' : '编辑昵称' }}</span>
+            <div class="placeholder"></div>
+          </template>
+        </div>
+        
+        <div class="nickname-popup-body" v-if="editStep === 'menu'">
+          <div class="menu-item" @click="editStep = 'avatar'">
+            <div class="menu-left">
+              <t-icon name="user-avatar" size="20px" color="#333" />
+              <span class="menu-text">编辑头像</span>
+            </div>
+            <t-icon name="chevron-right" size="16px" color="#999" />
+          </div>
+          <div class="menu-item" @click="editStep = 'nickname'">
+            <div class="menu-left">
+              <t-icon name="edit-1" size="20px" color="#333" />
+              <span class="menu-text">编辑昵称</span>
+            </div>
+            <t-icon name="chevron-right" size="16px" color="#999" />
           </div>
         </div>
         
-        <div class="nickname-popup-body">
-          <div class="nickname-input-wrapper">
-            <input 
-              class="nickname-input" 
-              placeholder="请输入昵称" 
-              v-model="nicknameInput"
-              maxlength="20"
-            />
-            <span class="nickname-count">{{ nicknameInput.length }}/20</span>
+        <div class="nickname-popup-body" v-else-if="editStep === 'avatar'">
+          <div class="avatar-section">
+            <div class="avatar-list">
+              <div 
+                v-for="avatar in avatarList" 
+                :key="avatar.id"
+                class="avatar-item"
+                :class="{ selected: selectedAvatar === avatar.url }"
+                @click="selectedAvatar = avatar.url"
+              >
+                <img :src="avatar.url" :alt="avatar.name" class="avatar-img" />
+              </div>
+            </div>
           </div>
         </div>
         
-        <div class="nickname-popup-footer">
-          <div class="nickname-popup-btn cancel" @click="showNicknamePopup = false">取消</div>
-          <div class="nickname-popup-btn confirm" @click="onConfirmNickname">确定</div>
+        <div class="nickname-popup-body" v-else-if="editStep === 'nickname'">
+          <div class="nickname-section">
+            <div class="nickname-input-wrapper">
+              <input 
+                class="nickname-input" 
+                placeholder="请输入昵称" 
+                v-model="nicknameInput"
+                maxlength="20"
+              />
+              <span class="nickname-count">{{ nicknameInput.length }}/20</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="nickname-popup-footer" v-if="editStep !== 'menu'">
+          <div class="nickname-popup-btn cancel" @click="editStep = 'menu'">取消</div>
+          <div class="nickname-popup-btn confirm" @click="onConfirmProfile">确定</div>
         </div>
       </div>
     </div>
@@ -214,11 +267,13 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
-import { studyAPI, messageAPI } from '@/utils/api'
+import { useMessageStore } from '@/stores/message'
+import { studyAPI, authAPI } from '@/utils/api'
 import Picker from '@/components/Picker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
+const messageStore = useMessageStore()
 
 const stats = ref({
   libraryCount: 0,
@@ -238,8 +293,6 @@ const studyProgress = ref({
   totalCards: 0
 })
 
-const unreadCount = ref(0)
-
 const showPlanPicker = ref(false)
 const tempCardCount = ref(20)
 
@@ -251,7 +304,18 @@ const planOptions = computed(() => {
 })
 
 const showNicknamePopup = ref(false)
+const editStep = ref<'menu' | 'avatar' | 'nickname'>('menu')
 const nicknameInput = ref('')
+const selectedAvatar = ref('')
+
+const avatarList = [
+  { id: 1, name: '头像1', url: '/assets/images/avatars/avatar-1.png' },
+  { id: 2, name: '头像2', url: '/assets/images/avatars/avatar-2.png' },
+  { id: 3, name: '头像3', url: '/assets/images/avatars/avatar-3.png' },
+  { id: 4, name: '头像4', url: '/assets/images/avatars/avatar-4.png' },
+  { id: 5, name: '头像5', url: '/assets/images/avatars/avatar-5.png' },
+  { id: 6, name: '头像6', url: '/assets/images/avatars/avatar-6.png' }
+]
 
 const goalPercent = computed(() => {
   const percent = (studyProgress.value.todayCards / studyProgress.value.dailyGoal) * 100
@@ -276,10 +340,9 @@ onUnmounted(() => {
 
 const loadData = async () => {
   try {
-    const [statsRes, studyRes, msgRes] = await Promise.all([
+    const [statsRes, studyRes] = await Promise.all([
       studyAPI.getStats(),
-      studyAPI.getTodayStudyTime(),
-      messageAPI.getUnreadCount()
+      studyAPI.getTodayStudyTime()
     ])
     
     if (statsRes.success && statsRes.data) {
@@ -309,9 +372,7 @@ const loadData = async () => {
         : `${minutes}分钟`
     }
     
-    if (msgRes.success && msgRes.data) {
-      unreadCount.value = msgRes.data.count || 0
-    }
+    messageStore.fetchUnreadCount()
   } catch (error) {
     console.error('加载数据失败:', error)
   }
@@ -319,7 +380,50 @@ const loadData = async () => {
 
 const onEditProfile = () => {
   nicknameInput.value = userStore.displayName
+  selectedAvatar.value = userStore.avatarUrl
+  editStep.value = 'menu'
   showNicknamePopup.value = true
+}
+
+const onConfirmProfile = async () => {
+  const updateData: any = {}
+  let hasChange = false
+  
+  if (editStep.value === 'avatar') {
+    if (selectedAvatar.value && selectedAvatar.value !== userStore.avatarUrl) {
+      updateData.avatar = selectedAvatar.value
+      hasChange = true
+    }
+  } else if (editStep.value === 'nickname') {
+    if (nicknameInput.value !== userStore.displayName) {
+      updateData.nickname = nicknameInput.value
+      hasChange = true
+    }
+  }
+  
+  if (!hasChange) {
+    showNicknamePopup.value = false
+    return
+  }
+  
+  try {
+    const res = await authAPI.updateProfile(updateData)
+    if (res.success) {
+      if (updateData.nickname) {
+        userStore.updateDisplayName(updateData.nickname)
+      }
+      if (updateData.avatar) {
+        userStore.updateAvatar(updateData.avatar)
+      }
+      MessagePlugin.success('资料更新成功')
+      showNicknamePopup.value = false
+    } else {
+      MessagePlugin.error(res.message || '资料更新失败')
+    }
+  } catch (error) {
+    console.error('更新资料失败:', error)
+    MessagePlugin.error('资料更新失败')
+  }
 }
 
 const onStatTap = (type: string) => {
@@ -353,6 +457,9 @@ const onMenuTap = (menu: string) => {
       break
     case 'activation':
       MessagePlugin.info('激活中心功能开发中')
+      break
+    case 'feedback':
+      router.push('/profile/feedback')
       break
   }
 }
@@ -885,6 +992,19 @@ const onLogout = () => {
   border-bottom: 1px solid #E2E8F0;
 }
 
+.nickname-popup-header .back-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.nickname-popup-header .placeholder {
+  width: 28px;
+}
+
 .nickname-popup-title {
   font-size: 16px;
   font-weight: 600;
@@ -904,6 +1024,82 @@ const onLogout = () => {
 
 .nickname-popup-body {
   padding: 20px 16px 30px;
+}
+
+.nickname-popup-body .menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 12px;
+  background: #F8FAFC;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  cursor: pointer;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+  
+  &:active {
+    background: #F1F5F9;
+  }
+}
+
+.nickname-popup-body .menu-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nickname-popup-body .menu-text {
+  font-size: 15px;
+  color: #333;
+}
+
+.section-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.avatar-section {
+  margin-bottom: 24px;
+}
+
+.avatar-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.avatar-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px transparent;
+  transition: all 0.2s ease;
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  &.selected {
+    box-shadow: 0 0 0 2px #00B578;
+  }
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nickname-section {
+  margin-bottom: 0;
 }
 
 .nickname-input-wrapper {

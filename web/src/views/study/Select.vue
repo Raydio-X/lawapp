@@ -169,7 +169,7 @@ const loadLastStudyProgress = () => {
     const saved = localStorage.getItem('studyCardsData')
     if (saved) {
       const data = JSON.parse(saved)
-      if (data.cardList && data.cardList.length > 0) {
+      if (data.cardList && data.cardList.length > 0 && !data.isReviewMode) {
         const learned = data.cardList.filter((c: any) => c.learned).length
         lastStudyProgress.value = {
           cardList: data.cardList,

@@ -127,7 +127,7 @@ const daysInMonth = computed(() => {
 })
 
 const radarDimensions = computed(() => [
-  { name: '学习天数', min: daysInMonth.value, format: 'number', unit: '天' },
+  { name: '打卡天数', min: daysInMonth.value, format: 'number', unit: '天' },
   { name: '总时长', min: 60, format: 'hours' },
   { name: '日均时长', min: 30, format: 'minutes' },
   { name: '最长单日', min: 30, format: 'minutes' },

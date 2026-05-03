@@ -74,8 +74,8 @@ const drawChart = () => {
   const w = displayWidth
   const h = displayHeight
   const centerX = w / 2
-  const centerY = h / 2
-  const radius = Math.min(w, h) / 2 - 28
+  const centerY = h / 2 + 15
+  const radius = Math.min(w, h) / 2 - 40
   const n = dimensions.length
   
   ctx.clearRect(0, 0, w, h)
@@ -283,11 +283,12 @@ watch(
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: 20px;
 }
 
 .radar-canvas {
   width: 100%;
-  height: 270px;
+  height: 300px;
 }
 
 .radar-legend {

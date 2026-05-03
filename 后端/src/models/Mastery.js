@@ -7,6 +7,11 @@ class MasteryModel {
         const today = new Date();
         const nextDate = new Date(today);
         
+        if (feedback === 'forgot') {
+            nextDate.setDate(nextDate.getDate() + 1);
+            return nextDate.toISOString().split('T')[0];
+        }
+        
         const intervalIndex = Math.min(Math.max(0, reviewCount - 1), this.REVIEW_INTERVALS.length - 1);
         let baseDays = this.REVIEW_INTERVALS[intervalIndex];
         
@@ -87,7 +92,12 @@ class MasteryModel {
 
         if (existing.length > 0) {
             if (mastered) {
-                const reviewCount = (existing[0].review_count || 0) + 1;
+                let reviewCount;
+                if (feedback === 'forgot' || feedback === 'difficult') {
+                    reviewCount = 1;
+                } else {
+                    reviewCount = (existing[0].review_count || 0) + 1;
+                }
                 const nextReviewDate = this.calculateNextReviewDate(reviewCount, feedback);
                 
                 await db.execute(

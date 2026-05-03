@@ -94,6 +94,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '学习卡片' }
   },
   {
+    path: '/study/difficulty',
+    name: 'DifficultyChallenge',
+    component: () => import('@/views/study/Difficulty.vue'),
+    meta: { title: '难度挑战' }
+  },
+  {
     path: '/study/exam/setup',
     name: 'ExamSetup',
     component: () => import('@/views/study/exam/Setup.vue'),
@@ -142,6 +148,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '学习统计' }
   },
   {
+    path: '/profile/feedback',
+    name: 'Feedback',
+    component: () => import('@/views/profile/Feedback.vue'),
+    meta: { title: '意见反馈' }
+  },
+  {
     path: '/create/card',
     name: 'CreateCard',
     component: () => import('@/views/create/CardForm.vue'),
@@ -182,6 +194,12 @@ const routes: RouteRecordRaw[] = [
     name: 'AdminBlockedWords',
     component: () => import('@/views/admin/BlockedWords.vue'),
     meta: { title: '屏蔽词管理', requiresAdmin: true }
+  },
+  {
+    path: '/admin/feedback',
+    name: 'AdminFeedback',
+    component: () => import('@/views/admin/Feedback.vue'),
+    meta: { title: '用户反馈', requiresAdmin: true }
   },
   {
     path: '/:pathMatch(.*)*',

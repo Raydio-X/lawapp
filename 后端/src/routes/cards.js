@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const xlsx = require('xlsx');
+const XLSXStyle = require('xlsx-js-style');
 const path = require('path');
 const db = require('../config/database');
 const CardModel = require('../models/Card');
@@ -137,6 +138,62 @@ router.get('/my', auth, async (req, res) => {
     }
 });
 
+router.get('/template', (req, res) => {
+    try {
+        const workbook = XLSXStyle.utils.book_new();
+        
+        const templateData = [
+            ['问题（必填）', '答案（必填）', '关键词（选填，英文逗号分隔）', '一级标题（必填）', '二级标题（选填）'],
+            ['什么是人工智能？', '人工智能是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。', '人工智能,AI,机器学习', '人工智能基础', ''],
+            ['机器学习的基本类型有哪些？', '机器学习主要分为监督学习、无监督学习和强化学习三种类型。', '机器学习,监督学习,无监督学习', '人工智能基础', '机器学习'],
+            ['什么是深度学习？', '深度学习是机器学习的一个子集，使用多层神经网络来学习数据的表示。', '深度学习,神经网络', '人工智能基础', '深度学习']
+        ];
+        
+        const worksheet = XLSXStyle.utils.aoa_to_sheet(templateData);
+        
+        const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1'];
+        headerCells.forEach(cell => {
+            if (worksheet[cell]) {
+                worksheet[cell].s = {
+                    font: {
+                        sz: 11,
+                    },
+                    fill: {
+                        fgColor: { rgb: 'E8F4FD' }
+                    },
+                    alignment: {
+                        horizontal: 'center',
+                        vertical: 'center'
+                    }
+                };
+            }
+        });
+        
+        worksheet['!cols'] = [
+            { wch: 20 },
+            { wch: 50 },
+            { wch: 28 },
+            { wch: 18 },
+            { wch: 15 }
+        ];
+        
+        XLSXStyle.utils.book_append_sheet(workbook, worksheet, '批量导入模板');
+        
+        const buffer = XLSXStyle.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+        
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=card_import_template.xlsx');
+        res.send(buffer);
+    } catch (error) {
+        console.error('生成模板失败:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '生成模板失败'
+        });
+    }
+});
+
 router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
@@ -177,19 +234,48 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             const row = dataRows[i];
             const question = row[0] ? String(row[0]).trim() : '';
             const answer = row[1] ? String(row[1]).trim() : '';
-            const chapterName = row[2] ? String(row[2]).trim() : '';
+            const keywords = row[2] ? String(row[2]).trim() : '';
+            const chapterLevel1 = row[3] ? String(row[3]).trim() : '';
+            const chapterLevel2 = row[4] ? String(row[4]).trim() : '';
 
-            if (!question && !answer) continue;
+            if (!question && !answer && !chapterLevel1) continue;
 
-            if (!question || !answer) {
+            if (!question) {
                 errors.push({
                     row: i + 2,
-                    message: `第${i + 2}行：问题和答案不能为空`
+                    message: `第${i + 2}行：问题不能为空`
                 });
                 continue;
             }
 
-            cards.push({ question, answer, chapterName });
+            if (!answer) {
+                errors.push({
+                    row: i + 2,
+                    message: `第${i + 2}行：答案不能为空`
+                });
+                continue;
+            }
+
+            if (!chapterLevel1) {
+                errors.push({
+                    row: i + 2,
+                    message: `第${i + 2}行：一级标题不能为空`
+                });
+                continue;
+            }
+
+            let keywordsArray = [];
+            if (keywords) {
+                keywordsArray = keywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
+            }
+
+            cards.push({ 
+                question, 
+                answer, 
+                keywords: keywordsArray,
+                chapterLevel1, 
+                chapterLevel2 
+            });
         }
 
         if (cards.length === 0) {
@@ -212,7 +298,9 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                         index: i + 1,
                         question: c.question,
                         answer: c.answer,
-                        chapterName: c.chapterName || ''
+                        keywords: c.keywords,
+                        chapterLevel1: c.chapterLevel1,
+                        chapterLevel2: c.chapterLevel2
                     })),
                     total: cards.length,
                     errors: errors
@@ -223,7 +311,7 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
         const chapterMap = {};
         const existingChapters = await ChapterModel.getList(library_id);
         existingChapters.forEach(ch => {
-            chapterMap[ch.name] = ch.id;
+            chapterMap[ch.name] = { id: ch.id, level: ch.level, parentId: ch.parent_id };
         });
 
         let importedCount = 0;
@@ -233,18 +321,42 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             const card = cards[i];
             try {
                 let chapterId = null;
-                if (card.chapterName) {
-                    if (chapterMap[card.chapterName]) {
-                        chapterId = chapterMap[card.chapterName];
+                
+                if (card.chapterLevel1) {
+                    let level1ChapterId = null;
+                    
+                    if (chapterMap[card.chapterLevel1]) {
+                        level1ChapterId = chapterMap[card.chapterLevel1].id;
                     } else {
                         const newChapter = await ChapterModel.create({
                             library_id,
-                            name: card.chapterName,
-                            sort_order: Object.keys(chapterMap).length,
-                            level: 1
+                            name: card.chapterLevel1,
+                            sort_order: Object.keys(chapterMap).filter(k => !chapterMap[k].parentId).length,
+                            level: 1,
+                            parent_id: null
                         });
-                        chapterMap[card.chapterName] = newChapter.id;
-                        chapterId = newChapter.id;
+                        chapterMap[card.chapterLevel1] = { id: newChapter.id, level: 1, parentId: null };
+                        level1ChapterId = newChapter.id;
+                    }
+                    
+                    if (card.chapterLevel2) {
+                        const level2Key = `${card.chapterLevel1}/${card.chapterLevel2}`;
+                        
+                        if (chapterMap[level2Key]) {
+                            chapterId = chapterMap[level2Key].id;
+                        } else {
+                            const newChapter = await ChapterModel.create({
+                                library_id,
+                                name: card.chapterLevel2,
+                                sort_order: Object.keys(chapterMap).filter(k => chapterMap[k].parentId === level1ChapterId).length,
+                                level: 2,
+                                parent_id: level1ChapterId
+                            });
+                            chapterMap[level2Key] = { id: newChapter.id, level: 2, parentId: level1ChapterId };
+                            chapterId = newChapter.id;
+                        }
+                    } else {
+                        chapterId = level1ChapterId;
                     }
                 }
 
@@ -253,6 +365,7 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                     chapter_id: chapterId,
                     question: card.question,
                     answer: card.answer,
+                    keywords: card.keywords,
                     tags: [],
                     created_by: req.user.id,
                     is_public: 0
@@ -518,7 +631,7 @@ router.delete('/:id', auth, async (req, res) => {
 
 router.post('/batch-move', auth, async (req, res) => {
     try {
-        const { cardIds, chapterId } = req.body;
+        const { cardIds, chapterId, libraryId } = req.body;
 
         if (!cardIds || !Array.isArray(cardIds) || cardIds.length === 0) {
             return res.status(400).json({
@@ -528,7 +641,36 @@ router.post('/batch-move', auth, async (req, res) => {
             });
         }
 
-        const result = await CardModel.batchUpdateChapter(cardIds, chapterId || null, req.user.id);
+        if (libraryId) {
+            const [libCheck] = await db.execute(
+                'SELECT id FROM libraries WHERE id = ? AND created_by = ?',
+                [libraryId, req.user.id]
+            );
+
+            if (libCheck.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    code: 403,
+                    message: '无权操作该知识库'
+                });
+            }
+
+            if (chapterId) {
+                const [chapterCheck] = await db.execute(
+                    'SELECT id FROM chapters WHERE id = ? AND library_id = ?',
+                    [chapterId, libraryId]
+                );
+                if (chapterCheck.length === 0) {
+                    return res.status(400).json({
+                        success: false,
+                        code: 400,
+                        message: '章节不存在或不属于该知识库'
+                    });
+                }
+            }
+        }
+
+        const result = await CardModel.batchUpdateChapter(cardIds, chapterId || null, req.user.id, libraryId || null);
 
         res.json({
             success: true,
@@ -920,6 +1062,114 @@ router.post('/:id/mastery/toggle', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '切换掌握状态失败'
+        });
+    }
+});
+
+router.get('/difficulty/stats', auth, async (req, res) => {
+    try {
+        const [rows] = await db.execute(`
+            SELECT 
+                COUNT(CASE WHEN difficulty_rating >= 4.5 THEN 1 END) as hell_count,
+                COUNT(CASE WHEN difficulty_rating >= 3.5 AND difficulty_rating < 4.5 THEN 1 END) as hard_count,
+                COUNT(CASE WHEN difficulty_rating >= 2.5 AND difficulty_rating < 3.5 THEN 1 END) as medium_count,
+                COUNT(CASE WHEN difficulty_rating >= 1 AND difficulty_rating < 2.5 THEN 1 END) as easy_count,
+                COUNT(CASE WHEN difficulty_count > 0 THEN 1 END) as total_rated,
+                SUM(CASE WHEN difficulty_rating >= 4.5 THEN difficulty_count ELSE 0 END) as hell_raters,
+                SUM(CASE WHEN difficulty_rating >= 3.5 AND difficulty_rating < 4.5 THEN difficulty_count ELSE 0 END) as hard_raters,
+                SUM(CASE WHEN difficulty_rating >= 2.5 AND difficulty_rating < 3.5 THEN difficulty_count ELSE 0 END) as medium_raters,
+                SUM(CASE WHEN difficulty_rating >= 1 AND difficulty_rating < 2.5 THEN difficulty_count ELSE 0 END) as easy_raters
+            FROM cards
+        `);
+        
+        res.json({
+            success: true,
+            data: {
+                hell: rows[0].hell_count || 0,
+                hard: rows[0].hard_count || 0,
+                medium: rows[0].medium_count || 0,
+                easy: rows[0].easy_count || 0,
+                total: rows[0].total_rated || 0,
+                hellRaters: rows[0].hell_raters || 0,
+                hardRaters: rows[0].hard_raters || 0,
+                mediumRaters: rows[0].medium_raters || 0,
+                easyRaters: rows[0].easy_raters || 0
+            }
+        });
+    } catch (error) {
+        console.error('Get difficulty stats error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取难度统计失败'
+        });
+    }
+});
+
+router.get('/difficulty/cards', auth, async (req, res) => {
+    try {
+        const { level } = req.query;
+        
+        let minDifficulty, maxDifficulty;
+        
+        switch (level) {
+            case 'hell':
+                minDifficulty = 4.5;
+                maxDifficulty = 5.0;
+                break;
+            case 'hard':
+                minDifficulty = 3.5;
+                maxDifficulty = 4.49;
+                break;
+            case 'medium':
+                minDifficulty = 2.5;
+                maxDifficulty = 3.49;
+                break;
+            case 'easy':
+                minDifficulty = 1.0;
+                maxDifficulty = 2.49;
+                break;
+            default:
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '无效的难度等级'
+                });
+        }
+        
+        const [rows] = await db.execute(`
+            SELECT c.id, c.question, c.answer, c.keywords, c.tags, c.library_id, 
+                   c.difficulty_rating, c.difficulty_count, l.name as library_name
+            FROM cards c
+            LEFT JOIN libraries l ON c.library_id = l.id
+            WHERE c.difficulty_count > 0
+            AND c.difficulty_rating >= ? 
+            AND c.difficulty_rating <= ?
+            ORDER BY c.difficulty_rating DESC
+        `, [minDifficulty, maxDifficulty]);
+        
+        const cards = rows.map(row => ({
+            id: row.id,
+            question: row.question,
+            answer: row.answer,
+            keywords: row.keywords || '',
+            tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+            libraryId: row.library_id,
+            libraryName: row.library_name,
+            difficultyRating: parseFloat(row.difficulty_rating) || 0,
+            difficultyCount: row.difficulty_count
+        }));
+        
+        res.json({
+            success: true,
+            data: cards
+        });
+    } catch (error) {
+        console.error('Get difficulty cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取难度卡片失败'
         });
     }
 });

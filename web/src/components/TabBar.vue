@@ -7,19 +7,29 @@
       :class="{ active: currentPath === item.path }"
       @click="switchTab(item)"
     >
-      <img 
-        class="tab-icon" 
-        :src="currentPath === item.path ? item.selectedIcon : item.icon" 
-        :alt="item.text"
-      />
+      <div class="icon-wrapper">
+        <img 
+          class="tab-icon" 
+          :src="currentPath === item.path ? item.selectedIcon : item.icon" 
+          :alt="item.text"
+        />
+        <div 
+          v-if="item.path === '/profile' && messageStore.unreadCount > 0" 
+          class="unread-dot"
+        >
+          <span v-if="messageStore.unreadCount <= 99">{{ messageStore.unreadCount }}</span>
+          <span v-else>99+</span>
+        </div>
+      </div>
       <span class="tab-text">{{ item.text }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useMessageStore } from '@/stores/message'
 
 interface TabItem {
   path: string
@@ -30,6 +40,7 @@ interface TabItem {
 
 const router = useRouter()
 const route = useRoute()
+const messageStore = useMessageStore()
 
 const tabList: TabItem[] = [
   {
@@ -65,6 +76,16 @@ const switchTab = (item: TabItem) => {
     router.push(item.path)
   }
 }
+
+onMounted(() => {
+  messageStore.startSync()
+  document.addEventListener('visibilitychange', messageStore.handleVisibilityChange)
+})
+
+onUnmounted(() => {
+  messageStore.stopSync()
+  document.removeEventListener('visibilitychange', messageStore.handleVisibilityChange)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -96,10 +117,38 @@ const switchTab = (item: TabItem) => {
   }
 }
 
+.icon-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .tab-icon {
   width: 24px;
   height: 24px;
   margin-bottom: 2px;
+}
+
+.unread-dot {
+  position: absolute;
+  top: -6px;
+  right: -12px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  background: #E34D59;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  span {
+    font-size: 10px;
+    color: #fff;
+    font-weight: 500;
+    transform: scale(0.9);
+  }
 }
 
 .tab-text {

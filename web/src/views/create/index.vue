@@ -185,9 +185,11 @@
               <span>模板格式说明</span>
             </div>
             <div class="batch-template-info">
-              <span class="batch-template-row"><span class="col-a">A列</span><span class="col-b">问题</span></span>
-              <span class="batch-template-row"><span class="col-a">B列</span><span class="col-b">答案</span></span>
-              <span class="batch-template-row"><span class="col-a">C列</span><span class="col-b">章节（可选）</span></span>
+              <span class="batch-template-row"><span class="col-a">A列</span><span class="col-b">问题（必填）</span></span>
+              <span class="batch-template-row"><span class="col-a">B列</span><span class="col-b">答案（必填）</span></span>
+              <span class="batch-template-row"><span class="col-a">C列</span><span class="col-b">关键词（选填，英文逗号分隔）</span></span>
+              <span class="batch-template-row"><span class="col-a">D列</span><span class="col-b">一级标题（必填）</span></span>
+              <span class="batch-template-row"><span class="col-a">E列</span><span class="col-b">二级标题（选填）</span></span>
             </div>
             <div class="batch-download-template" @click="onDownloadTemplate">
               <t-icon name="download" size="14px" color="#3B82F6" />
@@ -213,6 +215,9 @@
 
           <div class="batch-preview-summary">
             <span class="batch-preview-total">共解析到 <span class="highlight">{{ batchCards.length }}</span> 张卡片</span>
+            <span class="batch-preview-error" v-if="batchErrors.length > 0">
+              <span class="error-count">{{ batchErrors.length }} 条数据有误</span>
+            </span>
           </div>
 
           <div class="batch-preview-list">
@@ -221,7 +226,14 @@
               <div class="batch-preview-content">
                 <span class="batch-preview-q">Q: {{ item.question }}</span>
                 <span class="batch-preview-a">A: {{ item.answer }}</span>
-                <span class="batch-preview-chapter" v-if="item.chapter">{{ item.chapter }}</span>
+                <span class="batch-preview-keywords" v-if="item.keywords && item.keywords.length > 0">
+                  <t-icon name="discount" size="12px" color="#F59E0B" />
+                  {{ item.keywords.join(', ') }}
+                </span>
+                <span class="batch-preview-chapter" v-if="item.chapterLevel1">
+                  <t-icon name="folder" size="12px" color="#3B82F6" />
+                  {{ item.chapterLevel1 }}<span v-if="item.chapterLevel2"> / {{ item.chapterLevel2 }}</span>
+                </span>
               </div>
             </div>
           </div>
@@ -288,6 +300,8 @@ const batchStep = ref(1)
 const batchLibraryId = ref(0)
 const batchFileName = ref('')
 const batchCards = ref<any[]>([])
+const batchErrors = ref<any[]>([])
+const batchFile = ref<File | null>(null)
 
 const showDeleteLibraryConfirm = ref(false)
 const deleteLibraryItem = ref<Library>({ id: 0, name: '', subject: '', cardCount: 0 })
@@ -327,6 +341,8 @@ const onBatchImport = () => {
   batchLibraryId.value = 0
   batchFileName.value = ''
   batchCards.value = []
+  batchErrors.value = []
+  batchFile.value = null
   showBatchImport.value = true
 }
 
@@ -384,26 +400,99 @@ const onChooseFile = () => {
     const file = e.target.files[0]
     if (file) {
       batchFileName.value = file.name
+      batchFile.value = file
     }
   }
   input.click()
 }
 
-const onBatchParse = () => {
-  if (!batchFileName.value) return
-  batchCards.value = [
-    { question: '示例问题1', answer: '示例答案1', chapter: '' },
-    { question: '示例问题2', answer: '示例答案2', chapter: '' }
-  ]
-  batchStep.value = 3
+const onBatchParse = async () => {
+  if (!batchFile.value) return
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', batchFile.value)
+    formData.append('library_id', String(batchLibraryId.value))
+    formData.append('preview', 'true')
+    
+    const res = await fetch('/api/cards/batch-import', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: formData
+    })
+    
+    const data = await res.json()
+    
+    if (data.success) {
+      batchCards.value = data.data.cards || []
+      batchErrors.value = data.data.errors || []
+      batchStep.value = 3
+    } else {
+      MessagePlugin.error(data.message || '解析失败')
+    }
+  } catch (error) {
+    console.error('解析文件失败:', error)
+    MessagePlugin.error('解析文件失败，请检查文件格式')
+  }
 }
 
-const onBatchConfirm = () => {
-  batchStep.value = 4
+const onBatchConfirm = async () => {
+  if (!batchFile.value) return
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', batchFile.value)
+    formData.append('library_id', String(batchLibraryId.value))
+    
+    const res = await fetch('/api/cards/batch-import', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: formData
+    })
+    
+    const data = await res.json()
+    
+    if (data.success) {
+      batchStep.value = 4
+      loadMyLibraries()
+    } else {
+      MessagePlugin.error(data.message || '导入失败')
+    }
+  } catch (error) {
+    console.error('导入失败:', error)
+    MessagePlugin.error('导入失败，请重试')
+  }
 }
 
-const onDownloadTemplate = () => {
-  MessagePlugin.info('模板下载功能开发中')
+const onDownloadTemplate = async () => {
+  try {
+    const response = await fetch('/api/cards/template', {
+      method: 'GET',
+    })
+    
+    if (!response.ok) {
+      throw new Error('下载失败')
+    }
+    
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '批量导入模板.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    MessagePlugin.success('模板下载成功')
+  } catch (error) {
+    console.error('下载模板失败:', error)
+    MessagePlugin.error('模板下载失败，请重试')
+  }
 }
 </script>
 
@@ -970,8 +1059,8 @@ const onDownloadTemplate = () => {
 }
 
 .col-a {
-  width: 70px;
   color: #94A3B8;
+  margin-right: 8px;
 }
 
 .col-b {
@@ -1064,14 +1153,41 @@ const onDownloadTemplate = () => {
   white-space: nowrap;
 }
 
+.batch-preview-keywords {
+  font-size: 11px;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .batch-preview-chapter {
   font-size: 11px;
   color: #3B82F6;
   background: rgba(59, 130, 246, 0.08);
   padding: 2px 6px;
   border-radius: 4px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-top: 4px;
+  margin-left: 6px;
+}
+
+.batch-preview-error {
+  font-size: 12px;
+  color: #E34D59;
+  margin-left: 12px;
+}
+
+.error-count {
+  background: rgba(227, 77, 89, 0.08);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .batch-result {

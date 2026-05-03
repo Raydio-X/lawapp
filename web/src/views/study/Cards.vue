@@ -122,7 +122,8 @@
         <div class="comment-list">
           <div class="comment-item" v-for="(comment, index) in comments" :key="comment.id">
             <div class="comment-avatar">
-              <span>{{ comment.avatar }}</span>
+              <img v-if="comment.avatar" :src="comment.avatar" class="avatar-img" />
+              <span v-else>{{ comment.avatarText }}</span>
             </div>
             <div class="comment-content">
               <div class="comment-user">
@@ -166,21 +167,33 @@
   </div>
 
   <div class="study-nav-bar study-mode" v-if="!loading && currentCard">
-    <div class="nav-btn prev" :class="{ disabled: currentIndex <= 0 || isRandomMode }" @click="onPrevCard">
-      <t-icon name="chevron-left" size="18px" :color="currentIndex <= 0 || isRandomMode ? '#ccc' : '#3B82F6'" />
-      <span class="btn-text">上一张</span>
-    </div>
-    
-    <div class="nav-btn learned" :class="{ active: isCurrentCardLearned, disabled: !answerRevealed }" @click="onLearned">
-      <t-icon v-if="isCurrentCardLearned" name="check-circle" size="16px" color="#fff" style="margin-right: 4px;" />
-      <span class="btn-text">{{ isCurrentCardLearned ? '已学习' : '标记已学习' }}</span>
-    </div>
-    
-    <div class="nav-btn next" :class="{ disabled: currentIndex >= totalCards - 1 }" @click="moveToNextCard" v-if="isCurrentCardLearned">
-      <span class="btn-text">下一张</span>
-      <t-icon name="chevron-right" size="18px" :color="currentIndex >= totalCards - 1 ? '#ccc' : '#3B82F6'" />
-    </div>
-    <div class="nav-btn-placeholder" v-else></div>
+    <template v-if="isReviewMode || isDifficultyMode">
+      <div class="nav-btn forgot" @click.stop="onForgot">
+        <t-icon name="close-circle" size="18px" color="#fff" style="margin-right: 6px;" />
+        <span class="btn-text">忘记了</span>
+      </div>
+      <div class="nav-btn mastered" @click.stop="onMastered">
+        <t-icon name="check-circle" size="18px" color="#fff" style="margin-right: 6px;" />
+        <span class="btn-text">已掌握</span>
+      </div>
+    </template>
+    <template v-else>
+      <div class="nav-btn prev" :class="{ disabled: currentIndex <= 0 || isRandomMode }" @click="onPrevCard">
+        <t-icon name="chevron-left" size="18px" :color="currentIndex <= 0 || isRandomMode ? '#ccc' : '#3B82F6'" />
+        <span class="btn-text">上一张</span>
+      </div>
+      
+      <div class="nav-btn learned" :class="{ active: isCurrentCardLearned, disabled: !answerRevealed }" @click="onLearned">
+        <t-icon v-if="isCurrentCardLearned" name="check-circle" size="16px" color="#fff" style="margin-right: 4px;" />
+        <span class="btn-text">{{ isCurrentCardLearned ? '已学习' : '标记已学习' }}</span>
+      </div>
+      
+      <div class="nav-btn next" :class="{ disabled: currentIndex >= totalCards - 1 }" @click="moveToNextCard" v-if="isCurrentCardLearned">
+        <span class="btn-text">下一张</span>
+        <t-icon name="chevron-right" size="18px" :color="currentIndex >= totalCards - 1 ? '#ccc' : '#3B82F6'" />
+      </div>
+      <div class="nav-btn-placeholder" v-else></div>
+    </template>
   </div>
 </template>
 
@@ -228,6 +241,15 @@ const commentText = ref('')
 const difficultyRating = ref(0)
 const isCurrentCardLearned = ref(false)
 const isRandomMode = ref(false)
+const isReviewMode = ref(false)
+const isDifficultyMode = ref(false)
+const difficultyName = ref('')
+
+const getStorageKey = () => {
+  if (isDifficultyMode.value) return 'difficultyCardsData'
+  if (isReviewMode.value) return 'reviewCardsData'
+  return 'studyCardsData'
+}
 
 const studiedCards = new Set<number>()
 const learnedCardStates = new Map<number, { revealed: boolean, difficulty: number }>()
@@ -235,8 +257,11 @@ const learnedCardStates = new Map<number, { revealed: boolean, difficulty: numbe
 onMounted(() => {
   const index = parseInt(route.query.index as string) || 0
   const total = parseInt(route.query.total as string) || 0
+  const mode = route.query.mode as string
   currentIndex.value = index
   totalCards.value = total
+  isReviewMode.value = mode === 'review'
+  isDifficultyMode.value = mode === 'difficulty'
   loadCardData()
   startStudyTimer()
 })
@@ -247,7 +272,8 @@ onUnmounted(() => {
 })
 
 const saveProgress = async () => {
-  const data = localStorage.getItem('studyCardsData')
+  const storageKey = getStorageKey()
+  const data = localStorage.getItem(storageKey)
   if (!data || cardList.value.length === 0) return
 
   try {
@@ -266,26 +292,30 @@ const saveProgress = async () => {
       currentIndex: currentIndex.value,
       totalCards: updatedCardList.length,
       learned: learnedCount,
-      isRandomMode: isRandomMode.value
+      isRandomMode: isRandomMode.value,
+      isReviewMode: isReviewMode.value
     }
     
-    localStorage.setItem('studyCardsData', JSON.stringify(updatedData))
+    localStorage.setItem(storageKey, JSON.stringify(updatedData))
     
-    await studyAPI.saveProgress({
-      libraryIds: parsed.libraryIds || [],
-      libraryNames: parsed.libraryNames || '',
-      cardList: updatedCardList,
-      currentIndex: currentIndex.value,
-      learned: learnedCount,
-      total: totalCards.value
-    })
+    if (!isReviewMode.value) {
+      await studyAPI.saveProgress({
+        libraryIds: parsed.libraryIds || [],
+        libraryNames: parsed.libraryNames || '',
+        cardList: updatedCardList,
+        currentIndex: currentIndex.value,
+        learned: learnedCount,
+        total: totalCards.value
+      })
+    }
   } catch (error) {
     console.error('保存进度失败:', error)
   }
 }
 
 const loadCardData = () => {
-  const data = localStorage.getItem('studyCardsData')
+  const storageKey = getStorageKey()
+  const data = localStorage.getItem(storageKey)
   if (data) {
     const parsed = JSON.parse(data)
     if (parsed.cardList) {
@@ -293,13 +323,22 @@ const loadCardData = () => {
       totalCards.value = parsed.totalCards || parsed.cardList.length
       currentCard.value = cardList.value[currentIndex.value]
       isRandomMode.value = parsed.isRandomMode || false
+      if (!isReviewMode.value) {
+        isReviewMode.value = parsed.isReviewMode || parsed.libraryNames === '艾宾浩斯复习'
+      }
+      if (parsed.isDifficultyMode) {
+        isDifficultyMode.value = true
+        difficultyName.value = parsed.difficultyName || '难度挑战'
+      }
       loading.value = false
       
-      cardList.value.forEach(card => {
-        if (card.learned && card.id) {
-          studiedCards.add(card.id)
-        }
-      })
+      if (!isReviewMode.value && !isDifficultyMode.value) {
+        cardList.value.forEach(card => {
+          if (card.learned && card.id) {
+            studiedCards.add(card.id)
+          }
+        })
+      }
       
       loadLearnedStatesFromStorage()
       
@@ -312,9 +351,14 @@ const loadCardData = () => {
           difficultyRating.value = savedState.difficulty
           isCurrentCardLearned.value = true
         } else {
-          isCurrentCardLearned.value = currentCard.value.learned || false
-          if (isCurrentCardLearned.value) {
-            answerRevealed.value = true
+          if (isReviewMode.value || isDifficultyMode.value) {
+            answerRevealed.value = false
+            isCurrentCardLearned.value = false
+          } else {
+            isCurrentCardLearned.value = currentCard.value.learned || false
+            if (isCurrentCardLearned.value) {
+              answerRevealed.value = true
+            }
           }
         }
       }
@@ -332,11 +376,12 @@ const loadComments = async (cardId: number) => {
       comments.value = (res.data.list || res.data || []).map((c: any) => ({
         id: c.id,
         username: c.nickname || '用户',
-        avatar: (c.nickname || '用')[0],
+        avatar: c.avatar || '',
+        avatarText: (c.nickname || '用')[0],
         content: c.content,
         time: formatTime(c.created_at),
         likeCount: c.like_count || 0,
-        liked: false
+        liked: c.is_liked === 1
       }))
     }
   } catch (error) {
@@ -367,7 +412,11 @@ const onBack = () => {
     onConfirm: async () => {
       await stopStudyTimer()
       await saveProgress()
-      router.push('/study')
+      if (isDifficultyMode.value) {
+        router.push('/study/difficulty')
+      } else {
+        router.push('/study')
+      }
       confirmDialog.hide()
     }
   })
@@ -526,6 +575,80 @@ const onLearned = async () => {
   }
 }
 
+const onForgot = async () => {
+  try {
+    if (!studiedCards.has(currentCard.value!.id)) {
+      await cardAPI.recordStudy(currentCard.value!.id, {
+        libraryId: currentCard.value!.libraryId,
+        feedback: 'forgot',
+        duration: 0,
+        isFormalStudy: true
+      })
+    }
+    studiedCards.add(currentCard.value!.id)
+
+    const res = await cardAPI.setMastery(currentCard.value!.id, true, 'forgot')
+    if (res.success) {
+      MessagePlugin.warning('已标记为忘记，将在1天后再次复习')
+      moveToNextReviewCard()
+    }
+  } catch (error: any) {
+    console.error('标记失败:', error)
+    MessagePlugin.error(error.message || '操作失败')
+  }
+}
+
+const onMastered = async () => {
+  try {
+    if (!studiedCards.has(currentCard.value!.id)) {
+      await cardAPI.recordStudy(currentCard.value!.id, {
+        libraryId: currentCard.value!.libraryId,
+        feedback: 'easy',
+        duration: 0,
+        isFormalStudy: true
+      })
+    }
+    studiedCards.add(currentCard.value!.id)
+
+    const res = await cardAPI.setMastery(currentCard.value!.id, true, 'easy')
+    if (res.success) {
+      MessagePlugin.success('已掌握！继续保持')
+      moveToNextReviewCard()
+    }
+  } catch (error: any) {
+    console.error('标记失败:', error)
+    MessagePlugin.error(error.message || '操作失败')
+  }
+}
+
+const moveToNextReviewCard = () => {
+  const remainingIndices: number[] = []
+  cardList.value.forEach((card, index) => {
+    if (index !== currentIndex.value && !studiedCards.has(card.id)) {
+      remainingIndices.push(index)
+    }
+  })
+  
+  if (remainingIndices.length > 0) {
+    setTimeout(() => {
+      switchCard(remainingIndices[0])
+    }, 300)
+  } else {
+    clearStudyData()
+    if (isDifficultyMode.value) {
+      MessagePlugin.success(`恭喜完成${difficultyName.value}！`)
+      setTimeout(() => {
+        router.push('/study/difficulty')
+      }, 1500)
+    } else {
+      MessagePlugin.success('恭喜完成复习！')
+      setTimeout(() => {
+        router.push('/study')
+      }, 1500)
+    }
+  }
+}
+
 const moveToNextCard = () => {
   if (isRandomMode.value) {
     const unlearnedIndices: number[] = []
@@ -571,7 +694,8 @@ const moveToNextCard = () => {
 }
 
 const clearStudyData = () => {
-  localStorage.removeItem('studyCardsData')
+  const storageKey = getStorageKey()
+  localStorage.removeItem(storageKey)
 }
 
 const switchCard = (index: number) => {
@@ -582,6 +706,7 @@ const switchCard = (index: number) => {
   comments.value = []
   commentText.value = ''
   keywordRevealed.value = false
+  answerRevealed.value = false
 
   if (currentCard.value) {
     loadComments(currentCard.value.id)
@@ -592,19 +717,22 @@ const switchCard = (index: number) => {
       difficultyRating.value = savedState.difficulty
       isCurrentCardLearned.value = true
     } else {
-      answerRevealed.value = false
       difficultyRating.value = 0
-      isCurrentCardLearned.value = cardList.value[index].learned || false
-      
-      if (isCurrentCardLearned.value) {
-        answerRevealed.value = true
+      if (isReviewMode.value || isDifficultyMode.value) {
+        isCurrentCardLearned.value = false
+      } else {
+        isCurrentCardLearned.value = cardList.value[index].learned || false
+        if (isCurrentCardLearned.value) {
+          answerRevealed.value = true
+        }
       }
     }
   }
 }
 
 const saveLearnedStatesToStorage = () => {
-  const data = localStorage.getItem('studyCardsData')
+  const storageKey = getStorageKey()
+  const data = localStorage.getItem(storageKey)
   if (!data) return
   
   const parsed = JSON.parse(data)
@@ -621,12 +749,14 @@ const saveLearnedStatesToStorage = () => {
   }))
   parsed.currentIndex = currentIndex.value
   parsed.isRandomMode = isRandomMode.value
+  parsed.isReviewMode = isReviewMode.value
   
-  localStorage.setItem('studyCardsData', JSON.stringify(parsed))
+  localStorage.setItem(storageKey, JSON.stringify(parsed))
 }
 
 const loadLearnedStatesFromStorage = () => {
-  const data = localStorage.getItem('studyCardsData')
+  const storageKey = getStorageKey()
+  const data = localStorage.getItem(storageKey)
   if (!data) return
   
   const parsed = JSON.parse(data)
@@ -1081,6 +1211,13 @@ const loadLearnedStatesFromStorage = () => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   
   span {
     font-size: 16px;
@@ -1283,6 +1420,34 @@ const loadLearnedStatesFromStorage = () => {
       
       &.disabled {
         opacity: 0.5;
+      }
+    }
+    
+    &.forgot {
+      background: linear-gradient(135deg, #E34D59 0%, #F66C5C 100%);
+      box-shadow: 0 3px 12px rgba(227, 77, 89, 0.35);
+      flex: 1;
+      
+      &.disabled {
+        opacity: 0.5;
+      }
+      
+      .btn-text {
+        color: #fff;
+      }
+    }
+    
+    &.mastered {
+      background: linear-gradient(135deg, #00A870 0%, #00C853 100%);
+      box-shadow: 0 3px 12px rgba(0, 168, 112, 0.35);
+      flex: 1;
+      
+      &.disabled {
+        opacity: 0.5;
+      }
+      
+      .btn-text {
+        color: #fff;
       }
     }
   }

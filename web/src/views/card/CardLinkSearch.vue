@@ -128,7 +128,7 @@
       <div class="action-btns">
         <div class="cancel-btn" @click="router.back()">取消</div>
         <div class="confirm-btn" :class="{ active: selectedCards.length > 0 }" @click="confirmLink">
-          <t-icon name="link" size="16px" :color="selectedCards.length > 0 ? '#fff' : '#999'" />
+          <t-icon name="link-1" size="16px" :color="selectedCards.length > 0 ? '#fff' : '#999'" />
           <span>确认关联</span>
         </div>
       </div>

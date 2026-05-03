@@ -212,34 +212,49 @@
     <div class="move-dialog-overlay" v-if="showMoveDialog" @click.self="showMoveDialog = false">
       <div class="move-dialog">
         <div class="move-dialog-header">
-          <span class="move-dialog-title">移动到章节</span>
+          <span class="move-dialog-title">移动卡片</span>
           <t-icon name="close" size="20px" color="#999" class="close-btn" @click="showMoveDialog = false" />
         </div>
         <div class="move-dialog-body">
-          <div class="chapter-list">
-            <div 
-              class="chapter-item" 
-              :class="{ selected: targetChapterId === null }"
-              @click="targetChapterId = null"
-            >
-              <div class="chapter-radio">
-                <div class="chapter-radio-dot" v-if="targetChapterId === null"></div>
+          <div class="move-section">
+            <div class="move-section-label">目标知识库</div>
+            <t-select 
+              v-model="targetLibraryId" 
+              :options="myLibraryOptions"
+              placeholder="留在当前知识库"
+              clearable
+              style="width: 100%"
+              @change="onMoveLibraryChange"
+            />
+          </div>
+          
+          <div class="move-section">
+            <div class="move-section-label">目标章节</div>
+            <div class="chapter-list">
+              <div 
+                class="chapter-item" 
+                :class="{ selected: targetChapterId === null }"
+                @click="targetChapterId = null"
+              >
+                <div class="chapter-radio">
+                  <div class="chapter-radio-dot" v-if="targetChapterId === null"></div>
+                </div>
+                <span class="chapter-name">无章节</span>
               </div>
-              <span class="chapter-name">无章节</span>
-            </div>
-            <div 
-              class="chapter-item" 
-              :class="{ selected: targetChapterId === chapter.id }"
-              v-for="chapter in flatChapters" 
-              :key="chapter.id"
-              @click="targetChapterId = chapter.id"
-            >
-              <div class="chapter-radio">
-                <div class="chapter-radio-dot" v-if="targetChapterId === chapter.id"></div>
+              <div 
+                class="chapter-item" 
+                :class="{ selected: targetChapterId === chapter.id }"
+                v-for="chapter in (targetLibraryId ? moveChapterOptions : flatChapters)" 
+                :key="chapter.id"
+                @click="targetChapterId = chapter.id"
+              >
+                <div class="chapter-radio">
+                  <div class="chapter-radio-dot" v-if="targetChapterId === chapter.id"></div>
+                </div>
+                <span class="chapter-name" :style="{ paddingLeft: (chapter.level - 1) * 16 + 'px' }">
+                  {{ chapter.name }}
+                </span>
               </div>
-              <span class="chapter-name" :style="{ paddingLeft: (chapter.level - 1) * 16 + 'px' }">
-                {{ chapter.name }}
-              </span>
             </div>
           </div>
         </div>
@@ -317,6 +332,9 @@ const selectedCardIds = ref<number[]>([])
 const isAllSelected = ref(false)
 const showMoveDialog = ref(false)
 const targetChapterId = ref<number | null>(null)
+const targetLibraryId = ref<number | null>(null)
+const myLibraryOptions = ref<{ label: string; value: number }[]>([])
+const moveChapterOptions = ref<FlatChapter[]>([])
 
 const flatChapters = computed<FlatChapter[]>(() => {
   const result: FlatChapter[] = []
@@ -608,13 +626,62 @@ const onEditCard = (card: Card) => {
   })
 }
 
-const onShowMoveDialog = () => {
+const onShowMoveDialog = async () => {
   if (selectedCardIds.value.length === 0) {
     MessagePlugin.warning('请先选择卡片')
     return
   }
   targetChapterId.value = null
+  targetLibraryId.value = null
+  moveChapterOptions.value = []
+  
+  try {
+    const res = await libraryAPI.getMyLibraries({ page: 1, pageSize: 100 })
+    if (res.success && res.data) {
+      const libraries = res.data.list || res.data.libraries || res.data || []
+      myLibraryOptions.value = libraries
+        .filter((lib: any) => lib.id !== libraryId.value)
+        .map((lib: any) => ({
+          label: lib.name,
+          value: lib.id
+        }))
+    }
+  } catch (error) {
+    console.error('加载知识库列表失败:', error)
+  }
+  
   showMoveDialog.value = true
+}
+
+const onMoveLibraryChange = async (libraryIdValue: number) => {
+  targetChapterId.value = null
+  moveChapterOptions.value = []
+  
+  if (libraryIdValue) {
+    try {
+      const res = await chapterAPI.getList(libraryIdValue)
+      if (res.success && res.data) {
+        const chapters = res.data.chapters || res.data || []
+        const result: FlatChapter[] = []
+        const flatten = (chapterList: any[], level: number = 1) => {
+          chapterList.forEach(ch => {
+            result.push({
+              id: ch.id,
+              name: ch.name,
+              level: level
+            })
+            if (ch.children && ch.children.length > 0) {
+              flatten(ch.children, level + 1)
+            }
+          })
+        }
+        flatten(chapters)
+        moveChapterOptions.value = result
+      }
+    } catch (error) {
+      console.error('加载章节失败:', error)
+    }
+  }
 }
 
 const onConfirmMove = async () => {
@@ -624,7 +691,11 @@ const onConfirmMove = async () => {
   }
 
   try {
-    const res = await cardAPI.batchMove(selectedCardIds.value, targetChapterId.value)
+    const res = await cardAPI.batchMove(
+      selectedCardIds.value, 
+      targetChapterId.value,
+      targetLibraryId.value || undefined
+    )
     if (res.success) {
       MessagePlugin.success(`已移动 ${res.data.count} 张卡片`)
       showMoveDialog.value = false
@@ -1304,6 +1375,17 @@ const onToggleFavorite = async () => {
   flex: 1;
   overflow-y: auto;
   padding: 12px 16px;
+}
+
+.move-section {
+  margin-bottom: 16px;
+}
+
+.move-section-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  margin-bottom: 8px;
 }
 
 .chapter-list {

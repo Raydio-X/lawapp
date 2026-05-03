@@ -140,7 +140,7 @@ class StudyModel {
         return {
             totalCards: totalCards[0].count,
             todayCards: todayTotal,
-            streak: stats[0]?.current_streak || 0,
+            streak: stats[0]?.total_study_days || 0,
             totalTime: stats[0]?.total_study_time || 0,
             libraryCount: libraries[0].count,
             cardCount: cards[0].count,

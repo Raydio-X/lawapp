@@ -111,6 +111,17 @@
           </div>
           <t-icon name="chevron-right" size="20px" color="#ccc" />
         </div>
+
+        <div class="broadcast-entry" @click="router.push('/admin/feedback')">
+          <div class="broadcast-entry-icon" style="background-color: rgba(5, 148, 250, 0.1);">
+            <t-icon name="chat" size="24px" color="#0594FA" />
+          </div>
+          <div class="broadcast-entry-content">
+            <span class="broadcast-entry-title">用户反馈</span>
+            <span class="broadcast-entry-desc">查看用户意见建议</span>
+          </div>
+          <t-icon name="chevron-right" size="20px" color="#ccc" />
+        </div>
       </template>
 
       <template v-if="activeTab === 'libraries'">

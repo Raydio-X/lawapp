@@ -66,6 +66,13 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  function updateAvatar(url: string) {
+    if (userInfo.value) {
+      userInfo.value.avatarUrl = url
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    }
+  }
+
   loadUserInfo()
 
   return {
@@ -81,6 +88,7 @@ export const useUserStore = defineStore('user', () => {
     loadUserInfo,
     logout,
     setGuest,
-    updateDisplayName
+    updateDisplayName,
+    updateAvatar
   }
 })

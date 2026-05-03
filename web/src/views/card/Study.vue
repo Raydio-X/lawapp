@@ -31,7 +31,7 @@
         </div>
       </div>
 
-      <div class="keyword-section" v-if="currentCard.tags && currentCard.tags.length > 0">
+      <div class="keyword-section">
         <div class="keyword-header">
           <div class="keyword-label">
             <t-icon name="bookmark" size="16px" color="#3B82F6" />
@@ -39,8 +39,11 @@
           </div>
         </div>
         <div class="keyword-content">
-          <div class="keyword-tags">
+          <div class="keyword-tags" v-if="currentCard.tags && currentCard.tags.length > 0">
             <t-tag v-for="tag in currentCard.tags" :key="tag" theme="primary" variant="light" size="large">{{ tag }}</t-tag>
+          </div>
+          <div class="keyword-empty" v-else>
+            <span>暂无关键词</span>
           </div>
         </div>
       </div>
@@ -120,7 +123,8 @@
         <div class="comment-list">
           <div class="comment-item" v-for="(item, index) in comments" :key="item.id">
             <div class="comment-avatar">
-              <span>{{ item.avatar }}</span>
+              <img v-if="item.avatar" :src="item.avatar" class="avatar-img" />
+              <span v-else>{{ item.avatarText }}</span>
             </div>
             <div class="comment-content">
               <div class="comment-user">
@@ -532,12 +536,13 @@ const loadComments = async (cardId: number) => {
       const list = res.data.list || res.data || []
       comments.value = list.map((item: any) => ({
         id: item.id,
-        avatar: (item.nickname || '用')[0],
+        avatar: item.avatar || '',
+        avatarText: (item.nickname || '用')[0],
         username: item.nickname || '用户',
         time: formatTime(item.created_at),
         content: item.content,
         likeCount: item.like_count || 0,
-        liked: item.is_liked || false
+        liked: item.is_liked === 1
       }))
     }
   } catch (error) {
@@ -1013,6 +1018,18 @@ const saveStudyProgress = () => {
   gap: 8px;
 }
 
+.keyword-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  
+  span {
+    font-size: 13px;
+    color: #999;
+  }
+}
+
 .answer-section {
   background: #fff;
   margin: 0 12px 12px;
@@ -1448,6 +1465,13 @@ const saveStudyProgress = () => {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  
+  .avatar-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
   
   span {
     font-size: 14px;

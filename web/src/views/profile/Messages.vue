@@ -117,8 +117,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { messageAPI } from '@/utils/api'
+import { useMessageStore } from '@/stores/message'
 
 const router = useRouter()
+const messageStore = useMessageStore()
 
 interface Message {
   id: number
@@ -191,6 +193,7 @@ const onMessageTap = async (message: Message, index: number) => {
     try {
       await messageAPI.markAsRead(message.id)
       messages.value[index].is_read = 1
+      messageStore.decrementUnreadCount()
     } catch (error) {
       console.error('标记已读失败:', error)
     }
@@ -207,6 +210,7 @@ const onMarkAllRead = async () => {
     const res = await messageAPI.markAllAsRead()
     if (res.success) {
       messages.value = messages.value.map(m => ({ ...m, is_read: 1 }))
+      messageStore.clearUnreadCount()
       MessagePlugin.success('已全部标记为已读')
     }
   } catch (error) {
@@ -223,6 +227,9 @@ const onDeleteMessage = (id: number, index: number) => {
       try {
         const res = await messageAPI.delete(id)
         if (res.success) {
+          if (!messages.value[index].is_read) {
+            messageStore.decrementUnreadCount()
+          }
           messages.value.splice(index, 1)
           MessagePlugin.success('已删除')
         }

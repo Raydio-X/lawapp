@@ -84,6 +84,12 @@
               <t-icon name="user" size="14px" color="#999" />
               <span>已发送给 {{ item.recipient_count }} 位用户</span>
             </div>
+            <div class="history-actions">
+              <div class="revoke-btn" @click="onRevoke(item)">
+                <t-icon name="rollback" size="14px" color="#E34D59" />
+                <span>撤回</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -104,8 +110,8 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { MessagePlugin } from 'tdesign-vue-next'
-import api from '@/utils/api'
+import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import api, { messageAPI } from '@/utils/api'
 
 const router = useRouter()
 
@@ -122,7 +128,7 @@ onMounted(() => {
 const loadBroadcastHistory = async () => {
   loading.value = true
   try {
-    const res = await api.get('/messages/broadcast', {
+    const res = await messageAPI.getBroadcastList({
       page: 1,
       pageSize: 50
     })
@@ -161,7 +167,7 @@ const onSend = async () => {
   }
 
   try {
-    const res = await api.post('/admin/broadcast', {
+    const res = await messageAPI.broadcast({
       title: title.value,
       content: content.value
     })
@@ -176,6 +182,37 @@ const onSend = async () => {
   } catch (error) {
     MessagePlugin.error('发送失败，请重试')
   }
+}
+
+const onRevoke = async (item: any) => {
+  const confirmDialog = DialogPlugin.confirm({
+    header: '确认撤回',
+    body: '撤回后，所有用户收到的该消息将被删除，此操作不可恢复。确定要撤回吗？',
+    confirmBtn: '确认撤回',
+    cancelBtn: '取消',
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        const res = await messageAPI.revokeBroadcast({
+          title: item.title,
+          content: item.content,
+          created_at: item.created_at
+        })
+        if (res.success) {
+          MessagePlugin.success('撤回成功')
+          loadBroadcastHistory()
+        } else {
+          MessagePlugin.error(res.message || '撤回失败')
+        }
+      } catch (error) {
+        MessagePlugin.error('撤回失败，请重试')
+      }
+      confirmDialog.hide()
+    },
+    onCancel: () => {
+      confirmDialog.hide()
+    }
+  })
 }
 </script>
 
@@ -444,7 +481,7 @@ const onSend = async () => {
 .history-footer {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: space-between;
 }
 
 .history-meta {
@@ -453,6 +490,31 @@ const onSend = async () => {
   gap: 4px;
   font-size: 12px;
   color: #999;
+}
+
+.history-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.revoke-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+
+  span {
+    font-size: 13px;
+    color: #E34D59;
+  }
+
+  &:hover {
+    background-color: rgba(227, 77, 89, 0.1);
+  }
 }
 
 .empty-state {

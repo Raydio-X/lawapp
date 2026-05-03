@@ -62,7 +62,7 @@
         </div>
         <div class="module-info">
           <span class="module-title">我的收藏</span>
-          <span class="module-desc">{{ favoriteCount }}张收藏卡片</span>
+          <span class="module-desc">收藏卡片和收藏知识库</span>
         </div>
         <t-icon name="chevron-right" size="18px" color="#ccc" />
       </div>
@@ -79,7 +79,7 @@
       </div>
     </div>
 
-    <div class="tips-section" v-if="unlearnedCount === 0">
+    <div class="tips-section" v-if="!loading && unlearnedCount === 0">
       <div class="tips-card">
         <t-icon name="check-circle" size="20px" color="#00B578" />
         <span class="tips-text">太棒了！所有卡片都已掌握</span>
@@ -110,6 +110,7 @@ interface LastStudyProgress {
 
 const router = useRouter()
 
+const loading = ref(true)
 const streak = ref(0)
 const unlearnedCount = ref(0)
 const reviewCount = ref(0)
@@ -138,6 +139,7 @@ onActivated(() => {
 })
 
 const loadStats = async () => {
+  loading.value = true
   try {
     const [statsRes, reviewRes, favRes] = await Promise.all([
       studyAPI.getStats(),
@@ -159,6 +161,8 @@ const loadStats = async () => {
     }
   } catch (error) {
     console.error('加载统计数据失败:', error)
+  } finally {
+    loading.value = false
   }
 }
 
@@ -167,7 +171,7 @@ const loadLastStudyProgress = async () => {
     const saved = localStorage.getItem('studyCardsData')
     if (saved) {
       const data = JSON.parse(saved)
-      if (data.cardList && data.cardList.length > 0) {
+      if (data.cardList && data.cardList.length > 0 && !data.isReviewMode) {
         const learned = data.cardList.filter((c: any) => c.learned).length
         lastStudyProgress.value = {
           cardList: data.cardList,
@@ -224,15 +228,16 @@ const onReview = async () => {
       libraryName: card.libraryName || card.library_name
     }))
 
-    localStorage.setItem('studyCardsData', JSON.stringify({
+    localStorage.setItem('reviewCardsData', JSON.stringify({
       cardList: reviewCards,
       libraryNames: '艾宾浩斯复习',
-      totalCards: reviewCards.length
+      totalCards: reviewCards.length,
+      isReviewMode: true
     }))
 
     router.push({
       path: '/study/cards',
-      query: { index: 0, total: reviewCards.length }
+      query: { index: 0, total: reviewCards.length, mode: 'review' }
     })
   } catch (error) {
     MessagePlugin.closeAll()
@@ -246,7 +251,7 @@ const onFavorites = () => {
 }
 
 const onDifficulty = () => {
-  router.push('/study/cards?mode=difficulty')
+  router.push('/study/difficulty')
 }
 </script>
 

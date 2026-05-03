@@ -54,6 +54,7 @@ class CardModel {
             list: rows.map(row => ({
                 ...row,
                 tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || []),
+                keywords: typeof row.keywords === 'string' ? JSON.parse(row.keywords) : (row.keywords || []),
                 is_liked: row.is_liked > 0,
                 is_favorited: row.is_favorited > 0,
                 is_learned: row.is_learned === 1
@@ -79,6 +80,7 @@ class CardModel {
         
         if (rows[0]) {
             rows[0].tags = typeof rows[0].tags === 'string' ? JSON.parse(rows[0].tags) : (rows[0].tags || []);
+            rows[0].keywords = typeof rows[0].keywords === 'string' ? JSON.parse(rows[0].keywords) : (rows[0].keywords || []);
         }
         
         return rows[0];
@@ -86,13 +88,14 @@ class CardModel {
 
     static async create(data) {
         const [result] = await db.execute(
-            'INSERT INTO cards (library_id, chapter_id, question, answer, tags, created_by, is_public, is_hot) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            'INSERT INTO cards (library_id, chapter_id, question, answer, tags, keywords, created_by, is_public, is_hot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             [
                 data.library_id || null,
                 data.chapter_id || null,
                 data.question,
                 data.answer,
                 JSON.stringify(data.tags || []),
+                JSON.stringify(data.keywords || []),
                 data.created_by,
                 data.is_public !== undefined ? data.is_public : 1,
                 data.is_hot !== undefined ? data.is_hot : 0
@@ -304,18 +307,26 @@ class CardModel {
         }));
     }
 
-    static async batchUpdateChapter(cardIds, chapterId, userId) {
+    static async batchUpdateChapter(cardIds, chapterId, userId, libraryId = null) {
         if (!cardIds || cardIds.length === 0) {
             return { success: true, count: 0 };
         }
 
         const placeholders = cardIds.map(() => '?').join(',');
-        const [result] = await db.execute(
-            `UPDATE cards SET chapter_id = ? WHERE id IN (${placeholders}) AND created_by = ?`,
-            [chapterId, ...cardIds, userId]
-        );
-
-        return { success: true, count: result.affectedRows };
+        
+        if (libraryId) {
+            const [result] = await db.execute(
+                `UPDATE cards SET chapter_id = ?, library_id = ? WHERE id IN (${placeholders}) AND created_by = ?`,
+                [chapterId, libraryId, ...cardIds, userId]
+            );
+            return { success: true, count: result.affectedRows };
+        } else {
+            const [result] = await db.execute(
+                `UPDATE cards SET chapter_id = ? WHERE id IN (${placeholders}) AND created_by = ?`,
+                [chapterId, ...cardIds, userId]
+            );
+            return { success: true, count: result.affectedRows };
+        }
     }
 
     static async getRelatedCards(cardId, userId = null, limit = 5) {

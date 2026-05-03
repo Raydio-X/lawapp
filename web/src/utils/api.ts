@@ -103,8 +103,8 @@ class ApiClient {
     return this.instance.put(url, data, config)
   }
 
-  async delete<T = any>(url: string, params?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
-    return this.instance.delete(url, { params, ...config })
+  async delete<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
+    return this.instance.delete(url, { data, ...config })
   }
 
   async upload<T = any>(url: string, file: File, formData?: Record<string, any>): Promise<ApiResponse<T>> {
@@ -176,8 +176,10 @@ export const cardAPI = {
   getRandom: (libraryId: number) => api.get(`/libraries/${libraryId}/cards/random`),
   getReviewCards: () => api.get('/cards/review/list'),
   getReviewCount: () => api.get('/cards/review/count'),
+  getDifficultyStats: () => api.get('/cards/difficulty/stats'),
+  getDifficultyCards: (level: string) => api.get('/cards/difficulty/cards', { level }),
   batchImport: (file: File, formData?: any) => api.upload('/cards/batch-import', file, formData),
-  batchMove: (cardIds: number[], chapterId: number) => api.post('/cards/batch-move', { cardIds, chapterId }),
+  batchMove: (cardIds: number[], chapterId: number | null, libraryId?: number) => api.post('/cards/batch-move', { cardIds, chapterId, libraryId }),
   batchCopy: (cardIds: number[], libraryId: number, chapterId?: number) => api.post('/cards/batch-copy', { cardIds, libraryId, chapterId }),
   getRelated: (id: number, limit?: number) => api.get(`/cards/${id}/related`, { limit }),
   updateMastery: (id: number, level: number) => api.post(`/cards/${id}/mastery`, { level }),
@@ -258,7 +260,9 @@ export const adminAPI = {
   updateBlockedWord: (id: number, data: { word?: string; category?: string; is_enabled?: number }) => api.put(`/admin/blocked-words/${id}`, data),
   deleteBlockedWord: (id: number) => api.delete(`/admin/blocked-words/${id}`),
   batchCreateBlockedWords: (data: { words: string[]; category?: string }) => api.post('/admin/blocked-words/batch', data),
-  checkSensitive: (text: string) => api.post('/admin/check-sensitive', { text })
+  checkSensitive: (text: string) => api.post('/admin/check-sensitive', { text }),
+  getFeedbackList: (params?: any) => api.get('/feedback/list', params),
+  updateFeedbackStatus: (id: number, data: { status: number; reply?: string }) => api.put(`/feedback/${id}/status`, data)
 }
 
 export const messageAPI = {
@@ -267,7 +271,14 @@ export const messageAPI = {
   markAsRead: (id: number) => api.put(`/messages/${id}/read`),
   markAllAsRead: () => api.put('/messages/read-all'),
   delete: (id: number) => api.delete(`/messages/${id}`),
-  broadcast: (data: any) => api.post('/messages/broadcast', data)
+  broadcast: (data: any) => api.post('/messages/broadcast', data),
+  getBroadcastList: (params?: any) => api.get('/messages/broadcast', params),
+  revokeBroadcast: (data: { title: string; content: string; created_at: string }) => api.delete('/messages/broadcast', data)
+}
+
+export const feedbackAPI = {
+  submit: (data: { content: string; contact?: string }) => api.post('/feedback', data),
+  getMyList: (params?: any) => api.get('/feedback/my', params)
 }
 
 export const isLoggedIn = () => {
