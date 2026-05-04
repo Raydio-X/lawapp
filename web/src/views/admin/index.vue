@@ -122,6 +122,17 @@
           </div>
           <t-icon name="chevron-right" size="20px" color="#ccc" />
         </div>
+
+        <div class="broadcast-entry" @click="router.push('/admin/activation-codes')">
+          <div class="broadcast-entry-icon" style="background-color: rgba(255, 215, 0, 0.15);">
+            <t-icon name="key" size="24px" color="#E6A23C" />
+          </div>
+          <div class="broadcast-entry-content">
+            <span class="broadcast-entry-title">激活码管理</span>
+            <span class="broadcast-entry-desc">生成和管理VIP激活码</span>
+          </div>
+          <t-icon name="chevron-right" size="20px" color="#ccc" />
+        </div>
       </template>
 
       <template v-if="activeTab === 'libraries'">

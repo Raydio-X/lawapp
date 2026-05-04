@@ -112,6 +112,15 @@
           <t-icon name="info-circle" size="20px" color="#D4AF37" />
           <span>点击上方按钮手动关联卡片</span>
         </div>
+        
+        <div class="vip-lock-overlay" v-if="!userStore.isVip">
+          <div class="vip-lock-content">
+            <t-icon name="lock" size="32px" color="#D4AF37" />
+            <span class="vip-lock-title">VIP专属功能</span>
+            <span class="vip-lock-desc">激活VIP后可使用派生学习功能</span>
+            <div class="vip-lock-btn" @click="router.push('/profile/activation')">立即激活</div>
+          </div>
+        </div>
       </div>
 
       <div class="comment-section" :class="{ show: answerRevealed }" v-if="answerRevealed">
@@ -234,10 +243,14 @@ import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, favoriteAPI, commentAPI } from '@/utils/api'
 import { useCardStudyStore } from '@/stores/cardStudy'
+import { useUserStore } from '@/stores/user'
+import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
 const route = useRoute()
 const cardStudyStore = useCardStudyStore()
+const userStore = useUserStore()
+const { isVip, limits, canUseCommentToCard } = usePermission()
 
 interface Card {
   id: number
@@ -746,6 +759,8 @@ const onLikeComment = async (index: number, commentId: number) => {
 }
 
 const onSaveCommentAsCard = (index: number) => {
+  if (!canUseCommentToCard()) return
+  
   const comment = comments.value[index]
   const card = currentCard.value
   
@@ -1140,6 +1155,7 @@ const saveStudyProgress = () => {
 }
 
 .related-section {
+  position: relative;
   background: linear-gradient(135deg, #FFF8DC 0%, #FFFACD 50%, #FAFAD2 100%);
   margin: 0 12px 12px;
   border-radius: 12px;
@@ -1324,6 +1340,61 @@ const saveStudyProgress = () => {
   span {
     font-size: 13px;
     color: #C9A227;
+  }
+}
+
+.vip-lock-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 248, 220, 0.1);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.vip-lock-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+  text-align: center;
+  transform: translateY(-20px);
+}
+
+.vip-lock-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #B8860B;
+}
+
+.vip-lock-desc {
+  font-size: 12px;
+  color: #8B7355;
+}
+
+.vip-lock-btn {
+  margin-top: 8px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(184, 134, 11, 0.3);
+  transition: all 0.2s ease;
+  
+  &:active {
+    transform: scale(0.95);
   }
 }
 

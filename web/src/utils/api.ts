@@ -281,6 +281,19 @@ export const feedbackAPI = {
   getMyList: (params?: any) => api.get('/feedback/my', params)
 }
 
+export const activationAPI = {
+  activate: (code: string) => api.post('/activation/activate', { code }),
+  getStatus: () => api.get('/activation/status'),
+  getHistory: (params?: any) => api.get('/activation/history', params),
+  checkBatchImport: () => api.get('/activation/batch-import/check')
+}
+
+export const activationCodeAPI = {
+  getList: (params?: any) => api.get('/admin/activation-codes', params),
+  batchCreate: (data: { codes: string[]; duration_days: number }) => api.post('/admin/activation-codes/batch', data),
+  delete: (id: number) => api.delete(`/admin/activation-codes/${id}`)
+}
+
 export const isLoggedIn = () => {
   const token = localStorage.getItem('access_token')
   if (!token) return false

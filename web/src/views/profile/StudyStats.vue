@@ -94,9 +94,13 @@
 import { ref, onMounted, onActivated, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { studyAPI } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
+import { useUserStore } from '@/stores/user'
 import RadarChart from '@/components/RadarChart.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
+const { canViewStudyDetail, isVip } = usePermission()
 
 const weekdays = ['日', '一', '二', '三', '四', '五', '六']
 
@@ -135,6 +139,12 @@ const radarDimensions = computed(() => [
 ])
 
 onMounted(() => {
+  if (!userStore.isVip) {
+    canViewStudyDetail()
+    router.back()
+    return
+  }
+  
   const now = new Date()
   currentYear.value = now.getFullYear()
   currentMonth.value = now.getMonth() + 1

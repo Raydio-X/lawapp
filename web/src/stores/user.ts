@@ -3,11 +3,14 @@ import { ref, computed } from 'vue'
 
 interface UserInfo {
   id: number
+  userId?: string
   nickName: string
   avatarUrl: string
   email?: string
   bio?: string
   role?: string
+  isVip?: boolean
+  vipExpireAt?: string | null
 }
 
 export const useUserStore = defineStore('user', () => {
@@ -19,6 +22,18 @@ export const useUserStore = defineStore('user', () => {
   const displayName = computed(() => userInfo.value?.nickName || '法硕考生')
   const avatarUrl = computed(() => userInfo.value?.avatarUrl || '/assets/images/default-avatar.svg')
   const userRole = computed(() => userInfo.value?.role || 'user')
+  const userIdCode = computed(() => userInfo.value?.userId || '')
+  
+  const isVip = computed(() => {
+    if (!userInfo.value?.isVip) return false
+    if (userInfo.value.vipExpireAt) {
+      const expireDate = new Date(userInfo.value.vipExpireAt)
+      if (expireDate < new Date()) return false
+    }
+    return true
+  })
+
+  const vipExpireAt = computed(() => userInfo.value?.vipExpireAt || null)
 
   function setToken(newToken: string) {
     token.value = newToken
@@ -73,6 +88,14 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  function setVipStatus(status: { isVip: boolean; vipExpireAt?: string | null }) {
+    if (userInfo.value) {
+      userInfo.value.isVip = status.isVip
+      userInfo.value.vipExpireAt = status.vipExpireAt || null
+      localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+    }
+  }
+
   loadUserInfo()
 
   return {
@@ -83,12 +106,16 @@ export const useUserStore = defineStore('user', () => {
     displayName,
     avatarUrl,
     userRole,
+    userIdCode,
+    isVip,
+    vipExpireAt,
     setToken,
     setUserInfo,
     loadUserInfo,
     logout,
     setGuest,
     updateDisplayName,
-    updateAvatar
+    updateAvatar,
+    setVipStatus
   }
 })

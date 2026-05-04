@@ -93,8 +93,6 @@
           <div class="library-item-content">
             <span class="library-item-name">{{ item.name }}</span>
             <div class="library-item-meta">
-              <span class="meta-item">{{ item.subject }}</span>
-              <span class="meta-dot">·</span>
               <span class="meta-item">{{ item.cardCount }}张卡片</span>
             </div>
           </div>
@@ -279,8 +277,10 @@ import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
+const { canUseBatchImport, isVip, limits, batchImportUsedToday, checkBatchImportStatus, recordBatchImportUsage } = usePermission()
 
 interface Library {
   id: number
@@ -336,7 +336,10 @@ const onCreateCard = () => {
   router.push('/create/card')
 }
 
-const onBatchImport = () => {
+const onBatchImport = async () => {
+  const canImport = await canUseBatchImport()
+  if (!canImport) return
+  
   batchStep.value = 1
   batchLibraryId.value = 0
   batchFileName.value = ''
@@ -457,6 +460,7 @@ const onBatchConfirm = async () => {
     const data = await res.json()
     
     if (data.success) {
+      recordBatchImportUsage()
       batchStep.value = 4
       loadMyLibraries()
     } else {

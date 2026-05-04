@@ -1,4 +1,5 @@
 const db = require('../config/database');
+const UserIdGenerator = require('../utils/userIdGenerator');
 
 class UserModel {
     static async findByOpenid(openid) {
@@ -25,10 +26,19 @@ class UserModel {
         return rows[0];
     }
 
+    static async findByUserId(userId) {
+        const [rows] = await db.execute(
+            'SELECT * FROM users WHERE user_id = ?',
+            [userId]
+        );
+        return rows[0];
+    }
+
     static async create(data) {
+        const userId = await UserIdGenerator.generateUniqueId();
         const [result] = await db.execute(
-            'INSERT INTO users (openid, nickname, avatar, bio, phone, gender) VALUES (?, ?, ?, ?, ?, ?)',
-            [data.openid, data.nickname || '微信用户', data.avatar || '', data.bio || '', data.phone || '', data.gender || 0]
+            'INSERT INTO users (user_id, openid, nickname, avatar, bio, phone, gender) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [userId, data.openid, data.nickname || '微信用户', data.avatar || '', data.bio || '', data.phone || '', data.gender || 0]
         );
         return this.findById(result.insertId);
     }
@@ -107,6 +117,48 @@ class UserModel {
             favoriteCount: favorites[0].count,
             wrongCount: wrongCards[0].count
         };
+    }
+
+    static async activateVIP(userId, durationDays) {
+        const user = await this.findById(userId);
+        if (!user) {
+            throw new Error('用户不存在');
+        }
+
+        let expiresAt;
+        if (durationDays === -1) {
+            expiresAt = null;
+        } else {
+            const now = new Date();
+            if (user.vip_expires_at && new Date(user.vip_expires_at) > now) {
+                expiresAt = new Date(new Date(user.vip_expires_at).getTime() + durationDays * 24 * 60 * 60 * 1000);
+            } else {
+                expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+            }
+        }
+
+        await db.execute(
+            'UPDATE users SET is_vip = 1, vip_expires_at = ? WHERE id = ?',
+            [expiresAt, userId]
+        );
+        return this.findById(userId);
+    }
+
+    static async checkVIPStatus(userId) {
+        const user = await this.findById(userId);
+        if (!user) return false;
+
+        if (!user.is_vip) return false;
+
+        if (user.vip_expires_at && new Date(user.vip_expires_at) < new Date()) {
+            await db.execute(
+                'UPDATE users SET is_vip = 0 WHERE id = ?',
+                [userId]
+            );
+            return false;
+        }
+
+        return true;
     }
 }
 

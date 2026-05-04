@@ -60,6 +60,7 @@ router.post('/login', async (req, res) => {
                 token,
                 userInfo: {
                     id: user.id,
+                    userId: user.user_id,
                     nickname: user.nickname,
                     avatar: user.avatar,
                     bio: user.bio
@@ -104,6 +105,7 @@ router.post('/test-login', async (req, res) => {
                     token,
                     userInfo: {
                         id: user.id,
+                        userId: user.user_id,
                         nickname: user.nickname,
                         avatar: user.avatar,
                         bio: user.bio,
@@ -135,6 +137,7 @@ router.post('/test-login', async (req, res) => {
                     token,
                     userInfo: {
                         id: user.id,
+                        userId: user.user_id,
                         nickname: user.nickname,
                         avatar: user.avatar,
                         bio: user.bio,
@@ -175,6 +178,7 @@ router.get('/me', require('../middlewares/auth').auth, async (req, res) => {
             success: true,
             data: {
                 id: user.id,
+                userId: user.user_id,
                 nickname: user.nickname,
                 avatar: user.avatar,
                 bio: user.bio,

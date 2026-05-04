@@ -6,6 +6,7 @@ const ChapterModel = require('../models/Chapter');
 const UserModel = require('../models/User');
 const MessageModel = require('../models/message');
 const BlockedWordModel = require('../models/BlockedWord');
+const ActivationCodeModel = require('../models/ActivationCode');
 const sensitiveWordFilter = require('../utils/sensitiveWordFilter');
 const { adminAuth } = require('../middlewares/auth');
 
@@ -549,6 +550,83 @@ router.post('/check-sensitive', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('Check sensitive word error:', error);
         res.status(500).json({ success: false, code: 500, message: '检测失败' });
+    }
+});
+
+router.get('/activation-codes', adminAuth, async (req, res) => {
+    try {
+        const { page, pageSize, isUsed } = req.query;
+        
+        const result = await ActivationCodeModel.getList({
+            page: parseInt(page) || 1,
+            pageSize: parseInt(pageSize) || 20,
+            isUsed
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Get activation codes error:', error);
+        res.status(500).json({ success: false, message: '获取激活码列表失败' });
+    }
+});
+
+router.post('/activation-codes/batch', adminAuth, async (req, res) => {
+    try {
+        const { codes, duration_days } = req.body;
+        
+        if (!codes || !Array.isArray(codes) || codes.length === 0) {
+            return res.status(400).json({ success: false, message: '请提供激活码列表' });
+        }
+        
+        if (duration_days === undefined || duration_days === null) {
+            return res.status(400).json({ success: false, message: '请提供VIP时长' });
+        }
+
+        for (const code of codes) {
+            const existing = await ActivationCodeModel.findByCode(code);
+            if (existing) {
+                return res.status(400).json({ 
+                    success: false, 
+                    message: `激活码 ${code} 已存在` 
+                });
+            }
+        }
+
+        await ActivationCodeModel.batchCreate(codes, duration_days, req.user.id);
+
+        res.json({
+            success: true,
+            message: `成功生成 ${codes.length} 个激活码`
+        });
+    } catch (error) {
+        console.error('Batch create activation codes error:', error);
+        res.status(500).json({ success: false, message: '批量创建激活码失败' });
+    }
+});
+
+router.delete('/activation-codes/:id', adminAuth, async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        const deleted = await ActivationCodeModel.delete(parseInt(id));
+        
+        if (!deleted) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '激活码不存在或已被使用，无法删除' 
+            });
+        }
+
+        res.json({
+            success: true,
+            message: '删除成功'
+        });
+    } catch (error) {
+        console.error('Delete activation code error:', error);
+        res.status(500).json({ success: false, message: '删除激活码失败' });
     }
 });
 

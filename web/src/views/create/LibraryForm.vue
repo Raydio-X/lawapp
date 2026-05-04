@@ -116,6 +116,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI, chapterAPI } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 
 interface OutlineItem {
   id: number
@@ -126,6 +127,7 @@ interface OutlineItem {
 
 const router = useRouter()
 const route = useRoute()
+const { canCreateLibrary, isVip, limits } = usePermission()
 
 const libraryId = ref<number | null>(null)
 const isEdit = ref(false)
@@ -415,6 +417,10 @@ const onSubmit = async () => {
       MessagePlugin.warning('知识库名称已存在')
       return
     }
+    
+    const currentLibraryCount = existingLibraryNames.value.length
+    const canCreate = await canCreateLibrary(currentLibraryCount)
+    if (!canCreate) return
   }
 
   loading.value = true

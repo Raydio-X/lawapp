@@ -229,6 +229,7 @@ const handleTestLogin = async () => {
       userStore.setToken(res.data.token)
       userStore.setUserInfo({
         id: res.data.userInfo.id,
+        userId: res.data.userInfo.userId,
         nickName: res.data.userInfo.nickname,
         avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
         bio: res.data.userInfo.bio,

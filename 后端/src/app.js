@@ -14,6 +14,7 @@ const examRoutes = require('./routes/exam');
 const adminRoutes = require('./routes/admin');
 const messageRoutes = require('./routes/messages');
 const feedbackRoutes = require('./routes/feedback');
+const activationRoutes = require('./routes/activation');
 
 const app = express();
 
@@ -92,6 +93,7 @@ app.use('/api/exam', examRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/feedback', feedbackRoutes);
+app.use('/api/activation', activationRoutes);
 
 app.use((err, req, res, next) => {
     console.error('Error:', err);

@@ -25,6 +25,7 @@ async function initDatabase() {
         await connection.query(`
             CREATE TABLE users (
                 id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id VARCHAR(20) UNIQUE,
                 openid VARCHAR(100) UNIQUE,
                 nickname VARCHAR(50) NOT NULL DEFAULT '微信用户',
                 avatar VARCHAR(500) DEFAULT '',
@@ -34,7 +35,8 @@ async function initDatabase() {
                 daily_goal INT DEFAULT 50,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                INDEX idx_openid (openid)
+                INDEX idx_openid (openid),
+                INDEX idx_user_id (user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created users table');

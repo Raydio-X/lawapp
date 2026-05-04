@@ -19,7 +19,12 @@
             shape="circle"
           />
           <div class="user-detail">
-            <span class="user-name">{{ userStore.displayName }}</span>
+            <span class="user-name">
+              {{ userStore.displayName }}
+              <span class="vip-badge" v-if="userStore.isVip">VIP</span>
+              <span class="normal-badge" v-else>普通用户</span>
+            </span>
+            <span class="user-id" v-if="userStore.userIdCode">ID: {{ userStore.userIdCode }}</span>
           </div>
         </div>
         <div class="user-edit" @click="onEditProfile">
@@ -147,6 +152,8 @@
             <span class="menu-title">激活中心</span>
           </div>
           <div class="menu-right">
+            <span class="vip-status-tag" v-if="userStore.isVip">已激活</span>
+            <span class="activate-tag" v-else>去激活</span>
             <t-icon name="chevron-right" size="16px" color="#ccc" />
           </div>
         </div>
@@ -238,9 +245,9 @@
                 class="nickname-input" 
                 placeholder="请输入昵称" 
                 v-model="nicknameInput"
-                maxlength="20"
+                maxlength="10"
               />
-              <span class="nickname-count">{{ nicknameInput.length }}/20</span>
+              <span class="nickname-count">{{ nicknameInput.length }}/10</span>
             </div>
           </div>
         </div>
@@ -456,7 +463,7 @@ const onMenuTap = (menu: string) => {
       showPlanPicker.value = true
       break
     case 'activation':
-      MessagePlugin.info('激活中心功能开发中')
+      router.push('/profile/activation')
       break
     case 'feedback':
       router.push('/profile/feedback')
@@ -609,6 +616,43 @@ const onLogout = () => {
   font-weight: 600;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vip-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, #D4A017 0%, #F5C842 50%, #E6B422 100%);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(139, 90, 0, 0.5);
+  box-shadow: 0 2px 6px rgba(212, 160, 23, 0.35);
+  margin-left: 3px;
+}
+
+.normal-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 6px;
+}
+
+.user-id {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
 }
 
 .user-edit {
@@ -884,6 +928,24 @@ const onLogout = () => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.vip-status-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: #FFD700;
+  background: rgba(255, 215, 0, 0.15);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.activate-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: #7B61FF;
+  background: rgba(123, 97, 255, 0.1);
+  padding: 2px 8px;
+  border-radius: 10px;
 }
 
 .menu-title {

@@ -154,6 +154,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '意见反馈' }
   },
   {
+    path: '/profile/activation',
+    name: 'Activation',
+    component: () => import('@/views/profile/Activation.vue'),
+    meta: { title: '激活中心' }
+  },
+  {
     path: '/create/card',
     name: 'CreateCard',
     component: () => import('@/views/create/CardForm.vue'),
@@ -200,6 +206,12 @@ const routes: RouteRecordRaw[] = [
     name: 'AdminFeedback',
     component: () => import('@/views/admin/Feedback.vue'),
     meta: { title: '用户反馈', requiresAdmin: true }
+  },
+  {
+    path: '/admin/activation-codes',
+    name: 'AdminActivationCodes',
+    component: () => import('@/views/admin/ActivationCode.vue'),
+    meta: { title: '激活码管理', requiresAdmin: true }
   },
   {
     path: '/:pathMatch(.*)*',

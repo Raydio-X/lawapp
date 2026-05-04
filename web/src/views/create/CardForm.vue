@@ -203,7 +203,8 @@
 import { ref, computed, onMounted, watch, nextTick, onBeforeUnmount, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
+import { cardAPI, libraryAPI, chapterAPI, studyAPI } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 import Picker from '@/components/Picker.vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
@@ -225,6 +226,7 @@ interface PickerOption {
 
 const router = useRouter()
 const route = useRoute()
+const { canCreateCard, isVip, limits } = usePermission()
 
 const loading = ref(true)
 const isEdit = ref(false)
@@ -618,6 +620,19 @@ const onSubmitClick = () => {
 
 const onSubmit = async () => {
   if (!canSubmit.value) return
+
+  if (!isEdit.value) {
+    try {
+      const statsRes = await studyAPI.getStats()
+      if (statsRes.success && statsRes.data) {
+        const currentCardCount = statsRes.data.cardCount || 0
+        const canCreate = await canCreateCard(currentCardCount)
+        if (!canCreate) return
+      }
+    } catch (error) {
+      console.error('获取卡片数量失败:', error)
+    }
+  }
 
   try {
     const html = quillInstance.value ? quillInstance.value.root.innerHTML : answer.value
