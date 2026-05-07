@@ -258,15 +258,29 @@ router.put('/cards/:id', adminAuth, async (req, res) => {
 
 router.delete('/cards/:id', adminAuth, async (req, res) => {
     try {
+        const db = require('../config/database');
+
         const card = await CardModel.findById(req.params.id);
         if (!card) {
             return res.status(404).json({ success: false, code: 404, message: '卡片不存在' });
         }
-        if (card.created_by !== req.user.id) {
-            return res.status(403).json({ success: false, code: 403, message: '无权删除此卡片' });
-        }
 
         await CardModel.delete(req.params.id);
+
+        if (card.created_by) {
+            try {
+                await MessageModel.create({
+                    user_id: card.created_by,
+                    title: '卡片违规通知',
+                    content: `您创建的卡片"${card.question.length > 50 ? card.question.substring(0, 50) + '...' : card.question}"因违反社区规范已被管理员删除，请遵守社区规则，文明使用。`,
+                    type: 'violation',
+                    sender_id: req.user.id
+                });
+            } catch (msgErr) {
+                console.error('Send violation notification error:', msgErr);
+            }
+        }
+
         res.json({ success: true, message: '删除成功' });
     } catch (error) {
         console.error('Admin delete card error:', error);

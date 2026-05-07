@@ -148,8 +148,10 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { favoriteAPI, cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
+const { isVip, showVipRequiredDialog } = usePermission()
 
 interface Favorite {
   id: number
@@ -290,6 +292,11 @@ const onRemoveFavorite = (index: number) => {
 }
 
 const onBatchCopy = async (item: Favorite) => {
+  if (!isVip.value) {
+    showVipRequiredDialog('收藏知识库一键转存')
+    return
+  }
+  
   selectedLibrary.value = item
   targetLibraryId.value = null
   targetChapterId.value = null

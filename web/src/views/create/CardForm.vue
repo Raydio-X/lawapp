@@ -334,7 +334,8 @@ const formatBulletList = () => {
 
 const formatIndent = () => {
   if (!quillInstance.value) return
-  const currentIndent = quillInstance.value.getFormat().indent || 0
+  const format = quillInstance.value.getFormat()
+  const currentIndent = (format.indent as number) || 0
   if (currentIndent < 4) {
     quillInstance.value.format('indent', currentIndent + 1)
   }
@@ -342,7 +343,8 @@ const formatIndent = () => {
 
 const formatOutdent = () => {
   if (!quillInstance.value) return
-  const currentIndent = quillInstance.value.getFormat().indent || 0
+  const format = quillInstance.value.getFormat()
+  const currentIndent = (format.indent as number) || 0
   if (currentIndent > 0) {
     quillInstance.value.format('indent', currentIndent - 1)
   }

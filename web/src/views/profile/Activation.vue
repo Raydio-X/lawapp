@@ -38,7 +38,7 @@
         </div>
       </div>
 
-      <div class="activation-section" v-if="!isVip">
+      <div class="activation-section">
         <div class="section-title">输入激活码</div>
         <div class="activation-form">
           <div class="input-wrapper">
@@ -128,8 +128,21 @@
             
             <div class="privilege-row">
               <div class="privilege-col col-feature">
-                <span class="row-title">笔记转卡片功能</span>
-                <span class="row-desc">一键将学习笔记转为卡片</span>
+                <span class="row-title">笔记一键转存</span>
+                <span class="row-desc">一键将学习笔记保存为自己的卡片</span>
+              </div>
+              <div class="privilege-col col-normal">
+                <span class="col-icon close">×</span>
+              </div>
+              <div class="privilege-col col-vip">
+                <span class="col-icon check">✓</span>
+              </div>
+            </div>
+
+            <div class="privilege-row">
+              <div class="privilege-col col-feature">
+                <span class="row-title">收藏知识库一键转存</span>
+                <span class="row-desc">将收藏的知识库卡片保存为自己的卡片</span>
               </div>
               <div class="privilege-col col-normal">
                 <span class="col-icon close">×</span>

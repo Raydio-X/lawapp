@@ -227,6 +227,7 @@ interface Comment {
   time: string
   likeCount: number
   liked: boolean
+  avatarText?: string
 }
 
 const currentIndex = ref(0)

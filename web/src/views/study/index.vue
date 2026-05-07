@@ -5,10 +5,6 @@
         <span class="greeting-text">{{ greeting }}</span>
         <span class="greeting-sub">今天也要加油学习哦~</span>
       </div>
-      <div class="streak-badge" v-if="streak > 0">
-        <t-icon name="fire" size="14px" color="#FF9500" />
-        <span>{{ streak }}天</span>
-      </div>
     </div>
 
     <div class="main-actions">

@@ -169,7 +169,7 @@ export function usePermission() {
 
   const canUseDerivativeLearning = (): boolean => {
     if (isVip.value) return true
-    showVipRequiredDialog('派生学习')
+    showVipRequiredDialog('关联学习')
     return false
   }
 

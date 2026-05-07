@@ -130,11 +130,14 @@ class UserModel {
             expiresAt = null;
         } else {
             const now = new Date();
+            let baseDate;
             if (user.vip_expires_at && new Date(user.vip_expires_at) > now) {
-                expiresAt = new Date(new Date(user.vip_expires_at).getTime() + durationDays * 24 * 60 * 60 * 1000);
+                baseDate = new Date(user.vip_expires_at);
             } else {
-                expiresAt = new Date(now.getTime() + durationDays * 24 * 60 * 60 * 1000);
+                baseDate = now;
             }
+            expiresAt = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
+            expiresAt.setHours(23, 59, 59, 999);
         }
 
         await db.execute(

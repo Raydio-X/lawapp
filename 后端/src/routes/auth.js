@@ -4,6 +4,122 @@ const UserModel = require('../models/User');
 
 const router = express.Router();
 
+router.post('/qq-login', async (req, res) => {
+    try {
+        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId } = req.body;
+
+        const qqAppId = process.env.QQ_APP_ID;
+        const qqAppKey = process.env.QQ_APP_KEY;
+
+        if (!qqAppId || !qqAppKey) {
+            return res.status(500).json({
+                success: false,
+                code: 500,
+                message: 'QQ登录未配置'
+            });
+        }
+
+        let accessToken = clientAccessToken;
+        let openid = clientOpenId;
+
+        if (!accessToken || !openid) {
+            if (!code) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '缺少授权信息'
+                });
+            }
+
+            const tokenResponse = await fetch(
+                `https://graph.qq.com/oauth2.0/token?grant_type=authorization_code&client_id=${qqAppId}&client_secret=${qqAppKey}&code=${code}&redirect_uri=${encodeURIComponent(redirectUri)}`
+            );
+            const tokenText = await tokenResponse.text();
+            
+            const tokenParams = new URLSearchParams(tokenText);
+            accessToken = tokenParams.get('access_token');
+
+            if (!accessToken) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '获取access_token失败'
+                });
+            }
+
+            const openidResponse = await fetch(
+                `https://graph.qq.com/oauth2.0/me?access_token=${accessToken}`
+            );
+            const openidText = await openidResponse.text();
+            
+            const openidMatch = openidText.match(/"openid":"([^"]+)"/);
+            if (openidMatch) {
+                openid = openidMatch[1];
+            }
+
+            if (!openid) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '获取openid失败'
+                });
+            }
+        }
+
+        const userInfoResponse = await fetch(
+            `https://graph.qq.com/user/get_user_info?access_token=${accessToken}&oauth_consumer_key=${qqAppId}&openid=${openid}`
+        );
+        const userInfo = await userInfoResponse.json();
+
+        const qqOpenid = 'qq_' + openid;
+        let user = await UserModel.findByOpenid(qqOpenid);
+        
+        if (!user) {
+            user = await UserModel.create({
+                openid: qqOpenid,
+                nickname: userInfo.nickname || 'QQ用户',
+                avatar: userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || userInfo.figureurl_2 || '',
+                gender: userInfo.gender === '男' ? 1 : (userInfo.gender === '女' ? 2 : 0)
+            });
+        } else {
+            if (userInfo.nickname && user.nickname === 'QQ用户') {
+                await UserModel.update(user.id, {
+                    nickname: userInfo.nickname,
+                    avatar: userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || user.avatar
+                });
+                user = await UserModel.findById(user.id);
+            }
+        }
+
+        const token = jwt.sign(
+            { id: user.id, openid: user.openid },
+            process.env.JWT_SECRET || 'your_jwt_secret_key',
+            { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+        );
+
+        res.json({
+            success: true,
+            data: {
+                token,
+                userInfo: {
+                    id: user.id,
+                    userId: user.user_id,
+                    nickname: user.nickname,
+                    avatar: user.avatar,
+                    bio: user.bio
+                }
+            }
+        });
+    } catch (error) {
+        console.error('QQ login error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: 'QQ登录失败'
+        });
+    }
+});
+
 router.post('/login', async (req, res) => {
     try {
         const { code, userInfo } = req.body;

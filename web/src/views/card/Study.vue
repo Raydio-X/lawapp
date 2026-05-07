@@ -71,7 +71,7 @@
       <div class="related-section" :class="{ show: answerRevealed }" v-if="answerRevealed && !singleCard">
         <div class="related-header">
           <div class="related-title-wrap">
-            <span class="related-title">派生学习</span>
+            <span class="related-title">关联学习</span>
             <span class="related-vip-tag">VIP</span>
           </div>
           <div class="related-actions">
@@ -117,7 +117,7 @@
           <div class="vip-lock-content">
             <t-icon name="lock" size="32px" color="#D4AF37" />
             <span class="vip-lock-title">VIP专属功能</span>
-            <span class="vip-lock-desc">激活VIP后可使用派生学习功能</span>
+            <span class="vip-lock-desc">激活VIP后可使用关联学习功能</span>
             <div class="vip-lock-btn" @click="router.push('/profile/activation')">立即激活</div>
           </div>
         </div>
@@ -271,6 +271,7 @@ interface Comment {
   content: string
   likeCount: number
   liked: boolean
+  avatarText?: string
 }
 
 const loading = ref(true)

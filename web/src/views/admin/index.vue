@@ -294,7 +294,7 @@
                 </div>
               </div>
             </div>
-            <div class="item-actions" v-if="!isBatchSelectMode && card.created_by === currentUserId">
+            <div class="item-actions" v-if="!isBatchSelectMode">
               <div class="action-btn edit" @click="onEditCard(card)">
                 <t-icon name="edit" size="16px" color="#3B82F6" />
               </div>
@@ -352,7 +352,7 @@
                 >{{ tag }}</t-tag>
               </div>
             </div>
-            <div class="item-actions" v-if="card.created_by === currentUserId">
+            <div class="item-actions">
               <div class="action-btn edit" @click="onEditHotCard(card)">
                 <t-icon name="edit" size="16px" color="#3B82F6" />
               </div>

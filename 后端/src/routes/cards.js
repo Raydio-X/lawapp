@@ -264,6 +264,24 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                 continue;
             }
 
+            const questionCheck = await sensitiveWordFilter.contains(question);
+            if (questionCheck.hasSensitive) {
+                errors.push({
+                    row: i + 2,
+                    message: `第${i + 2}行：您的文本包含敏感词，请修改后重新发布！`
+                });
+                continue;
+            }
+
+            const answerCheck = await sensitiveWordFilter.contains(answer);
+            if (answerCheck.hasSensitive) {
+                errors.push({
+                    row: i + 2,
+                    message: `第${i + 2}行：您的文本包含敏感词，请修改后重新发布！`
+                });
+                continue;
+            }
+
             let keywordsArray = [];
             if (keywords) {
                 keywordsArray = keywords.split(',').map(k => k.trim()).filter(k => k.length > 0);
@@ -526,6 +544,24 @@ router.post('/', auth, async (req, res) => {
             });
         }
 
+        const questionCheck = await sensitiveWordFilter.contains(question);
+        if (questionCheck.hasSensitive) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '您的文本包含敏感词，请修改后重新发布！'
+            });
+        }
+
+        const answerCheck = await sensitiveWordFilter.contains(answer);
+        if (answerCheck.hasSensitive) {
+            return res.status(400).json({
+                success: false,
+                code: 400,
+                message: '您的文本包含敏感词，请修改后重新发布！'
+            });
+        }
+
         const card = await CardModel.create({
             library_id,
             chapter_id,
@@ -571,6 +607,29 @@ router.put('/:id', auth, async (req, res) => {
         }
 
         const { question, answer, tags, chapter_id, is_public } = req.body;
+
+        if (question) {
+            const questionCheck = await sensitiveWordFilter.contains(question);
+            if (questionCheck.hasSensitive) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '您的文本包含敏感词，请修改后重新发布！'
+                });
+            }
+        }
+
+        if (answer) {
+            const answerCheck = await sensitiveWordFilter.contains(answer);
+            if (answerCheck.hasSensitive) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: '您的文本包含敏感词，请修改后重新发布！'
+                });
+            }
+        }
+
         const updated = await CardModel.update(req.params.id, {
             question,
             answer,
@@ -1251,13 +1310,11 @@ router.get('/review/count', auth, async (req, res) => {
 router.get('/:id/related', optionalAuth, async (req, res) => {
     try {
         const { limit } = req.query;
-        console.log('Get related cards for card:', req.params.id, 'user:', req.user?.id);
         const cards = await CardModel.getRelatedCards(
             parseInt(req.params.id),
             req.user?.id,
             parseInt(limit) || 5
         );
-        console.log('Related cards found:', cards.length);
 
         res.json({
             success: true,

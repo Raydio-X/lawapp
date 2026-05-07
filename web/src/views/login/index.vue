@@ -14,6 +14,11 @@
       <div class="circle circle-2"></div>
     </div>
 
+    <div class="test-mode-toggle" @click="toggleLoginMode">
+      <t-icon :name="isTestMode ? 'user' : 'setting'" size="14px" color="#64748B" />
+      <span>{{ isTestMode ? 'QQ登录' : '测试账号' }}</span>
+    </div>
+
     <div class="logo-section">
       <div class="logo-wrapper">
         <t-avatar 
@@ -32,10 +37,35 @@
         <span class="login-title">欢迎使用</span>
         <span class="login-desc">登录后即可使用完整功能</span>
         
-        <button class="wechat-login-btn primary" @click="onTestLogin">
-          <t-icon name="user" size="24px" color="#fff" />
-          <span class="btn-text">测试账号登录</span>
-        </button>
+        <template v-if="!isTestMode">
+          <button class="qq-login-btn" @click="onQQLogin">
+            <t-icon name="logo-qq" size="24px" color="#fff" />
+            <span class="btn-text">QQ一键登录</span>
+          </button>
+        </template>
+        
+        <template v-else>
+          <div class="test-login-form">
+            <div class="form-item">
+              <input 
+                class="form-input" 
+                type="text" 
+                placeholder="请输入测试账号"
+                v-model="testAccount"
+              />
+            </div>
+            <div class="form-item">
+              <input 
+                class="form-input" 
+                type="password" 
+                placeholder="请输入测试密码"
+                v-model="testPassword"
+                @keyup.enter="handleTestLogin"
+              />
+            </div>
+            <button class="test-login-btn" @click="handleTestLogin">登录</button>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -90,45 +120,21 @@
       :cancel-btn="null"
       @confirm="showAgreementDialog = false"
     />
-
-    <t-dialog
-      v-model:visible="showTestLoginDialog"
-      header="测试登录"
-      :confirm-btn="null"
-      :cancel-btn="null"
-    >
-      <div class="test-login-form">
-        <div class="form-item">
-          <label class="form-label">账号</label>
-          <input 
-            class="form-input" 
-            type="text" 
-            placeholder="请输入测试账号"
-            v-model="testAccount"
-          />
-        </div>
-        <div class="form-item">
-          <label class="form-label">密码</label>
-          <input 
-            class="form-input" 
-            type="password" 
-            placeholder="请输入测试密码"
-            v-model="testPassword"
-            @keyup.enter="handleTestLogin"
-          />
-        </div>
-        <button class="test-login-btn" @click="handleTestLogin">进入测试</button>
-      </div>
-    </t-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { authAPI } from '@/utils/api'
 import { useUserStore } from '@/stores/user'
+
+declare global {
+  interface Window {
+    QC: any
+  }
+}
 
 const router = useRouter()
 const route = useRoute()
@@ -138,10 +144,14 @@ const hasAgreed = ref(false)
 const showAgreementDialog = ref(false)
 const agreementTitle = ref('')
 const agreementContent = ref('')
+const isTestMode = ref(false)
+const qqLoginLoading = ref(false)
 
-const showTestLoginDialog = ref(false)
 const testAccount = ref('')
 const testPassword = ref('')
+
+const QQ_APP_ID = import.meta.env.VITE_QQ_APP_ID || ''
+const QQ_REDIRECT_URI = window.location.origin + '/login'
 
 const USER_AGREEMENT = `用户协议
 
@@ -205,15 +215,88 @@ const showPrivacyPolicy = () => {
   showAgreementDialog.value = true
 }
 
-const onTestLogin = () => {
+const toggleLoginMode = () => {
+  isTestMode.value = !isTestMode.value
+}
+
+const initQQSDK = () => {
+  if (!QQ_APP_ID) return
+  
+  const script = document.getElementById('qq-jssdk') as HTMLScriptElement
+  if (script) {
+    script.setAttribute('data-appid', QQ_APP_ID)
+    script.setAttribute('data-redirecturi', QQ_REDIRECT_URI)
+  }
+}
+
+const onQQLogin = () => {
   if (!hasAgreed.value) {
     MessagePlugin.warning('请先同意用户协议和隐私政策')
     return
   }
-  showTestLoginDialog.value = true
+
+  if (!QQ_APP_ID) {
+    MessagePlugin.error('QQ登录未配置，请联系管理员')
+    return
+  }
+
+  if (!window.QC) {
+    MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
+    return
+  }
+
+  qqLoginLoading.value = true
+
+  window.QC.Login.showPopup({
+    appId: QQ_APP_ID,
+    redirectURI: QQ_REDIRECT_URI
+  })
+}
+
+const checkQQLoginStatus = () => {
+  if (!window.QC || !QQ_APP_ID) return
+
+  if (window.QC.Login.check()) {
+    window.QC.Login.getMe(async (openId: string, accessToken: string) => {
+      try {
+        const res = await authAPI.qqLogin(accessToken, openId)
+        
+        if (res.success && res.data) {
+          userStore.setToken(res.data.token)
+          userStore.setUserInfo({
+            id: res.data.userInfo.id,
+            userId: res.data.userInfo.userId,
+            nickName: res.data.userInfo.nickname,
+            avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
+            bio: res.data.userInfo.bio,
+            role: res.data.userInfo.role
+          })
+          MessagePlugin.success('登录成功')
+          
+          const redirect = route.query.redirect as string
+          if (redirect) {
+            router.push(redirect)
+          } else {
+            router.push('/home')
+          }
+        }
+      } catch (error: any) {
+        MessagePlugin.error(error.message || 'QQ登录失败')
+      } finally {
+        qqLoginLoading.value = false
+      }
+    })
+  } else {
+    qqLoginLoading.value = false
+  }
 }
 
 const handleTestLogin = async () => {
+  if (!hasAgreed.value) {
+    MessagePlugin.warning('请先同意用户协议和隐私政策')
+    return
+  }
+  
   if (!testAccount.value.trim()) {
     MessagePlugin.warning('请输入账号')
     return
@@ -250,6 +333,14 @@ const handleTestLogin = async () => {
     MessagePlugin.error(error.message || '登录失败')
   }
 }
+
+onMounted(() => {
+  initQQSDK()
+  
+  setTimeout(() => {
+    checkQQLoginStatus()
+  }, 500)
+})
 </script>
 
 <style lang="scss" scoped>
@@ -411,6 +502,32 @@ const handleTestLogin = async () => {
   50% { transform: scale(1.1); opacity: 0.7; }
 }
 
+.test-mode-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  span {
+    font-size: 12px;
+    color: #64748B;
+  }
+}
+
 .logo-section {
   display: flex;
   flex-direction: column;
@@ -472,24 +589,19 @@ const handleTestLogin = async () => {
   margin-bottom: 24px;
 }
 
-.wechat-login-btn {
+.qq-login-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 48px;
-  background: #07c160;
+  background: linear-gradient(135deg, #12B7F5 0%, #0099FF 100%);
   border-radius: 24px;
   border: none;
-  margin-bottom: 12px;
   padding: 0;
   transition: all 0.3s ease;
   cursor: pointer;
-  
-  &.primary {
-    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-  }
+  box-shadow: 0 4px 12px rgba(18, 183, 245, 0.3);
   
   &:active {
     transform: scale(0.98);
@@ -501,6 +613,52 @@ const handleTestLogin = async () => {
     color: #fff;
     font-weight: 500;
     margin-left: 8px;
+  }
+}
+
+.test-login-form {
+  .form-item {
+    margin-bottom: 12px;
+  }
+  
+  .form-input {
+    width: 100%;
+    height: 44px;
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-size: 15px;
+    color: #1E293B;
+    box-sizing: border-box;
+    border: 1px solid #E2E8F0;
+    
+    &::placeholder {
+      color: #94A3B8;
+    }
+    
+    &:focus {
+      border-color: #3B82F6;
+      background: #fff;
+      outline: none;
+    }
+  }
+  
+  .test-login-btn {
+    width: 100%;
+    height: 44px;
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    border-radius: 22px;
+    border: none;
+    margin-top: 8px;
+    font-size: 16px;
+    color: #fff;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    
+    &:active {
+      opacity: 0.9;
+    }
   }
 }
 
@@ -544,58 +702,5 @@ const handleTestLogin = async () => {
 .version {
   font-size: 12px;
   color: #94A3B8;
-}
-
-.test-login-form {
-  padding: 10px 0;
-}
-
-.form-item {
-  margin-bottom: 16px;
-}
-
-.form-label {
-  display: block;
-  font-size: 14px;
-  color: #64748B;
-  margin-bottom: 6px;
-}
-
-.form-input {
-  width: 100%;
-  height: 44px;
-  background: #F8FAFC;
-  border-radius: 6px;
-  padding: 0 12px;
-  font-size: 15px;
-  color: #1E293B;
-  box-sizing: border-box;
-  border: 1px solid #E2E8F0;
-  
-  &::placeholder {
-    color: #94A3B8;
-  }
-  
-  &:focus {
-    border-color: #3B82F6;
-    background: #fff;
-  }
-}
-
-.test-login-btn {
-  width: 100%;
-  height: 44px;
-  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
-  border-radius: 22px;
-  border: none;
-  margin-top: 8px;
-  font-size: 16px;
-  color: #fff;
-  font-weight: 500;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.9;
-  }
 }
 </style>

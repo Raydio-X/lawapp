@@ -336,7 +336,6 @@ class CardModel {
         );
 
         if (!cardRows || cardRows.length === 0) {
-            console.log('getRelatedCards: Card not found', cardId);
             return [];
         }
 
@@ -346,37 +345,31 @@ class CardModel {
             ? JSON.parse(currentCard.tags)
             : (currentCard.tags || []);
 
-        console.log('getRelatedCards: Searching for card', cardId, 'searchText:', searchText.substring(0, 50), 'tags:', currentTags);
-
         let bm25Results = [];
         let embeddingResults = [];
         let tagResults = [];
 
         try {
             bm25Results = await bm25Engine.search(searchText, [cardId], null, limit * 3);
-            console.log('getRelatedCards: BM25 results:', bm25Results.length);
         } catch (error) {
-            console.log('BM25 search error:', error.message);
+            // BM25 search error
         }
 
         try {
             embeddingResults = await sentenceEmbedding.search(searchText, currentTags, [cardId], null, limit * 3);
-            console.log('getRelatedCards: Embedding results:', embeddingResults.length);
         } catch (error) {
-            console.log('Sentence embedding search error:', error.message);
+            // Sentence embedding search error
         }
 
         if (currentTags && currentTags.length > 0) {
             try {
                 tagResults = await this._searchByTags(currentTags, [cardId], null, limit * 2);
-                console.log('getRelatedCards: Tag results:', tagResults.length);
             } catch (error) {
-                console.log('Tag search error:', error.message);
+                // Tag search error
             }
         }
 
         const fusedResults = resultFusion.fuse(bm25Results, embeddingResults, tagResults);
-        console.log('getRelatedCards: Fused results:', fusedResults.length);
         const topIds = fusedResults.slice(0, limit).map(r => r.id);
         const scoreMap = new Map(fusedResults.map(r => [r.id, r]));
 
