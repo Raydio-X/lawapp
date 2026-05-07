@@ -220,13 +220,29 @@ const toggleLoginMode = () => {
 }
 
 const initQQSDK = () => {
-  if (!QQ_APP_ID) return
-  
-  const script = document.getElementById('qq-jssdk') as HTMLScriptElement
-  if (script) {
-    script.setAttribute('data-appid', QQ_APP_ID)
-    script.setAttribute('data-redirecturi', QQ_REDIRECT_URI)
+  if (!QQ_APP_ID) {
+    console.log('QQ_APP_ID not configured')
+    return
   }
+  
+  if (window.QC) {
+    console.log('QQ SDK already loaded')
+    return
+  }
+  
+  const script = document.createElement('script')
+  script.src = 'https://connect.qq.com/qc_jssdk.js'
+  script.setAttribute('data-appid', QQ_APP_ID)
+  script.setAttribute('data-redirecturi', QQ_REDIRECT_URI)
+  script.setAttribute('id', 'qq-jssdk')
+  script.async = true
+  script.onload = () => {
+    console.log('QQ SDK loaded successfully')
+  }
+  script.onerror = () => {
+    console.error('QQ SDK load failed')
+  }
+  document.head.appendChild(script)
 }
 
 const onQQLogin = () => {
