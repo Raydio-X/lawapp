@@ -347,9 +347,7 @@ async function initDatabase() {
             { word: '弱智', category: 'insult' },
             { word: '傻X', category: 'profanity' },
             { word: 'SB', category: 'profanity' },
-            { word: 'sb', category: 'profanity' },
-            { word: 'NC', category: 'insult' },
-            { word: 'nc', category: 'insult' }
+            { word: 'NC', category: 'insult' }
         ];
 
         for (const bw of blockedWords) {
