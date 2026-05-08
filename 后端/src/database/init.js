@@ -344,9 +344,12 @@ async function initDatabase() {
             { word: '智障', category: 'insult' },
             { word: '脑残', category: 'insult' },
             { word: '白痴', category: 'insult' },
+            { word: '有病', category: 'insult' },
             { word: '弱智', category: 'insult' },
             { word: '傻X', category: 'profanity' },
+            { word: 'tmd', category: 'profanity' },
             { word: 'SB', category: 'profanity' },
+            { word: 'fw', category: 'insult' },
             { word: 'NC', category: 'insult' }
         ];
 

@@ -24,8 +24,8 @@
         <t-avatar 
           class="app-logo"
           image="/assets/images/logo.png" 
-          size="80px"
-          shape="circle"
+          size="85px"
+          shape="round"
         />
       </div>
       <span class="app-name">法硕背诵助手</span>
@@ -559,6 +559,7 @@ onMounted(() => {
 
 .app-logo {
   box-shadow: 0 4px 16px rgba(59, 130, 246, 0.2);
+  border-radius: 14px;
 }
 
 .app-name {
