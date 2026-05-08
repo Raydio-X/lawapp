@@ -317,6 +317,18 @@ router.put('/profile', require('../middlewares/auth').auth, async (req, res) => 
     try {
         const { nickname, avatar, bio, phone, gender } = req.body;
         
+        if (nickname) {
+            const checkResult = await UserModel.canUpdateNickname(req.user.id);
+            if (!checkResult.canUpdate) {
+                return res.status(400).json({
+                    success: false,
+                    code: 400,
+                    message: `昵称修改需要间隔30天，还需等待${checkResult.remainingDays}天`,
+                    data: { remainingDays: checkResult.remainingDays }
+                });
+            }
+        }
+        
         const user = await UserModel.update(req.user.id, {
             nickname,
             avatar,
@@ -342,6 +354,23 @@ router.put('/profile', require('../middlewares/auth').auth, async (req, res) => 
             success: false,
             code: 500,
             message: '更新失败'
+        });
+    }
+});
+
+router.get('/profile/nickname-check', require('../middlewares/auth').auth, async (req, res) => {
+    try {
+        const result = await UserModel.canUpdateNickname(req.user.id);
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Check nickname error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '检查失败'
         });
     }
 });

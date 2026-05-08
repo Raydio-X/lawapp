@@ -33,10 +33,14 @@ async function initDatabase() {
                 phone VARCHAR(20) DEFAULT '',
                 gender TINYINT DEFAULT 0,
                 daily_goal INT DEFAULT 50,
+                is_vip TINYINT DEFAULT 0,
+                vip_expires_at TIMESTAMP NULL,
+                nickname_updated_at TIMESTAMP NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_openid (openid),
-                INDEX idx_user_id (user_id)
+                INDEX idx_user_id (user_id),
+                INDEX idx_is_vip (is_vip)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created users table');
@@ -321,6 +325,59 @@ async function initDatabase() {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created comment_likes table');
+
+        await connection.query(`
+            CREATE TABLE activation_codes (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                code VARCHAR(10) UNIQUE NOT NULL,
+                duration_days INT NOT NULL,
+                is_used TINYINT DEFAULT 0,
+                used_by INT NULL,
+                used_at TIMESTAMP NULL,
+                created_by INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_code (code),
+                INDEX idx_is_used (is_used),
+                FOREIGN KEY (used_by) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created activation_codes table');
+
+        await connection.query(`
+            CREATE TABLE feedback (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                content TEXT NOT NULL,
+                contact VARCHAR(100) DEFAULT '',
+                status TINYINT DEFAULT 0,
+                reply TEXT,
+                replied_at TIMESTAMP NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                INDEX idx_status (status),
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created feedback table');
+
+        await connection.query(`
+            CREATE TABLE card_links (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                card_id INT NOT NULL,
+                linked_card_id INT NOT NULL,
+                user_id INT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_link (card_id, linked_card_id, user_id),
+                INDEX idx_card_id (card_id),
+                INDEX idx_linked_card_id (linked_card_id),
+                INDEX idx_user_id (user_id),
+                FOREIGN KEY (card_id) REFERENCES cards(id) ON DELETE CASCADE,
+                FOREIGN KEY (linked_card_id) REFERENCES cards(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created card_links table');
 
         await connection.query(
             `INSERT INTO users (openid, nickname, avatar, bio) VALUES (?, ?, ?, ?)`,

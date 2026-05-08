@@ -249,6 +249,14 @@
               />
               <span class="nickname-count">{{ nicknameInput.length }}/10</span>
             </div>
+            <div class="nickname-tip warning" v-if="!nicknameCheckResult.canUpdate">
+              <t-icon name="info-circle" size="14px" color="#ff9800" />
+              <span>昵称修改需间隔30天，还需等待{{ nicknameCheckResult.remainingDays }}天</span>
+            </div>
+            <div class="nickname-tip" v-else>
+              <t-icon name="info-circle" size="14px" color="#94A3B8" />
+              <span>每30天仅允许修改一次昵称</span>
+            </div>
           </div>
         </div>
         
@@ -314,6 +322,7 @@ const showNicknamePopup = ref(false)
 const editStep = ref<'menu' | 'avatar' | 'nickname'>('menu')
 const nicknameInput = ref('')
 const selectedAvatar = ref('')
+const nicknameCheckResult = ref<{ canUpdate: boolean; remainingDays: number }>({ canUpdate: true, remainingDays: 0 })
 
 const avatarList = [
   { id: 1, name: '头像1', url: '/assets/images/avatars/avatar-1.png' },
@@ -385,11 +394,20 @@ const loadData = async () => {
   }
 }
 
-const onEditProfile = () => {
+const onEditProfile = async () => {
   nicknameInput.value = userStore.displayName
   selectedAvatar.value = userStore.avatarUrl
   editStep.value = 'menu'
   showNicknamePopup.value = true
+  
+  try {
+    const res = await authAPI.checkNicknameUpdate()
+    if (res.success && res.data) {
+      nicknameCheckResult.value = res.data
+    }
+  } catch (error) {
+    console.error('检查昵称修改状态失败:', error)
+  }
 }
 
 const onConfirmProfile = async () => {
@@ -403,6 +421,10 @@ const onConfirmProfile = async () => {
     }
   } else if (editStep.value === 'nickname') {
     if (nicknameInput.value !== userStore.displayName) {
+      if (!nicknameCheckResult.value.canUpdate) {
+        MessagePlugin.warning(`昵称修改需要间隔30天，还需等待${nicknameCheckResult.value.remainingDays}天`)
+        return
+      }
       updateData.nickname = nicknameInput.value
       hasChange = true
     }
@@ -418,6 +440,7 @@ const onConfirmProfile = async () => {
     if (res.success) {
       if (updateData.nickname) {
         userStore.updateDisplayName(updateData.nickname)
+        nicknameCheckResult.value = { canUpdate: false, remainingDays: 30 }
       }
       if (updateData.avatar) {
         userStore.updateAvatar(updateData.avatar)
@@ -1192,6 +1215,22 @@ const onLogout = () => {
   font-size: 12px;
   color: #94A3B8;
   margin-left: 8px;
+}
+
+.nickname-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.nickname-tip.warning {
+  padding: 8px 12px;
+  background: #FFF8E1;
+  border-radius: 6px;
+  color: #F57C00;
 }
 
 .nickname-popup-footer {

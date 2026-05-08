@@ -133,6 +133,7 @@ export const authAPI = {
   testLogin: (account: string, password: string) => api.post('/auth/test-login', { account, password }),
   getCurrentUser: () => api.get('/auth/me'),
   updateProfile: (data: any) => api.put('/auth/profile', data),
+  checkNicknameUpdate: () => api.get('/auth/profile/nickname-check'),
   refreshToken: () => api.post('/auth/refresh')
 }
 

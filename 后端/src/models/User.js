@@ -50,6 +50,7 @@ class UserModel {
         if (data.nickname !== undefined) {
             fields.push('nickname = ?');
             values.push(data.nickname);
+            fields.push('nickname_updated_at = NOW()');
         }
         if (data.avatar !== undefined) {
             fields.push('avatar = ?');
@@ -80,6 +81,27 @@ class UserModel {
             values
         );
         return this.findById(id);
+    }
+
+    static async canUpdateNickname(userId) {
+        const user = await this.findById(userId);
+        if (!user) {
+            return { canUpdate: false, remainingDays: 0 };
+        }
+
+        if (!user.nickname_updated_at) {
+            return { canUpdate: true, remainingDays: 0 };
+        }
+
+        const lastUpdateTime = new Date(user.nickname_updated_at);
+        const now = new Date();
+        const daysPassed = Math.floor((now.getTime() - lastUpdateTime.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysPassed >= 30) {
+            return { canUpdate: true, remainingDays: 0 };
+        }
+
+        return { canUpdate: false, remainingDays: 30 - daysPassed };
     }
 
     static async updateDailyGoal(userId, dailyGoal) {
