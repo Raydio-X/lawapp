@@ -1,6 +1,6 @@
 <template>
   <div class="container">
-    <div class="user-section">
+    <div class="user-section" :class="{ 'vip-theme': userStore.isVip }">
       <div class="glow glow-1"></div>
       <div class="glow glow-2"></div>
       <div class="glow glow-3"></div>
@@ -9,6 +9,8 @@
       <div class="star star-2">✧</div>
       <div class="star star-3">✦</div>
       <div class="star star-4">✧</div>
+      
+      <div class="vip-bg-text" v-if="userStore.isVip">VIP</div>
       
       <div class="user-card">
         <div class="user-info">
@@ -557,6 +559,10 @@ const onLogout = () => {
   border-radius: 0 0 20px 20px;
   margin-bottom: 12px;
   overflow: hidden;
+  
+  &.vip-theme {
+    background: linear-gradient(180deg, #f8c648 30%, #FFFFFF 100%);
+  }
 }
 
 .glow {
@@ -573,6 +579,10 @@ const onLogout = () => {
   background: rgba(255, 255, 255, 0.6);
   top: -30px;
   right: 30px;
+  
+  .vip-theme & {
+    background: rgba(255, 215, 0, 0.5);
+  }
 }
 
 .glow-2 {
@@ -581,6 +591,10 @@ const onLogout = () => {
   background: rgba(59, 130, 246, 0.3);
   bottom: 20px;
   left: -15px;
+  
+  .vip-theme & {
+    background: rgba(184, 134, 11, 0.4);
+  }
 }
 
 .glow-3 {
@@ -589,6 +603,10 @@ const onLogout = () => {
   background: rgba(96, 165, 250, 0.4);
   top: 40px;
   left: 50px;
+  
+  .vip-theme & {
+    background: rgba(218, 165, 32, 0.5);
+  }
 }
 
 .star {
@@ -597,6 +615,11 @@ const onLogout = () => {
   font-size: 12px;
   pointer-events: none;
   animation: twinkle 2s ease-in-out infinite;
+  
+  .vip-theme & {
+    color: rgba(255, 255, 255, 0.9);
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
+  }
 }
 
 .star-1 { top: 15px; right: 40px; animation-delay: 0s; }
@@ -607,6 +630,21 @@ const onLogout = () => {
 @keyframes twinkle {
   0%, 100% { opacity: 0.3; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
+}
+
+.vip-bg-text {
+  position: absolute;
+  top: 48%;
+  right: 5px;
+  transform: translateY(-50%);
+  font-size: 80px;
+  font-weight: 900;
+  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: -5px;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .user-card {
@@ -649,14 +687,15 @@ const onLogout = () => {
   align-items: center;
   justify-content: center;
   padding: 2px 8px;
-  background: linear-gradient(135deg, #D4A017 0%, #F5C842 50%, #E6B422 100%);
+  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
   border-radius: 10px;
   font-size: 11px;
   font-weight: 700;
-  color: #fff;
-  text-shadow: 0 1px 2px rgba(139, 90, 0, 0.5);
-  box-shadow: 0 2px 6px rgba(212, 160, 23, 0.35);
+  color: #fff4d5;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   margin-left: 3px;
+  border: 1px solid rgba(245, 200, 66, 0.3);
 }
 
 .normal-badge {

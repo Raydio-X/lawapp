@@ -23,12 +23,13 @@
 
     <template v-else>
       <div class="library-overview-card">
-        <div class="favorite-btn" :class="{ favorited: isFavorited }" @click="onToggleFavorite">
+        <div class="favorite-container" :class="{ favorited: isFavorited }" @click="onToggleFavorite">
           <t-icon 
             :name="isFavorited ? 'star-filled' : 'star'" 
             size="24px" 
             :color="isFavorited ? '#F59E0B' : '#94A3B8'" 
           />
+          <span class="favorite-text">{{ isFavorited ? '已收藏' : '收藏' }}</span>
         </div>
         <div class="library-header">
           <div class="library-icon-large">
@@ -37,7 +38,10 @@
           <div class="library-info">
             <span class="library-name">{{ libraryName }}</span>
             <div class="library-meta">
-              <t-tag theme="primary" variant="light" size="small">{{ librarySubject }}</t-tag>
+              <span class="creator-info">
+                <t-icon name="user" size="14px" color="#64748B" />
+                <span>{{ creatorName }}</span>
+              </span>
               <span class="card-total">共 {{ totalCards }} 张卡片</span>
             </div>
           </div>
@@ -313,6 +317,7 @@ interface FlatChapter {
 const libraryId = ref(0)
 const libraryName = ref('')
 const librarySubject = ref('未分类')
+const creatorName = ref('未知')
 const isFavorited = ref(false)
 const favoriteCount = ref(0)
 const loading = ref(true)
@@ -372,6 +377,7 @@ const loadLibraryData = async () => {
       const lib = libRes.data
       libraryName.value = lib.name || libraryName.value
       librarySubject.value = lib.subject || '未分类'
+      creatorName.value = lib.creator_name || '未知'
       isFavorited.value = Boolean(lib.is_favorited)
       favoriteCount.value = lib.favorite_count || 0
       
@@ -824,21 +830,39 @@ const onToggleFavorite = async () => {
   position: relative;
 }
 
-.favorite-btn {
+.favorite-container {
   position: absolute;
-  top: 16px;
+  top: 12px;
   right: 16px;
-  width: 40px;
-  height: 40px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   cursor: pointer;
   transition: all 0.25s ease;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
   
   &:active {
-    transform: scale(0.92);
+    transform: scale(0.95);
   }
+  
+  &.favorited {
+    background: rgba(245, 158, 11, 0.1);
+  }
+}
+
+.favorite-text {
+  font-size: 12px;
+  color: #64748B;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.favorite-container.favorited .favorite-text {
+  color: #F59E0B;
 }
 
 .library-header {
@@ -874,7 +898,15 @@ const onToggleFavorite = async () => {
 .library-meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
+}
+
+.creator-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #64748B;
 }
 
 .card-total {
