@@ -412,7 +412,7 @@ const setupMobileTableMenu = () => {
       const tableCell = target.closest('td, th')
       
       if (tableCell && quillInstance.value) {
-        const tableModule = quillInstance.value.getModule('better-table')
+        const tableModule = quillInstance.value.getModule('better-table') as any
         if (tableModule) {
           const fakeEvent = {
             clientX: touchStartX,
@@ -663,8 +663,8 @@ const insertTable = () => {
   const rows = tableRows.value
   const cols = tableCols.value
   
-  const tableModule = quillInstance.value.getModule('better-table')
-  if (tableModule) {
+  const tableModule = quillInstance.value.getModule('better-table') as any
+  if (tableModule && tableModule.insertTable) {
     tableModule.insertTable(rows, cols)
   } else {
     let tableHtml = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0;">'

@@ -10,7 +10,6 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
-    "@types/quill": "^2.0.14",
     "axios": "^1.6.8",
     "dayjs": "^1.11.10",
     "pinia": "^2.1.7",
