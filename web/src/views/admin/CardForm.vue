@@ -121,7 +121,7 @@
                 </div>
                 <div class="toolbar-divider"></div>
                 <div class="toolbar-group">
-                  <button class="toolbar-btn" title="插入表格" @click="showTableDialog = true">
+                  <button class="toolbar-btn" ref="tableBtnRef" title="插入表格" @click="onShowTableSelector">
                     <t-icon name="table" size="16px" />
                   </button>
                 </div>
@@ -148,28 +148,24 @@
         </div>
       </div>
 
-      <div class="table-dialog" v-if="showTableDialog">
-        <div class="table-dialog-mask" @click="showTableDialog = false"></div>
-        <div class="table-dialog-content">
-          <div class="table-dialog-header">
-            <span class="table-dialog-title">插入表格</span>
-            <t-icon name="close" size="20px" class="close-btn" @click="showTableDialog = false" />
-          </div>
-          <div class="table-dialog-body">
-            <div class="table-input-row">
-              <span class="table-label">行数</span>
-              <input type="number" v-model="tableRows" min="1" max="10" class="table-input" />
-            </div>
-            <div class="table-input-row">
-              <span class="table-label">列数</span>
-              <input type="number" v-model="tableCols" min="1" max="6" class="table-input" />
-            </div>
-          </div>
-          <div class="table-dialog-footer">
-            <button class="table-btn cancel" @click="showTableDialog = false">取消</button>
-            <button class="table-btn confirm" @click="insertTable">确定</button>
+      <div class="table-selector-popup" v-if="showTableDialog" :style="tableSelectorStyle">
+        <div class="table-grid-selector">
+          <div 
+            v-for="(row, rowIndex) in 5" 
+            :key="'row-' + rowIndex"
+            class="table-grid-row"
+          >
+            <div
+              v-for="(col, colIndex) in 5"
+              :key="'cell-' + rowIndex + '-' + colIndex"
+              class="table-grid-cell"
+              :class="{ active: hoveredRow >= rowIndex && hoveredCol >= colIndex }"
+              @mouseenter="onGridHover(rowIndex, colIndex)"
+              @click="onGridSelect(rowIndex, colIndex)"
+            ></div>
           </div>
         </div>
+        <div class="table-grid-info">{{ gridDisplayText }}</div>
       </div>
 
       <div class="footer">
@@ -212,6 +208,8 @@ import { cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
 import Picker from '@/components/Picker.vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
+import QuillBetterTable from 'quill-better-table'
+import 'quill-better-table/dist/quill-better-table.css'
 
 interface Library {
   id: number
@@ -258,6 +256,44 @@ const answerText = ref('')
 const showTableDialog = ref(false)
 const tableRows = ref(3)
 const tableCols = ref(3)
+const hoveredRow = ref(-1)
+const hoveredCol = ref(-1)
+const tableBtnRef = ref<HTMLElement | null>(null)
+const tableSelectorPosition = ref({ top: 0, left: 0 })
+
+const tableSelectorStyle = computed(() => ({
+  top: `${tableSelectorPosition.value.top}px`,
+  left: `${tableSelectorPosition.value.left}px`
+}))
+
+const gridDisplayText = computed(() => {
+  if (hoveredRow.value >= 0 && hoveredCol.value >= 0) {
+    return `${hoveredRow.value + 1} × ${hoveredCol.value + 1}`
+  }
+  return '选择表格大小'
+})
+
+const onShowTableSelector = () => {
+  if (tableBtnRef.value) {
+    const rect = tableBtnRef.value.getBoundingClientRect()
+    tableSelectorPosition.value = {
+      top: rect.bottom + 4,
+      left: rect.left
+    }
+  }
+  showTableDialog.value = true
+}
+
+const onGridHover = (row: number, col: number) => {
+  hoveredRow.value = row
+  hoveredCol.value = col
+}
+
+const onGridSelect = (row: number, col: number) => {
+  tableRows.value = row + 1
+  tableCols.value = col + 1
+  insertTable()
+}
 
 const keywords = ref<string[]>([])
 
@@ -290,11 +326,52 @@ const canSubmit = computed(() => {
 const initQuill = () => {
   if (!editorRef.value) return
   
+  Quill.register({
+    'modules/better-table': QuillBetterTable
+  }, true)
+  
   quillInstance.value = new Quill(editorRef.value, {
     theme: 'snow',
     placeholder: '输入答案解析，支持分点作答...',
     modules: {
-      toolbar: false
+      toolbar: false,
+      'better-table': {
+        operationMenu: {
+          items: {
+            insertColumnRight: { text: '右侧插入列' },
+            insertColumnLeft: { text: '左侧插入列' },
+            insertRowUp: { text: '上方插入行' },
+            insertRowDown: { text: '下方插入行' },
+            mergeCells: { text: '合并单元格' },
+            unmergeCells: { text: '取消合并' },
+            deleteColumn: { text: '删除列' },
+            deleteRow: { text: '删除行' },
+            deleteTable: { text: '删除表格' }
+          },
+          visibility: {
+            insertColumnRight: true,
+            insertColumnLeft: true,
+            insertRowUp: true,
+            insertRowDown: true,
+            mergeCells: true,
+            unmergeCells: true,
+            deleteColumn: true,
+            deleteRow: true,
+            deleteTable: true
+          }
+        },
+        keyboardShortcuts: {
+          tableAddRowAbove: false,
+          tableAddRowBelow: false,
+          tableAddColumnLeft: false,
+          tableAddColumnRight: false,
+          tableDeleteRow: false,
+          tableDeleteColumn: false
+        },
+        colTool: false,
+        rowTool: false
+      },
+      table: false
     }
   })
 
@@ -313,6 +390,209 @@ const initQuill = () => {
   quillInstance.value.on('selection-change', (range) => {
     answerFocused.value = !!range
   })
+  
+  setupMobileTableMenu()
+  setupTableResize()
+}
+
+const setupMobileTableMenu = () => {
+  if (!editorRef.value) return
+  
+  let longPressTimer: number | null = null
+  let touchStartX = 0
+  let touchStartY = 0
+  
+  const handleTouchStart = (e: TouchEvent) => {
+    const touch = e.touches[0]
+    touchStartX = touch.clientX
+    touchStartY = touch.clientY
+    
+    longPressTimer = window.setTimeout(() => {
+      const target = e.target as HTMLElement
+      const tableCell = target.closest('td, th')
+      
+      if (tableCell && quillInstance.value) {
+        const tableModule = quillInstance.value.getModule('better-table')
+        if (tableModule) {
+          const fakeEvent = {
+            clientX: touchStartX,
+            clientY: touchStartY,
+            target: tableCell,
+            preventDefault: () => {},
+            stopPropagation: () => {}
+          } as unknown as MouseEvent
+          
+          const table = tableCell.closest('table')
+          if (table) {
+            const tableBlot = Quill.find(table) as any
+            if (tableBlot && tableModule.operationMenu) {
+              tableModule.operationMenu.table = tableBlot
+              tableModule.showOperationMenu(fakeEvent)
+            }
+          }
+        }
+      }
+    }, 500)
+  }
+  
+  const handleTouchMove = (e: TouchEvent) => {
+    if (longPressTimer) {
+      const touch = e.touches[0]
+      const moveX = Math.abs(touch.clientX - touchStartX)
+      const moveY = Math.abs(touch.clientY - touchStartY)
+      
+      if (moveX > 10 || moveY > 10) {
+        clearTimeout(longPressTimer)
+        longPressTimer = null
+      }
+    }
+  }
+  
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+  }
+  
+  editorRef.value.addEventListener('touchstart', handleTouchStart, { passive: true })
+  editorRef.value.addEventListener('touchmove', handleTouchMove, { passive: true })
+  editorRef.value.addEventListener('touchend', handleTouchEnd, { passive: true })
+}
+
+const setupTableResize = () => {
+  if (!editorRef.value) return
+  
+  let isResizing = false
+  let resizeType: 'col' | 'row' | null = null
+  let currentCell: HTMLElement | null = null
+  let startX = 0
+  let startY = 0
+  let startWidth = 0
+  let startHeight = 0
+  let currentTable: HTMLTableElement | null = null
+  let currentColIndex = -1
+  
+  const getResizeHandle = (e: MouseEvent | TouchEvent): { type: 'col' | 'row', cell: HTMLElement } | null => {
+    const target = e.target as HTMLElement
+    const cell = target.closest('td, th') as HTMLElement | null
+    if (!cell) return null
+    
+    const rect = cell.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+    
+    const margin = 8
+    
+    if (clientX >= rect.right - margin && clientX <= rect.right + margin) {
+      return { type: 'col', cell }
+    }
+    
+    if (clientY >= rect.bottom - margin && clientY <= rect.bottom + margin) {
+      return { type: 'row', cell }
+    }
+    
+    return null
+  }
+  
+  const handleMouseDown = (e: MouseEvent | TouchEvent) => {
+    const handle = getResizeHandle(e)
+    if (!handle) return
+    
+    e.preventDefault()
+    isResizing = true
+    resizeType = handle.type
+    currentCell = handle.cell
+    currentTable = handle.cell.closest('table')
+    
+    const rect = handle.cell.getBoundingClientRect()
+    
+    if (handle.type === 'col') {
+      startX = 'touches' in e ? e.touches[0].clientX : e.clientX
+      startWidth = rect.width
+      
+      const row = handle.cell.parentElement
+      if (row) {
+        currentColIndex = Array.from(row.children).indexOf(handle.cell)
+      }
+    } else {
+      startY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      startHeight = rect.height
+    }
+    
+    document.body.style.cursor = handle.type === 'col' ? 'col-resize' : 'row-resize'
+    document.body.style.userSelect = 'none'
+  }
+  
+  const handleMouseMove = (e: MouseEvent | TouchEvent) => {
+    if (!isResizing || !currentCell || !currentTable) return
+    
+    e.preventDefault()
+    
+    if (resizeType === 'col') {
+      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+      const diff = clientX - startX
+      const newWidth = Math.max(40, startWidth + diff)
+      
+      const rows = currentTable.querySelectorAll('tr')
+      rows.forEach(row => {
+        const cell = row.children[currentColIndex] as HTMLElement
+        if (cell) {
+          cell.style.width = `${newWidth}px`
+          cell.style.minWidth = `${newWidth}px`
+        }
+      })
+    } else {
+      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY
+      const diff = clientY - startY
+      const newHeight = Math.max(24, startHeight + diff)
+      currentCell.style.height = `${newHeight}px`
+      currentCell.style.minHeight = `${newHeight}px`
+    }
+    
+    if (quillInstance.value) {
+      answer.value = quillInstance.value.root.innerHTML
+    }
+  }
+  
+  const handleMouseUp = () => {
+    if (isResizing) {
+      isResizing = false
+      resizeType = null
+      currentCell = null
+      currentTable = null
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }
+  
+  const handleMouseOver = (e: MouseEvent) => {
+    const target = e.target as HTMLElement
+    const cell = target.closest('td, th') as HTMLElement | null
+    if (!cell) return
+    
+    const rect = cell.getBoundingClientRect()
+    const clientX = e.clientX
+    const clientY = e.clientY
+    const margin = 8
+    
+    if (clientX >= rect.right - margin && clientX <= rect.right + margin) {
+      cell.style.cursor = 'col-resize'
+    } else if (clientY >= rect.bottom - margin && clientY <= rect.bottom + margin) {
+      cell.style.cursor = 'row-resize'
+    } else {
+      cell.style.cursor = 'text'
+    }
+  }
+  
+  editorRef.value.addEventListener('mousedown', handleMouseDown as EventListener)
+  editorRef.value.addEventListener('touchstart', handleMouseDown as EventListener, { passive: false })
+  editorRef.value.addEventListener('mousemove', handleMouseMove as EventListener)
+  editorRef.value.addEventListener('touchmove', handleMouseMove as EventListener, { passive: false })
+  editorRef.value.addEventListener('mouseover', handleMouseOver as EventListener)
+  
+  document.addEventListener('mouseup', handleMouseUp)
+  document.addEventListener('touchend', handleMouseUp)
 }
 
 const formatOrderedList = () => {
@@ -383,20 +663,27 @@ const insertTable = () => {
   const rows = tableRows.value
   const cols = tableCols.value
   
-  let tableHtml = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0;">'
-  for (let i = 0; i < rows; i++) {
-    tableHtml += '<tr>'
-    for (let j = 0; j < cols; j++) {
-      tableHtml += '<td style="border: 1px solid #ddd; padding: 8px; min-width: 50px;">&nbsp;</td>'
+  const tableModule = quillInstance.value.getModule('better-table')
+  if (tableModule) {
+    tableModule.insertTable(rows, cols)
+  } else {
+    let tableHtml = '<table style="border-collapse: collapse; width: 100%; margin: 8px 0;">'
+    for (let i = 0; i < rows; i++) {
+      tableHtml += '<tr>'
+      for (let j = 0; j < cols; j++) {
+        tableHtml += '<td style="border: 1px solid #ddd; padding: 8px; min-width: 50px;">&nbsp;</td>'
+      }
+      tableHtml += '</tr>'
     }
-    tableHtml += '</tr>'
+    tableHtml += '</table><p><br></p>'
+    
+    const selection = quillInstance.value.getSelection(true)
+    quillInstance.value.clipboard.dangerouslyPasteHTML(selection.index, tableHtml)
   }
-  tableHtml += '</table><p><br></p>'
-  
-  const selection = quillInstance.value.getSelection(true)
-  quillInstance.value.clipboard.dangerouslyPasteHTML(selection.index, tableHtml)
   
   showTableDialog.value = false
+  hoveredRow.value = -1
+  hoveredCol.value = -1
 }
 
 const addKeywordSlot = () => {
@@ -411,6 +698,8 @@ onMounted(async () => {
   const editId = route.query.id as string
   const hotFlag = route.query.isHot as string
   
+  document.addEventListener('click', handleTableSelectorOutsideClick)
+  
   isHot.value = hotFlag === 'true'
   
   if (editId) {
@@ -424,7 +713,20 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   quillInstance.value = null
+  document.removeEventListener('click', handleTableSelectorOutsideClick)
 })
+
+const handleTableSelectorOutsideClick = (e: MouseEvent) => {
+  const target = e.target as HTMLElement
+  if (showTableDialog.value && tableBtnRef.value && !tableBtnRef.value.contains(target)) {
+    const popup = document.querySelector('.table-selector-popup')
+    if (popup && !popup.contains(target)) {
+      showTableDialog.value = false
+      hoveredRow.value = -1
+      hoveredCol.value = -1
+    }
+  }
+}
 
 const loadCardData = async () => {
   try {
@@ -941,6 +1243,20 @@ const onSubmit = async () => {
   min-height: 150px;
   padding: 14px;
   
+  :deep(.qlbt-col-tool-cell),
+  :deep(.qlbt-row-tool-cell),
+  :deep(.qlbt-col-tool-cell-holder),
+  :deep(.qlbt-selection-line),
+  :deep(.qlbt-col-tool-cell-menu),
+  :deep(.qlbt-row-tool-cell-menu) {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    height: 0 !important;
+    width: 0 !important;
+    overflow: hidden !important;
+  }
+  
   :deep(.ql-editor) {
     font-size: 14px;
     line-height: 1.6;
@@ -959,12 +1275,159 @@ const onSubmit = async () => {
     table {
       border-collapse: collapse;
       width: 100%;
-      margin: 8px 0;
+      margin: 12px 0;
       
-      td {
-        border: 1px solid #ddd;
-        padding: 8px;
-        min-width: 50px;
+      td, th {
+        border: 1px solid #d1d5db;
+        padding: 10px 14px;
+        min-width: 60px;
+        vertical-align: top;
+        
+        &.selected {
+          outline: 2px solid #3b82f6;
+          outline-offset: -1px;
+        }
+      }
+      
+      tr:hover td {
+        background-color: #f9fafb;
+      }
+      
+      thead th {
+        background-color: #f3f4f6;
+        font-weight: 600;
+        color: #374151;
+      }
+    }
+  }
+
+  :deep(table.ql-better-table) {
+    border-collapse: collapse;
+    margin: 0 auto;
+    
+    td, th {
+      border: 1px solid #d1d5db;
+      padding: 10px 14px;
+      min-width: 80px;
+      vertical-align: top;
+      position: relative;
+      
+      &::after {
+        content: '';
+        position: absolute;
+        right: -4px;
+        bottom: -4px;
+        width: 8px;
+        height: 8px;
+        background: transparent;
+        border-radius: 2px;
+        transition: background 0.2s ease;
+        pointer-events: none;
+      }
+      
+      &.cell-selected {
+        background-color: #e6f0ff !important;
+        box-shadow: inset 0 0 0 2px #3b82f6;
+      }
+      
+      &:hover::after {
+        background: #3b82f6;
+      }
+    }
+    
+    & + .ql-better-table-toolbar {
+      display: none;
+    }
+  }
+
+  :deep(.ql-better-table-wrapper) {
+    overflow-x: auto;
+    margin: 12px 0;
+    border: none;
+    outline: none;
+    
+    .ql-better-table-toolbar {
+      display: none !important;
+    }
+    
+    .ql-better-table-add-row, 
+    .ql-better-table-add-col {
+      display: none !important;
+    }
+    
+    .ql-better-table-selection-line {
+      display: none !important;
+    }
+    
+    .qlbt-col-tool-cell {
+      display: none !important;
+    }
+    
+    .qlbt-row-tool-cell {
+      display: none !important;
+    }
+    
+    .qlbt-col-tool-cell-holder {
+      display: none !important;
+    }
+  }
+
+  :deep(.ql-better-table-tooltip) {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    padding: 8px;
+    
+    .ql-better-table-tooltip-main {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      max-width: 280px;
+    }
+    
+    .ql-better-table-tooltip-button {
+      padding: 10px 14px;
+      font-size: 14px;
+      color: #374151;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+      min-height: 44px;
+      
+      &:hover, &:active {
+        background: #3b82f6;
+        color: white;
+        border-color: #3b82f6;
+      }
+    }
+  }
+  
+  @media (max-width: 768px) {
+    :deep(.ql-better-table-tooltip) {
+      .ql-better-table-tooltip-main {
+        flex-direction: column;
+        max-width: 200px;
+      }
+      
+      .ql-better-table-tooltip-button {
+        width: 100%;
+        text-align: center;
+      }
+    }
+    
+    :deep(table.ql-better-table) {
+      td, th {
+        min-width: 40px;
+        padding: 8px 10px;
+        
+        &.cell-selected {
+          background-color: #e6f0ff !important;
+          box-shadow: inset 0 0 0 3px #3b82f6;
+        }
       }
     }
   }
@@ -979,111 +1442,52 @@ const onSubmit = async () => {
   border-top: 1px solid #E2E8F0;
 }
 
-.table-dialog {
+.table-selector-popup {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.table-dialog-mask {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-}
-
-.table-dialog-content {
-  position: relative;
-  width: 300px;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.table-dialog-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.table-dialog-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1E293B;
-}
-
-.close-btn {
-  cursor: pointer;
-}
-
-.table-dialog-body {
-  padding: 20px 16px;
-}
-
-.table-input-row {
-  display: flex;
-  align-items: center;
-  margin-bottom: 12px;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.table-label {
-  width: 60px;
-  font-size: 14px;
-  color: #64748B;
-}
-
-.table-input {
-  flex: 1;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid #E2E8F0;
+  background: #ffffff;
   border-radius: 8px;
-  font-size: 14px;
-  outline: none;
+  padding: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e8ecf0;
+}
+
+.table-grid-selector {
+  display: grid;
+  grid-template-columns: repeat(5, 24px);
+  grid-template-rows: repeat(5, 24px);
+  gap: 2px;
+}
+
+.table-grid-row {
+  display: contents;
+}
+
+.table-grid-cell {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #d1d5db;
+  border-radius: 2px;
+  background: #f9fafb;
+  cursor: pointer;
+  transition: all 0.1s ease;
   
-  &:focus {
+  &:hover {
+    border-color: #3B82F6;
+    background: #eff6ff;
+  }
+  
+  &.active {
+    background: #3B82F6;
     border-color: #3B82F6;
   }
 }
 
-.table-dialog-footer {
-  display: flex;
-  gap: 12px;
-  padding: 16px;
-  border-top: 1px solid #E2E8F0;
-}
-
-.table-btn {
-  flex: 1;
-  height: 40px;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  
-  &.cancel {
-    background: #f1f5f9;
-    color: #64748B;
-  }
-  
-  &.confirm {
-    background: #3B82F6;
-    color: #fff;
-  }
+.table-grid-info {
+  text-align: center;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 .footer {
