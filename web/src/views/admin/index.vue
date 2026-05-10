@@ -70,7 +70,7 @@
               <span class="stat-label">卡片总数</span>
             </div>
           </div>
-          <div class="stat-card">
+          <div class="stat-card clickable" @click="router.push('/admin/users')">
             <div class="stat-icon orange">
               <t-icon name="user" size="24px" color="#fa8c16" />
             </div>
@@ -1812,6 +1812,20 @@ onActivated(() => {
     &:active {
       transform: scale(0.98);
     }
+  }
+}
+
+.stat-card.clickable {
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
 

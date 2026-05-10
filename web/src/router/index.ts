@@ -214,6 +214,18 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '激活码管理', requiresAdmin: true }
   },
   {
+    path: '/admin/users',
+    name: 'AdminUserList',
+    component: () => import('@/views/admin/UserList.vue'),
+    meta: { title: '用户列表', requiresAdmin: true }
+  },
+  {
+    path: '/admin/users/:id',
+    name: 'AdminUserDetail',
+    component: () => import('@/views/admin/UserDetail.vue'),
+    meta: { title: '用户详情', requiresAdmin: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/home'
   }

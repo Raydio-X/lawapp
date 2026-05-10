@@ -1335,8 +1335,6 @@ router.post('/:id/link', auth, async (req, res) => {
         const { linkedCardIds } = req.body;
         const cardId = parseInt(req.params.id);
         
-        console.log('Link cards request:', { cardId, linkedCardIds, userId: req.user.id });
-        
         if (!linkedCardIds || !Array.isArray(linkedCardIds) || linkedCardIds.length === 0) {
             return res.status(400).json({
                 success: false,
@@ -1356,8 +1354,6 @@ router.post('/:id/link', auth, async (req, res) => {
 
         await CardLinkModel.createTable();
         const count = await CardLinkModel.addLinks(cardId, linkedCardIds, req.user.id);
-        
-        console.log('Link cards result:', count);
 
         res.json({
             success: true,

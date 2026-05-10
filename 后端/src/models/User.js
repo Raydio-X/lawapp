@@ -37,8 +37,8 @@ class UserModel {
     static async create(data) {
         const userId = await UserIdGenerator.generateUniqueId();
         const [result] = await db.execute(
-            'INSERT INTO users (user_id, openid, nickname, avatar, bio, phone, gender) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [userId, data.openid, data.nickname || '微信用户', data.avatar || '', data.bio || '', data.phone || '', data.gender || 0]
+            'INSERT INTO users (user_id, openid, nickname, avatar, bio, phone, gender, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, data.openid, data.nickname || '微信用户', data.avatar || '', data.bio || '', data.phone || '', data.gender || 0, data.role || 'user']
         );
         return this.findById(result.insertId);
     }

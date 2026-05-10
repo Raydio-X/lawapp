@@ -282,11 +282,8 @@ const confirmLink = async () => {
     return
   }
   
-  console.log('Confirm link:', { currentCardId: currentCardId.value, selectedCards: selectedCards.value })
-  
   try {
     const res = await cardAPI.linkCards(currentCardId.value, selectedCards.value)
-    console.log('Link response:', res)
     if (res.success) {
       MessagePlugin.success(res.message || '关联成功')
       router.back()

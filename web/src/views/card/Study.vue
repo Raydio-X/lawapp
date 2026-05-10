@@ -158,6 +158,14 @@
                   <t-icon name="file-add" size="14px" color="#999" />
                   <span>存为卡片</span>
                 </div>
+                <div 
+                  class="delete-btn" 
+                  v-if="item.userId === userStore.userInfo?.id"
+                  @click="onDeleteComment(index, item.id)"
+                >
+                  <t-icon name="delete" size="14px" color="#999" />
+                  <span>删除</span>
+                </div>
               </div>
             </div>
           </div>
@@ -272,6 +280,7 @@ interface Comment {
   likeCount: number
   liked: boolean
   avatarText?: string
+  userId?: number
 }
 
 const loading = ref(true)
@@ -556,7 +565,8 @@ const loadComments = async (cardId: number) => {
         time: formatTime(item.created_at),
         content: item.content,
         likeCount: item.like_count || 0,
-        liked: item.is_liked === 1
+        liked: item.is_liked === 1,
+        userId: item.user_id
       }))
     }
   } catch (error) {
@@ -608,22 +618,16 @@ const onRevealAnswer = () => {
 
 const loadRelatedCards = async () => {
   if (!currentCard.value) {
-    console.log('loadRelatedCards: No current card')
     return
   }
   
-  console.log('loadRelatedCards: Loading related cards for card', currentCard.value.id)
   relatedLoading.value = true
   relatedCards.value = []
   
   try {
     const res = await cardAPI.getRelated(currentCard.value.id)
-    console.log('loadRelatedCards: API response', res)
     if (res.success && res.data) {
-      console.log('loadRelatedCards: Found', res.data.length, 'related cards')
       relatedCards.value = res.data.slice(0, 5)
-    } else {
-      console.log('loadRelatedCards: No data in response')
     }
   } catch (error) {
     console.error('加载相关卡片失败:', error)
@@ -759,6 +763,41 @@ const onLikeComment = async (index: number, commentId: number) => {
   }
 }
 
+const onDeleteComment = async (index: number, commentId: number) => {
+  const confirmDialog = DialogPlugin.confirm({
+    header: '删除确认',
+    body: '确定要删除这条学习笔记吗？删除后将无法恢复。',
+    confirmBtn: '删除',
+    cancelBtn: '取消',
+    theme: 'warning',
+    onConfirm: async () => {
+      try {
+        const res = await commentAPI.delete(commentId)
+        if (res.success) {
+          comments.value.splice(index, 1)
+          MessagePlugin.success('删除成功')
+        } else {
+          MessagePlugin.error(res.message || '删除失败')
+        }
+      } catch (error: any) {
+        console.error('删除评论失败:', error)
+        if (error.message?.includes('无权') || error.code === 403) {
+          MessagePlugin.error('无权删除此评论')
+        } else if (error.message?.includes('不存在') || error.code === 404) {
+          MessagePlugin.error('评论不存在')
+          comments.value.splice(index, 1)
+        } else {
+          MessagePlugin.error(error.message || '删除失败，请稍后重试')
+        }
+      }
+      confirmDialog.hide()
+    },
+    onCancel: () => {
+      confirmDialog.hide()
+    }
+  })
+}
+
 const onSaveCommentAsCard = (index: number) => {
   if (!canUseCommentToCard()) return
   
@@ -799,7 +838,8 @@ const onSubmitComment = async () => {
         time: '刚刚',
         content: commentText.value.trim(),
         likeCount: 0,
-        liked: false
+        liked: false,
+        userId: userStore.userInfo?.id
       }
       comments.value.unshift(newComment)
       commentText.value = ''
@@ -1609,6 +1649,29 @@ const saveStudyProgress = () => {
   font-size: 12px;
   color: #64748B;
   cursor: pointer;
+}
+
+.delete-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #64748B;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  
+  &:hover {
+    color: #E34D59;
+    
+    :deep(svg) {
+      fill: #E34D59;
+      color: #E34D59;
+    }
+  }
+  
+  &:active {
+    opacity: 0.7;
+  }
 }
 
 .comment-empty {

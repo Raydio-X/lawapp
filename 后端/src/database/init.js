@@ -32,6 +32,7 @@ async function initDatabase() {
                 bio VARCHAR(200) DEFAULT '',
                 phone VARCHAR(20) DEFAULT '',
                 gender TINYINT DEFAULT 0,
+                role VARCHAR(20) DEFAULT 'user' COMMENT '用户角色: admin, user',
                 daily_goal INT DEFAULT 50,
                 is_vip TINYINT DEFAULT 0,
                 vip_expires_at TIMESTAMP NULL,
@@ -40,7 +41,8 @@ async function initDatabase() {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_openid (openid),
                 INDEX idx_user_id (user_id),
-                INDEX idx_is_vip (is_vip)
+                INDEX idx_is_vip (is_vip),
+                INDEX idx_role (role)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created users table');
@@ -380,8 +382,8 @@ async function initDatabase() {
         console.log('Created card_links table');
 
         await connection.query(
-            `INSERT INTO users (openid, nickname, avatar, bio) VALUES (?, ?, ?, ?)`,
-            ['admin_account', '管理员', '', '系统管理员']
+            `INSERT INTO users (openid, nickname, avatar, bio, role) VALUES (?, ?, ?, ?, ?)`,
+            ['admin_account', '管理员', '', '系统管理员', 'admin']
         );
         console.log('Created default admin user');
 

@@ -314,18 +314,11 @@ const chapterOptions = computed<PickerOption[]>(() => {
 const canSubmit = computed(() => {
   const text = answerText.value.replace(/\s/g, '')
   const result = question.value.trim() && text && selectedLibrary.value
-  console.log('canSubmit:', {
-    question: question.value.trim(),
-    text: text,
-    selectedLibrary: selectedLibrary.value,
-    result: result
-  })
   return result
 })
 
 const initQuill = () => {
   if (!editorRef.value) {
-    console.log('initQuill: editorRef is null')
     return
   }
   
@@ -333,7 +326,6 @@ const initQuill = () => {
     'modules/better-table': QuillBetterTable
   }, true)
   
-  console.log('initQuill: initializing Quill')
   quillInstance.value = new Quill(editorRef.value, {
     theme: 'snow',
     placeholder: '输入答案解析，支持分点作答...',
@@ -389,7 +381,6 @@ const initQuill = () => {
   quillInstance.value.on('text-change', () => {
     const html = quillInstance.value!.root.innerHTML
     const text = quillInstance.value!.getText().replace(/\s/g, '')
-    console.log('Quill text-change:', { html: html.substring(0, 50), text: text.substring(0, 50) })
     answer.value = html
     answerText.value = text
   })
@@ -761,9 +752,6 @@ const loadLibraries = async () => {
   loading.value = true
   try {
     const res = await libraryAPI.getMyLibraries({ page: 1, pageSize: 100 })
-    console.log('loadLibraries response:', res)
-    console.log('res.data:', res.data)
-    console.log('res.data type:', typeof res.data, Array.isArray(res.data))
     
     if (res.success && res.data) {
       let list = []
@@ -775,14 +763,10 @@ const loadLibraries = async () => {
         list = res.data.data
       }
       
-      console.log('list:', list)
-      
       libraries.value = list.map((lib: any) => ({
         id: lib.id,
         name: lib.name
       }))
-      
-      console.log('libraries:', libraries.value)
       
       if (libraries.value.length === 0) {
         MessagePlugin.warning('请先创建知识库')
@@ -809,7 +793,6 @@ const loadLibraries = async () => {
         loadChapters(libraries.value[0].id)
       }
       
-      console.log('selectedLibrary:', selectedLibrary.value)
     }
   } catch (error) {
     console.error('加载知识库失败:', error)
@@ -901,8 +884,6 @@ const onCancel = () => {
 }
 
 const onSubmitClick = () => {
-  console.log('onSubmitClick called, canSubmit:', canSubmit.value)
-  
   if (!selectedLibrary.value) {
     MessagePlugin.warning('请选择知识库')
     return
@@ -914,7 +895,6 @@ const onSubmitClick = () => {
   }
   
   const text = answerText.value.replace(/\s/g, '')
-  console.log('onSubmitClick text:', text)
   if (!text) {
     MessagePlugin.warning('请输入答案')
     return

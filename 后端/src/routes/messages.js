@@ -67,15 +67,11 @@ router.delete('/broadcast', adminAuth, async (req, res) => {
     try {
         const { title, content, created_at } = req.body;
 
-        console.log('Revoke broadcast request:', { title, content, created_at });
-
         if (!title || !content || !created_at) {
             return res.status(400).json({ success: false, code: 400, message: '参数不完整' });
         }
 
         const count = await MessageModel.revokeBroadcast(title, content, created_at);
-
-        console.log('Revoke result:', count);
 
         res.json({
             success: true,

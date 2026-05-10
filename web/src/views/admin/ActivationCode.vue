@@ -230,10 +230,7 @@ const loadCodeList = async (page = 1) => {
       pageSize
     })
     
-    console.log('加载激活码列表响应:', res)
-    
     if (res.success && res.data) {
-      console.log('列表数据:', res.data)
       const list = res.data.list || []
       if (page === 1) {
         codeList.value = list

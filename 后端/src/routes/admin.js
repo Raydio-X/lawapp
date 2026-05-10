@@ -434,6 +434,110 @@ router.get('/stats', adminAuth, async (req, res) => {
     }
 });
 
+router.get('/users', adminAuth, async (req, res) => {
+    try {
+        const db = require('../config/database');
+        const { page, pageSize, keyword, role } = req.query;
+        const offset = ((parseInt(page) || 1) - 1) * (parseInt(pageSize) || 20);
+
+        let sql = `SELECT 
+            u.id, u.user_id, u.nickname, u.avatar, u.bio, u.phone, u.gender, u.role,
+            u.is_vip, u.vip_expires_at, u.created_at,
+            (SELECT COUNT(*) FROM libraries WHERE created_by = u.id) as library_count,
+            (SELECT COUNT(*) FROM cards WHERE created_by = u.id) as card_count,
+            (SELECT COUNT(*) FROM comments WHERE user_id = u.id) as comment_count,
+            (SELECT COUNT(*) FROM favorites WHERE user_id = u.id) as favorite_count,
+            (SELECT COUNT(*) FROM wrong_cards WHERE user_id = u.id) as wrong_count
+            FROM users u WHERE 1=1`;
+        const values = [];
+
+        if (keyword) {
+            sql += ' AND (u.nickname LIKE ? OR u.user_id LIKE ? OR u.bio LIKE ?)';
+            values.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+        }
+        if (role) {
+            sql += ' AND u.role = ?';
+            values.push(role);
+        }
+
+        let countSql = 'SELECT COUNT(*) as total FROM users WHERE 1=1';
+        const countValues = [];
+        if (keyword) {
+            countSql += ' AND (nickname LIKE ? OR user_id LIKE ? OR bio LIKE ?)';
+            countValues.push(`%${keyword}%`, `%${keyword}%`, `%${keyword}%`);
+        }
+        if (role) {
+            countSql += ' AND role = ?';
+            countValues.push(role);
+        }
+
+        const [countRows] = await db.execute(countSql, countValues);
+
+        sql += ` ORDER BY u.created_at DESC LIMIT ${parseInt(pageSize) || 20} OFFSET ${offset}`;
+
+        const [rows] = await db.execute(sql, values);
+
+        res.json({
+            success: true,
+            data: {
+                list: rows.map(row => ({
+                    ...row,
+                    is_vip: !!row.is_vip,
+                    gender: row.gender === 1 ? '男' : (row.gender === 2 ? '女' : '未知')
+                })),
+                pagination: {
+                    page: parseInt(page) || 1,
+                    pageSize: parseInt(pageSize) || 20,
+                    total: countRows[0].total,
+                    totalPages: Math.ceil(countRows[0].total / (parseInt(pageSize) || 20))
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Admin get users error:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取用户列表失败' });
+    }
+});
+
+router.get('/users/:id', adminAuth, async (req, res) => {
+    try {
+        const db = require('../config/database');
+        const { id } = req.params;
+
+        const [rows] = await db.execute(
+            `SELECT 
+            u.id, u.user_id, u.nickname, u.avatar, u.bio, u.phone, u.gender, u.role,
+            u.is_vip, u.vip_expires_at, u.created_at, u.daily_goal,
+            (SELECT COUNT(*) FROM libraries WHERE created_by = u.id) as library_count,
+            (SELECT COUNT(*) FROM cards WHERE created_by = u.id) as card_count,
+            (SELECT COUNT(*) FROM comments WHERE user_id = u.id) as comment_count,
+            (SELECT COUNT(*) FROM favorites WHERE user_id = u.id) as favorite_count,
+            (SELECT COUNT(*) FROM wrong_cards WHERE user_id = u.id) as wrong_count,
+            (SELECT COUNT(*) FROM study_records WHERE user_id = u.id) as study_count,
+            (SELECT COALESCE(SUM(study_duration), 0) FROM study_records WHERE user_id = u.id) as total_study_time
+            FROM users u WHERE u.id = ?`,
+            [id]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({ success: false, code: 404, message: '用户不存在' });
+        }
+
+        const user = rows[0];
+        res.json({
+            success: true,
+            data: {
+                ...user,
+                is_vip: !!user.is_vip,
+                gender: user.gender === 1 ? '男' : (user.gender === 2 ? '女' : '未知')
+            }
+        });
+    } catch (error) {
+        console.error('Admin get user detail error:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取用户详情失败' });
+    }
+});
+
 router.get('/blocked-words', adminAuth, async (req, res) => {
     try {
         const { page, pageSize, keyword } = req.query;

@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/User');
+const db = require('../config/database');
 
 const router = express.Router();
 
@@ -92,7 +93,7 @@ router.post('/qq-login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, openid: user.openid },
+            { id: user.id, openid: user.openid, role: user.role || 'user' },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
             { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
         );
@@ -106,7 +107,8 @@ router.post('/qq-login', async (req, res) => {
                     userId: user.user_id,
                     nickname: user.nickname,
                     avatar: user.avatar,
-                    bio: user.bio
+                    bio: user.bio,
+                    role: user.role || 'user'
                 }
             }
         });
@@ -165,7 +167,7 @@ router.post('/login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, openid: user.openid },
+            { id: user.id, openid: user.openid, role: user.role || 'user' },
             process.env.JWT_SECRET || 'your_jwt_secret_key',
             { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
         );
@@ -179,7 +181,8 @@ router.post('/login', async (req, res) => {
                     userId: user.user_id,
                     nickname: user.nickname,
                     avatar: user.avatar,
-                    bio: user.bio
+                    bio: user.bio,
+                    role: user.role || 'user'
                 }
             }
         });
@@ -205,12 +208,13 @@ router.post('/test-login', async (req, res) => {
                     openid: 'test_openid',
                     nickname: '测试用户',
                     avatar: 'https://via.placeholder.com/100',
-                    bio: '测试账号'
+                    bio: '测试账号',
+                    role: 'user'
                 });
             }
 
             const token = jwt.sign(
-                { id: user.id, openid: user.openid, role: 'user' },
+                { id: user.id, openid: user.openid, role: user.role || 'user' },
                 process.env.JWT_SECRET || 'your_jwt_secret_key',
                 { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
             );
@@ -225,7 +229,7 @@ router.post('/test-login', async (req, res) => {
                         nickname: user.nickname,
                         avatar: user.avatar,
                         bio: user.bio,
-                        role: 'user'
+                        role: user.role || 'user'
                     }
                 }
             });
@@ -237,8 +241,14 @@ router.post('/test-login', async (req, res) => {
                     openid: 'admin_account',
                     nickname: '管理员',
                     avatar: '',
-                    bio: '系统管理员'
+                    bio: '系统管理员',
+                    role: 'admin'
                 });
+            }
+
+            if (user.role !== 'admin') {
+                await db.execute('UPDATE users SET role = ? WHERE id = ?', ['admin', user.id]);
+                user = await UserModel.findById(user.id);
             }
 
             const token = jwt.sign(
@@ -300,6 +310,9 @@ router.get('/me', require('../middlewares/auth').auth, async (req, res) => {
                 bio: user.bio,
                 phone: user.phone,
                 gender: user.gender,
+                role: user.role || 'user',
+                isVip: user.is_vip || false,
+                vipExpireAt: user.vip_expires_at,
                 createdAt: user.created_at
             }
         });

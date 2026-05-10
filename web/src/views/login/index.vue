@@ -252,12 +252,10 @@ const toggleLoginMode = () => {
 
 const initQQSDK = () => {
   if (!QQ_APP_ID) {
-    console.log('QQ_APP_ID not configured')
     return
   }
   
   if (window.QC) {
-    console.log('QQ SDK already loaded')
     return
   }
   
@@ -268,7 +266,6 @@ const initQQSDK = () => {
   script.setAttribute('id', 'qq-jssdk')
   script.async = true
   script.onload = () => {
-    console.log('QQ SDK loaded successfully')
   }
   script.onerror = () => {
     console.error('QQ SDK load failed')
@@ -323,6 +320,8 @@ const checkQQLoginStatus = () => {
           const redirect = route.query.redirect as string
           if (redirect) {
             router.push(redirect)
+          } else if (res.data.userInfo.role === 'admin') {
+            router.push('/admin')
           } else {
             router.push('/home')
           }
