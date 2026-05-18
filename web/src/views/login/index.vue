@@ -152,7 +152,7 @@ const testAccount = ref('')
 const testPassword = ref('')
 
 const QQ_APP_ID = import.meta.env.VITE_QQ_APP_ID || ''
-const QQ_REDIRECT_URI = window.location.origin + '/login'
+const QQ_REDIRECT_URI = 'https://www.lawapp.top/login'
 
 const USER_AGREEMENT = `欢迎您使用律卡（以下简称“本应用”）。本协议是您与律卡开发运营方之间就您注册、登录及使用本应用所订立的协议。请您在使用本应用前认真阅读并充分理解本协议的全部内容，特别是有关免责、责任限制以及用户义务等条款。 当您点击“同意”或实际开始使用本应用，即视为您已充分阅读并接受本协议的全部内容。
 一、服务内容

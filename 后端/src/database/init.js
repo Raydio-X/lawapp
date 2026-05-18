@@ -36,7 +36,6 @@ async function initDatabase() {
                 daily_goal INT DEFAULT 50,
                 is_vip TINYINT DEFAULT 0,
                 vip_expires_at TIMESTAMP NULL,
-                nickname_updated_at TIMESTAMP NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_openid (openid),

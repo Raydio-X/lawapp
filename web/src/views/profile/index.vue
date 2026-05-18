@@ -185,6 +185,10 @@
     <div class="version-info">
       <span>律卡 v1.0.0</span>
       <a class="icp" href="http://beian.miit.gov.cn/" target="_blank">浙ICP备2026028213号</a>
+      <a class="police-record" href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=33032802000186" target="_blank">
+        <img src="/assets/images/police-badge.png" alt="公安备案" class="police-icon" />
+        <span>浙公网安备33032802000186号</span>
+      </a>
     </div>
 
     <div class="bottom-placeholder"></div>
@@ -1070,6 +1074,26 @@ const onLogout = () => {
   &:hover {
     color: #94A3B8;
   }
+}
+
+.police-record {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  color: #CBD5E1;
+  text-decoration: none;
+  
+  &:hover {
+    color: #94A3B8;
+  }
+}
+
+.police-icon {
+  width: 14px;
+  height: 15px;
+  vertical-align: middle;
 }
 
 .bottom-placeholder {
