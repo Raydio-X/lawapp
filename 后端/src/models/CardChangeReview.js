@@ -202,14 +202,14 @@ class CardChangeReviewModel {
         try {
             const MessageModel = require('./message');
             const changeTypeText = review.change_type === 'create' ? '新建' : '修改';
-            const title = '卡片变更审核结果通知';
+            const title = '卡片变更审核驳回通知';
             const content = `您在知识库「${review.library_name || '未知知识库'}」中${changeTypeText}的卡片「${review.new_question ? review.new_question.substring(0, 30) : '未知'}」审核未通过。${note ? `原因：${note}` : ''}`;
             
             await MessageModel.create({
                 user_id: review.created_by,
                 title,
                 content,
-                type: 'system',
+                type: 'violation',
                 sender_id: reviewerId
             });
         } catch (msgError) {

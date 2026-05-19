@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
+const UserModel = require('../models/User');
 
-const auth = (req, res, next) => {
+const auth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         
@@ -15,7 +16,21 @@ const auth = (req, res, next) => {
         const token = authHeader.split(' ')[1];
         
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-        req.user = decoded;
+        
+        const user = await UserModel.findById(decoded.id);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                code: 401,
+                message: '用户不存在，请重新登录'
+            });
+        }
+        
+        req.user = {
+            id: user.id,
+            openid: user.openid,
+            role: user.role || 'user'
+        };
         next();
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
@@ -34,14 +49,22 @@ const auth = (req, res, next) => {
     }
 };
 
-const optionalAuth = (req, res, next) => {
+const optionalAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         
         if (authHeader && authHeader.startsWith('Bearer ')) {
             const token = authHeader.split(' ')[1];
             const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
-            req.user = decoded;
+            
+            const user = await UserModel.findById(decoded.id);
+            if (user) {
+                req.user = {
+                    id: user.id,
+                    openid: user.openid,
+                    role: user.role || 'user'
+                };
+            }
         }
         
         next();
@@ -50,7 +73,7 @@ const optionalAuth = (req, res, next) => {
     }
 };
 
-const adminAuth = (req, res, next) => {
+const adminAuth = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
         
@@ -65,7 +88,16 @@ const adminAuth = (req, res, next) => {
         const token = authHeader.split(' ')[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your_jwt_secret_key');
         
-        if (decoded.role !== 'admin') {
+        const user = await UserModel.findById(decoded.id);
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                code: 401,
+                message: '用户不存在，请重新登录'
+            });
+        }
+        
+        if (user.role !== 'admin') {
             return res.status(403).json({
                 success: false,
                 code: 403,
@@ -73,7 +105,11 @@ const adminAuth = (req, res, next) => {
             });
         }
         
-        req.user = decoded;
+        req.user = {
+            id: user.id,
+            openid: user.openid,
+            role: 'admin'
+        };
         next();
     } catch (error) {
         if (error.name === 'TokenExpiredError') {

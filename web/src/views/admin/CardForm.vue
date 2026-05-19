@@ -204,7 +204,7 @@
 import { ref, computed, onMounted, nextTick, onBeforeUnmount, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import { cardAPI, libraryAPI, chapterAPI } from '@/utils/api'
+import { cardAPI, libraryAPI, chapterAPI, adminAPI } from '@/utils/api'
 import Picker from '@/components/Picker.vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
@@ -908,17 +908,13 @@ const onSubmit = async () => {
 
     let res
     if (isEdit.value) {
-      res = await cardAPI.update(cardId.value, data)
+      res = await adminAPI.updateCard(cardId.value, data)
     } else {
-      res = await cardAPI.create(data)
+      res = await adminAPI.createCard(data)
     }
 
     if (res.success) {
-      if (res.data && res.data.status === 'pending_review') {
-        MessagePlugin.success(res.data.message || '卡片已提交审核，审核通过后将自动发布')
-      } else {
-        MessagePlugin.success(isEdit.value ? '保存成功' : '创建成功')
-      }
+      MessagePlugin.success(isEdit.value ? '保存成功' : '创建成功')
       router.push('/admin')
     } else {
       MessagePlugin.error(res.message || '操作失败')

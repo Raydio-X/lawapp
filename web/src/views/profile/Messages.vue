@@ -73,42 +73,37 @@
       </div>
     </div>
 
-    <t-popup v-model="showDetail" placement="bottom">
-      <div class="detail-popup" v-if="currentMessage">
-        <div class="detail-header">
-          <div 
-            class="detail-icon"
-            :class="currentMessage.type"
-            v-if="currentMessage.type !== 'violation'"
-          >
+    <t-dialog
+      v-model:visible="showDetail"
+      :header="currentMessage?.title || '消息详情'"
+      placement="center"
+      width="400px"
+      :attach="false"
+      :footer="false"
+      class="message-detail-dialog"
+    >
+      <div class="detail-content-wrap" v-if="currentMessage">
+        <div class="detail-type-bar">
+          <div class="detail-icon" :class="currentMessage.type">
             <t-icon 
-              :name="currentMessage.type === 'announcement' ? 'notification' : 'info-circle'" 
-              size="24px" 
+              :name="currentMessage.type === 'violation' ? 'error-circle' : currentMessage.type === 'announcement' ? 'notification' : 'info-circle'" 
+              size="18px" 
               color="#fff" 
             />
           </div>
-          <t-icon 
-            v-if="currentMessage.type === 'violation'" 
-            name="error-circle" 
-            size="32px" 
-            color="#f5222d" 
-          />
-          <span class="detail-title">{{ currentMessage.title }}</span>
-          <div class="detail-meta">
-            <span class="detail-type">
-              {{ currentMessage.type === 'violation' ? '违规通知' : currentMessage.type === 'announcement' ? '系统公告' : '系统消息' }}
-            </span>
-            <span class="detail-time">{{ currentMessage.created_at }}</span>
-          </div>
+          <span class="detail-type-text">
+            {{ currentMessage.type === 'violation' ? '违规通知' : currentMessage.type === 'announcement' ? '系统公告' : '系统消息' }}
+          </span>
+          <span class="detail-time">{{ currentMessage.created_at }}</span>
         </div>
-        <div class="detail-content">
-          <span class="detail-text">{{ currentMessage.content }}</span>
+        <div class="detail-body">
+          <div class="detail-text">{{ currentMessage.content }}</div>
         </div>
-        <div class="detail-footer">
-          <div class="detail-btn" @click="onDetailClose">关闭</div>
+        <div class="detail-actions">
+          <t-button theme="primary" block @click="onDetailClose">关闭</t-button>
         </div>
       </div>
-    </t-popup>
+    </t-dialog>
   </div>
 </template>
 
@@ -468,29 +463,54 @@ const loadMore = () => {
   margin-top: 6px;
 }
 
-.detail-popup {
-  background-color: #fff;
-  border-radius: 16px 16px 0 0;
-  padding: 20px 16px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+.message-detail-dialog {
+  :deep(.t-dialog__ctx) {
+    .t-dialog {
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    
+    .t-dialog__header {
+      padding: 16px 20px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+      border-bottom: 1px solid #f0f0f0;
+      
+      .t-dialog__header-content {
+        font-size: 16px;
+        font-weight: 600;
+        color: #1e293b;
+      }
+    }
+    
+    .t-dialog__body {
+      padding: 20px;
+    }
+  }
 }
 
-.detail-header {
+.detail-content-wrap {
+  padding: 0;
+}
+
+.detail-type-bar {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 16px;
 }
 
 .detail-icon {
-  width: 48px;
-  height: 48px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .detail-icon.system {
@@ -505,63 +525,36 @@ const loadMore = () => {
   background: linear-gradient(135deg, #fa8c16 0%, #ffa940 100%);
 }
 
-.detail-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.detail-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.detail-type {
-  font-size: 12px;
-  padding: 3px 10px;
-  border-radius: 6px;
-  background-color: #f5f6fa;
-  color: #666;
+.detail-type-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  flex: 1;
 }
 
 .detail-time {
   font-size: 12px;
-  color: #bbb;
+  color: #94a3b8;
 }
 
-.detail-content {
-  padding: 16px 0;
-  min-height: 100px;
+.detail-body {
+  min-height: 80px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 4px 0;
 }
 
 .detail-text {
-  font-size: 15px;
-  color: #333;
+  font-size: 14px;
+  color: #334155;
   line-height: 1.8;
   word-break: break-all;
+  white-space: pre-wrap;
 }
 
-.detail-footer {
-  padding-top: 12px;
-}
-
-.detail-btn {
-  width: 100%;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: #3B82F6;
-  color: #fff;
-  font-size: 16px;
-  border-radius: 22px;
-  cursor: pointer;
-  
-  &:active {
-    opacity: 0.8;
-  }
+.detail-actions {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
 }
 </style>

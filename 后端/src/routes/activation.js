@@ -41,8 +41,16 @@ router.post('/activate', auth, async (req, res) => {
 
 router.get('/status', auth, async (req, res) => {
     try {
-        const isVIP = await UserModel.checkVIPStatus(req.user.id);
         const user = await UserModel.findById(req.user.id);
+        
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: '用户不存在'
+            });
+        }
+
+        const isVIP = await UserModel.checkVIPStatus(req.user.id);
 
         res.json({
             success: true,

@@ -101,6 +101,83 @@ async function migrateDatabase() {
             console.error('添加 has_pending_change 字段失败:', error.message);
         }
 
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM cards LIKE "keywords"');
+            if (columns.length === 0) {
+                console.log('添加 keywords 字段...');
+                await connection.query('ALTER TABLE cards ADD COLUMN keywords JSON COMMENT \'关键词\'');
+                console.log('✓ keywords 字段已添加');
+            } else {
+                console.log('✓ keywords 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 keywords 字段失败:', error.message);
+        }
+
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM cards LIKE "difficulty_rating"');
+            if (columns.length === 0) {
+                console.log('添加 difficulty_rating 字段...');
+                await connection.query('ALTER TABLE cards ADD COLUMN difficulty_rating DECIMAL(3,2) DEFAULT 0 COMMENT \'难度评分(1-5)\'');
+                console.log('✓ difficulty_rating 字段已添加');
+            } else {
+                console.log('✓ difficulty_rating 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 difficulty_rating 字段失败:', error.message);
+        }
+
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM cards LIKE "difficulty_count"');
+            if (columns.length === 0) {
+                console.log('添加 difficulty_count 字段...');
+                await connection.query('ALTER TABLE cards ADD COLUMN difficulty_count INT DEFAULT 0 COMMENT \'难度评分人数\'');
+                console.log('✓ difficulty_count 字段已添加');
+            } else {
+                console.log('✓ difficulty_count 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 difficulty_count 字段失败:', error.message);
+        }
+
+        console.log('\n=== 检查并添加 chapters 表的字段 ===');
+        
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM chapters LIKE "parent_id"');
+            if (columns.length === 0) {
+                console.log('添加 parent_id 字段...');
+                await connection.query('ALTER TABLE chapters ADD COLUMN parent_id INT NULL COMMENT \'父章节ID\'');
+                try {
+                    await connection.query('CREATE INDEX idx_parent_id ON chapters(parent_id)');
+                } catch (e) {
+                    console.log('索引已存在，跳过');
+                }
+                try {
+                    await connection.query('ALTER TABLE chapters ADD CONSTRAINT fk_chapter_parent FOREIGN KEY (parent_id) REFERENCES chapters(id) ON DELETE SET NULL');
+                } catch (e) {
+                    console.log('外键约束添加失败，跳过:', e.message);
+                }
+                console.log('✓ parent_id 字段已添加');
+            } else {
+                console.log('✓ parent_id 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 parent_id 字段失败:', error.message);
+        }
+
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM chapters LIKE "level"');
+            if (columns.length === 0) {
+                console.log('添加 level 字段...');
+                await connection.query('ALTER TABLE chapters ADD COLUMN level INT DEFAULT 1 COMMENT \'章节层级\'');
+                console.log('✓ level 字段已添加');
+            } else {
+                console.log('✓ level 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 level 字段失败:', error.message);
+        }
+
         console.log('\n=== 检查并创建 card_change_reviews 表 ===');
         
         try {

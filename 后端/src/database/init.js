@@ -91,10 +91,14 @@ async function initDatabase() {
                 library_id INT NOT NULL,
                 name VARCHAR(100) NOT NULL,
                 sort_order INT DEFAULT 0,
+                parent_id INT NULL COMMENT '父章节ID',
+                level INT DEFAULT 1 COMMENT '章节层级',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_library_id (library_id),
-                FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE CASCADE
+                INDEX idx_parent_id (parent_id),
+                FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE CASCADE,
+                FOREIGN KEY (parent_id) REFERENCES chapters(id) ON DELETE SET NULL
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created chapters table');
@@ -107,6 +111,7 @@ async function initDatabase() {
                 question TEXT NOT NULL,
                 answer TEXT NOT NULL,
                 tags JSON,
+                keywords JSON,
                 created_by INT NOT NULL,
                 view_count INT DEFAULT 0,
                 like_count INT DEFAULT 0,
@@ -114,6 +119,8 @@ async function initDatabase() {
                 is_public TINYINT DEFAULT 1,
                 is_hot TINYINT DEFAULT 0,
                 has_pending_change TINYINT DEFAULT 0 COMMENT '是否有待审核的变更',
+                difficulty_rating DECIMAL(3,2) DEFAULT 0 COMMENT '难度评分(1-5)',
+                difficulty_count INT DEFAULT 0 COMMENT '难度评分人数',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_library_id (library_id),

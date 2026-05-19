@@ -138,15 +138,15 @@ router.post('/libraries', adminAuth, async (req, res) => {
     try {
         const { name, subject, tags, is_public } = req.body;
 
-        if (!name || !subject) {
-            return res.status(400).json({ success: false, code: 400, message: '知识库名称和学科不能为空' });
+        if (!name) {
+            return res.status(400).json({ success: false, code: 400, message: '知识库名称不能为空' });
         }
 
         const tagsJson = Array.isArray(tags) ? JSON.stringify(tags) : '[]';
 
         const library = await LibraryModel.create({
             name,
-            subject,
+            subject: subject || '其他',
             description: tagsJson,
             cover_image: '',
             created_by: req.user.id,
@@ -157,6 +157,26 @@ router.post('/libraries', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('Admin create library error:', error);
         res.status(500).json({ success: false, code: 500, message: '创建知识库失败' });
+    }
+});
+
+router.put('/libraries/:id', adminAuth, async (req, res) => {
+    try {
+        const { name, subject, description, is_public, outline } = req.body;
+        
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (subject !== undefined) updateData.subject = subject;
+        if (description !== undefined) updateData.description = description;
+        if (is_public !== undefined) updateData.is_public = is_public;
+        if (outline !== undefined) updateData.outline = outline;
+
+        const library = await LibraryModel.update(req.params.id, updateData);
+        
+        res.json({ success: true, data: library });
+    } catch (error) {
+        console.error('Admin update library error:', error);
+        res.status(500).json({ success: false, code: 500, message: '更新知识库失败' });
     }
 });
 
@@ -237,17 +257,19 @@ router.put('/cards/:id', adminAuth, async (req, res) => {
         if (!card) {
             return res.status(404).json({ success: false, code: 404, message: '卡片不存在' });
         }
-        if (card.created_by !== req.user.id) {
-            return res.status(403).json({ success: false, code: 403, message: '无权编辑此卡片' });
-        }
 
-        const { question, answer, tags } = req.body;
-        const updated = await CardModel.update(req.params.id, {
-            question,
-            answer,
-            tags,
-            is_public: 1
-        });
+        const { question, answer, tags, is_hot, library_id, chapter_id } = req.body;
+        const updateData = {};
+        
+        if (question !== undefined) updateData.question = question;
+        if (answer !== undefined) updateData.answer = answer;
+        if (tags !== undefined) updateData.tags = tags;
+        if (is_hot !== undefined) updateData.is_hot = is_hot ? 1 : 0;
+        if (library_id !== undefined) updateData.library_id = library_id;
+        if (chapter_id !== undefined) updateData.chapter_id = chapter_id;
+        updateData.is_public = 1;
+
+        const updated = await CardModel.update(req.params.id, updateData);
 
         res.json({ success: true, data: updated });
     } catch (error) {
