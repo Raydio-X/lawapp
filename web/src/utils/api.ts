@@ -185,6 +185,7 @@ export const cardAPI = {
   getDifficultyStats: () => api.get('/cards/difficulty/stats'),
   getDifficultyCards: (level: string) => api.get('/cards/difficulty/cards', { level }),
   batchImport: (file: File, formData?: any) => api.upload('/cards/batch-import', file, formData),
+  getBatchImportRemaining: () => api.get('/cards/batch-import/remaining'),
   batchMove: (cardIds: number[], chapterId: number | null, libraryId?: number) => api.post('/cards/batch-move', { cardIds, chapterId, libraryId }),
   batchCopy: (cardIds: number[], libraryId: number, chapterId?: number) => api.post('/cards/batch-copy', { cardIds, libraryId, chapterId }),
   getRelated: (id: number, limit?: number) => api.get(`/cards/${id}/related`, { limit }),
@@ -268,6 +269,7 @@ export const adminAPI = {
   batchCreateBlockedWords: (data: { words: string[]; category?: string }) => api.post('/admin/blocked-words/batch', data),
   checkSensitive: (text: string) => api.post('/admin/check-sensitive', { text }),
   getFeedbackList: (params?: any) => api.get('/feedback/list', params),
+  getFeedbackDetail: (id: number) => api.get(`/feedback/${id}`),
   updateFeedbackStatus: (id: number, data: { status: number; reply?: string }) => api.put(`/feedback/${id}/status`, data)
 }
 

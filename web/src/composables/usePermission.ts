@@ -18,7 +18,7 @@ export const FREE_USER_LIMITS: PermissionLimit = {
   maxLibraries: 5,
   canCommentToCard: false,
   canDerivativeLearning: false,
-  batchImportPerDay: 1,
+  batchImportPerDay: 3,
   canViewStudyDetail: false
 }
 
@@ -138,21 +138,29 @@ export function usePermission() {
   const canUseBatchImport = async (): Promise<boolean> => {
     if (isVip.value) return true
     
-    const usedToday = await checkBatchImportStatus()
-    if (usedToday) {
-      const dialog = DialogPlugin.confirm({
-        header: '今日次数已用完',
-        body: '普通用户每天只能使用一次批量导入功能，请明天再试或开通VIP解除限制。是否前往激活中心？',
-        confirmBtn: '去激活',
-        cancelBtn: '取消',
-        onConfirm: () => {
-          dialog.hide()
-          router.push('/profile/activation')
+    try {
+      const res = await activationAPI.checkBatchImport()
+      if (res.success && res.data) {
+        const remaining = res.data.remaining || 0
+        if (remaining <= 0) {
+          const dialog = DialogPlugin.confirm({
+            header: '今日次数已用完',
+            body: '普通用户每天只能使用3次批量导入功能，请明天再试或开通VIP解除限制。是否前往激活中心？',
+            confirmBtn: '去激活',
+            cancelBtn: '取消',
+            onConfirm: () => {
+              dialog.hide()
+              router.push('/profile/activation')
+            }
+          })
+          return false
         }
-      })
-      return false
+        return true
+      }
+    } catch (error) {
+      console.error('检查批量导入状态失败:', error)
     }
-    return true
+    return false
   }
 
   const canViewStudyDetail = (): boolean => {

@@ -4,6 +4,7 @@ class TrieNode {
     constructor() {
         this.children = new Map();
         this.isEnd = false;
+        this.originalWord = null;
     }
 }
 
@@ -36,13 +37,15 @@ class SensitiveWordFilter {
 
     insert(word) {
         let node = this.trie;
-        for (const char of word) {
+        const lowerWord = word.toLowerCase();
+        for (const char of lowerWord) {
             if (!node.children.has(char)) {
                 node.children.set(char, new TrieNode());
             }
             node = node.children.get(char);
         }
         node.isEnd = true;
+        node.originalWord = word;
     }
 
     async checkRefresh() {
@@ -54,12 +57,14 @@ class SensitiveWordFilter {
     async contains(text) {
         await this.checkRefresh();
         
-        for (let i = 0; i < text.length; i++) {
+        const lowerText = text.toLowerCase();
+        
+        for (let i = 0; i < lowerText.length; i++) {
             let node = this.trie;
             let j = i;
             
-            while (j < text.length && node.children.has(text[j])) {
-                node = node.children.get(text[j]);
+            while (j < lowerText.length && node.children.has(lowerText[j])) {
+                node = node.children.get(lowerText[j]);
                 j++;
                 
                 if (node.isEnd) {
@@ -77,13 +82,15 @@ class SensitiveWordFilter {
     async findAll(text) {
         await this.checkRefresh();
         
+        const lowerText = text.toLowerCase();
         const found = [];
-        for (let i = 0; i < text.length; i++) {
+        
+        for (let i = 0; i < lowerText.length; i++) {
             let node = this.trie;
             let j = i;
             
-            while (j < text.length && node.children.has(text[j])) {
-                node = node.children.get(text[j]);
+            while (j < lowerText.length && node.children.has(lowerText[j])) {
+                node = node.children.get(lowerText[j]);
                 j++;
                 
                 if (node.isEnd) {
@@ -102,15 +109,16 @@ class SensitiveWordFilter {
     async filter(text, replacement = '*') {
         await this.checkRefresh();
         
+        const lowerText = text.toLowerCase();
         const chars = text.split('');
         
-        for (let i = 0; i < chars.length; i++) {
+        for (let i = 0; i < lowerText.length; i++) {
             let node = this.trie;
             let j = i;
             let matchEnd = -1;
             
-            while (j < chars.length && node.children.has(chars[j])) {
-                node = node.children.get(chars[j]);
+            while (j < lowerText.length && node.children.has(lowerText[j])) {
+                node = node.children.get(lowerText[j]);
                 j++;
                 
                 if (node.isEnd) {

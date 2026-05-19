@@ -251,6 +251,8 @@ async function initDatabase() {
                 current_streak INT DEFAULT 0,
                 longest_streak INT DEFAULT 0,
                 last_study_date DATE,
+                batch_import_count INT DEFAULT 0 COMMENT '当日批量导入次数',
+                batch_import_date DATE COMMENT '最后批量导入日期',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE

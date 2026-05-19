@@ -162,6 +162,12 @@
           <div class="batch-step-header">
             <span class="batch-step-num">2</span>
             <span class="batch-step-title">上传Excel文件</span>
+            <span class="batch-remaining-hint" v-if="batchImportInfo && !batchImportInfo.isVip">
+              (今日剩余 {{ batchImportInfo.remaining }}/{{ batchImportInfo.limit }} 次)
+            </span>
+            <span class="batch-vip-hint" v-else-if="batchImportInfo && batchImportInfo.isVip">
+              (VIP无限制)
+            </span>
           </div>
           
           <div class="batch-upload-area" @click="onChooseFile">
@@ -276,7 +282,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { libraryAPI } from '@/utils/api'
+import { libraryAPI, cardAPI } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 
 const router = useRouter()
@@ -302,6 +308,7 @@ const batchFileName = ref('')
 const batchCards = ref<any[]>([])
 const batchErrors = ref<any[]>([])
 const batchFile = ref<File | null>(null)
+const batchImportInfo = ref<{ isVip: boolean; remaining: number; limit: number; used: number } | null>(null)
 
 const showDeleteLibraryConfirm = ref(false)
 const deleteLibraryItem = ref<Library>({ id: 0, name: '', subject: '', cardCount: 0 })
@@ -309,7 +316,19 @@ const deleteLibraryIndex = ref(0)
 
 onMounted(() => {
   loadMyLibraries()
+  loadBatchImportRemaining()
 })
+
+const loadBatchImportRemaining = async () => {
+  try {
+    const res = await cardAPI.getBatchImportRemaining()
+    if (res.success && res.data) {
+      batchImportInfo.value = res.data
+    }
+  } catch (error) {
+    console.error('获取批量导入剩余次数失败:', error)
+  }
+}
 
 const loadMyLibraries = async () => {
   try {
@@ -463,6 +482,7 @@ const onBatchConfirm = async () => {
       recordBatchImportUsage()
       batchStep.value = 4
       loadMyLibraries()
+      loadBatchImportRemaining()
     } else {
       MessagePlugin.error(data.message || '导入失败')
     }
@@ -886,6 +906,18 @@ const onDownloadTemplate = async () => {
   font-size: 15px;
   font-weight: 600;
   color: #1E293B;
+}
+
+.batch-remaining-hint {
+  font-size: 12px;
+  color: #94A3B8;
+  margin-left: 8px;
+}
+
+.batch-vip-hint {
+  font-size: 12px;
+  color: #F59E0B;
+  margin-left: 8px;
 }
 
 .batch-library-list {

@@ -98,27 +98,6 @@
           </div>
 
           <div class="detail-section">
-            <div class="detail-label">处理状态</div>
-            <div class="status-select">
-              <div 
-                class="status-option" 
-                :class="{ active: editStatus === 0 }"
-                @click="editStatus = 0"
-              >待处理</div>
-              <div 
-                class="status-option" 
-                :class="{ active: editStatus === 1 }"
-                @click="editStatus = 1"
-              >处理中</div>
-              <div 
-                class="status-option" 
-                :class="{ active: editStatus === 2 }"
-                @click="editStatus = 2"
-              >已回复</div>
-            </div>
-          </div>
-
-          <div class="detail-section">
             <div class="detail-label">回复内容</div>
             <textarea 
               class="reply-textarea" 
@@ -150,7 +129,6 @@ const feedbackList = ref<any[]>([])
 const currentStatus = ref<number | null>(null)
 const showDetailPopup = ref(false)
 const currentFeedback = ref<any>(null)
-const editStatus = ref(0)
 const replyContent = ref('')
 
 onMounted(() => {
@@ -181,19 +159,32 @@ const onStatusChange = (status: number | null) => {
   loadFeedbackList()
 }
 
-const onViewDetail = (item: any) => {
-  currentFeedback.value = item
-  editStatus.value = item.status
-  replyContent.value = item.reply || ''
-  showDetailPopup.value = true
+const onViewDetail = async (item: any) => {
+  try {
+    const res = await adminAPI.getFeedbackDetail(item.id)
+    if (res.success && res.data) {
+      currentFeedback.value = res.data
+      replyContent.value = res.data.reply || ''
+      showDetailPopup.value = true
+      if (item.status !== res.data.status) {
+        loadFeedbackList()
+      }
+    }
+  } catch (error: any) {
+    console.error('获取反馈详情失败:', error)
+    MessagePlugin.error(error.message || '获取详情失败')
+  }
 }
 
 const onUpdateStatus = async () => {
   if (!currentFeedback.value) return
 
+  const hasReply = replyContent.value.trim().length > 0
+  const newStatus = hasReply ? 2 : currentFeedback.value.status
+
   try {
     const res = await adminAPI.updateFeedbackStatus(currentFeedback.value.id, {
-      status: editStatus.value,
+      status: newStatus,
       reply: replyContent.value.trim() || undefined
     })
 
@@ -501,25 +492,6 @@ const getStatusText = (status: number) => {
   &.reply {
     background: #EFF6FF;
     border-left: 3px solid #3B82F6;
-  }
-}
-
-.status-select {
-  display: flex;
-  gap: 8px;
-}
-
-.status-option {
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #666;
-  background: #f5f6fa;
-  cursor: pointer;
-
-  &.active {
-    background: #3B82F6;
-    color: #fff;
   }
 }
 

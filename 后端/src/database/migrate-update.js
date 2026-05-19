@@ -14,6 +14,28 @@ async function migrateDatabase() {
 
         console.log('Connected to MySQL database');
 
+        console.log('\n=== 清理测试数据 ===');
+        
+        try {
+            const [testUser] = await connection.query('SELECT id FROM users WHERE openid = ?', ['test_openid']);
+            if (testUser.length > 0) {
+                const testUserId = testUser[0].id;
+                console.log('发现测试用户，正在清理测试数据...');
+                
+                await connection.query('DELETE FROM card_change_reviews WHERE created_by = ?', [testUserId]);
+                await connection.query('DELETE FROM cards WHERE created_by = ?', [testUserId]);
+                await connection.query('DELETE FROM chapters WHERE library_id IN (SELECT id FROM libraries WHERE created_by = ?)', [testUserId]);
+                await connection.query('DELETE FROM libraries WHERE created_by = ?', [testUserId]);
+                await connection.query('DELETE FROM users WHERE id = ?', [testUserId]);
+                
+                console.log('✓ 测试数据已清理');
+            } else {
+                console.log('✓ 无测试数据需要清理');
+            }
+        } catch (error) {
+            console.error('清理测试数据失败:', error.message);
+        }
+
         console.log('\n=== 检查并添加 libraries 表的审核字段 ===');
         
         try {
@@ -176,6 +198,34 @@ async function migrateDatabase() {
             }
         } catch (error) {
             console.error('添加 level 字段失败:', error.message);
+        }
+
+        console.log('\n=== 检查并添加 user_stats 表的字段 ===');
+        
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM user_stats LIKE "batch_import_count"');
+            if (columns.length === 0) {
+                console.log('添加 batch_import_count 字段...');
+                await connection.query('ALTER TABLE user_stats ADD COLUMN batch_import_count INT DEFAULT 0 COMMENT \'当日批量导入次数\'');
+                console.log('✓ batch_import_count 字段已添加');
+            } else {
+                console.log('✓ batch_import_count 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 batch_import_count 字段失败:', error.message);
+        }
+
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM user_stats LIKE "batch_import_date"');
+            if (columns.length === 0) {
+                console.log('添加 batch_import_date 字段...');
+                await connection.query('ALTER TABLE user_stats ADD COLUMN batch_import_date DATE COMMENT \'最后批量导入日期\'');
+                console.log('✓ batch_import_date 字段已添加');
+            } else {
+                console.log('✓ batch_import_date 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 batch_import_date 字段失败:', error.message);
         }
 
         console.log('\n=== 检查并创建 card_change_reviews 表 ===');

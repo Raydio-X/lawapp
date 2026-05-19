@@ -99,6 +99,11 @@ router.get('/:id', auth, adminAuth, async (req, res) => {
             });
         }
 
+        if (feedback.status === 0) {
+            await FeedbackModel.updateStatus(feedback.id, 1, null);
+            feedback.status = 1;
+        }
+
         res.json({
             success: true,
             data: feedback

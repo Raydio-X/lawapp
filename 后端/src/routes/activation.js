@@ -1,6 +1,7 @@
 const express = require('express');
 const ActivationCodeModel = require('../models/ActivationCode');
 const UserModel = require('../models/User');
+const db = require('../config/database');
 const { auth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -106,11 +107,42 @@ router.get('/batch-import/check', auth, async (req, res) => {
     try {
         const isVIP = await UserModel.checkVIPStatus(req.user.id);
         
+        if (isVIP) {
+            return res.json({
+                success: true,
+                data: {
+                    is_vip: true,
+                    can_batch_import: true,
+                    remaining: -1,
+                    limit: -1,
+                    used: 0
+                }
+            });
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        
+        const [statsRows] = await db.execute(
+            'SELECT batch_import_count, batch_import_date FROM user_stats WHERE user_id = ?',
+            [req.user.id]
+        );
+        
+        let used = 0;
+        if (statsRows.length > 0 && statsRows[0].batch_import_date === today) {
+            used = statsRows[0].batch_import_count || 0;
+        }
+        
+        const limit = 3;
+        const remaining = Math.max(0, limit - used);
+        
         res.json({
             success: true,
             data: {
-                is_vip: isVIP,
-                can_batch_import: isVIP
+                is_vip: false,
+                can_batch_import: remaining > 0,
+                remaining,
+                limit,
+                used
             }
         });
     } catch (error) {

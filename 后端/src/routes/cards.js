@@ -12,6 +12,7 @@ const FavoriteModel = require('../models/Favorite');
 const LikeModel = require('../models/Like');
 const MasteryModel = require('../models/Mastery');
 const CardLinkModel = require('../models/CardLink');
+const UserModel = require('../models/User');
 const bm25Engine = require('../services/bm25');
 const sentenceEmbedding = require('../services/sentenceEmbedding');
 const resultFusion = require('../services/resultFusion');
@@ -213,6 +214,38 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             });
         }
 
+        const vipStatus = await UserModel.checkVIPStatus(req.user.id);
+        const isVip = vipStatus && vipStatus.is_vip;
+        
+        if (!isVip) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const [statsRows] = await db.execute(
+                'SELECT batch_import_count, batch_import_date FROM user_stats WHERE user_id = ?',
+                [req.user.id]
+            );
+            
+            let currentCount = 0;
+            let lastDate = null;
+            
+            if (statsRows.length > 0) {
+                currentCount = statsRows[0].batch_import_count || 0;
+                lastDate = statsRows[0].batch_import_date;
+            }
+            
+            if (lastDate !== today) {
+                currentCount = 0;
+            }
+            
+            if (currentCount >= 3) {
+                return res.status(403).json({
+                    success: false,
+                    code: 403,
+                    message: '非VIP用户每天最多可批量导入3次，请升级VIP获取无限次数'
+                });
+            }
+        }
+
         const workbook = xlsx.readFile(req.file.path);
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
@@ -398,6 +431,35 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             }
         }
 
+        if (!isVip && importedCount > 0) {
+            const today = new Date().toISOString().split('T')[0];
+            
+            const [existingStats] = await db.execute(
+                'SELECT id, batch_import_date FROM user_stats WHERE user_id = ?',
+                [req.user.id]
+            );
+            
+            if (existingStats.length > 0) {
+                const lastDate = existingStats[0].batch_import_date;
+                if (lastDate === today) {
+                    await db.execute(
+                        'UPDATE user_stats SET batch_import_count = batch_import_count + 1 WHERE user_id = ?',
+                        [req.user.id]
+                    );
+                } else {
+                    await db.execute(
+                        'UPDATE user_stats SET batch_import_count = 1, batch_import_date = ? WHERE user_id = ?',
+                        [today, req.user.id]
+                    );
+                }
+            } else {
+                await db.execute(
+                    'INSERT INTO user_stats (user_id, batch_import_count, batch_import_date) VALUES (?, 1, ?)',
+                    [req.user.id, today]
+                );
+            }
+        }
+
         const fs = require('fs');
         try { fs.unlinkSync(req.file.path); } catch (e) {}
 
@@ -419,6 +481,57 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             success: false,
             code: 500,
             message: error.message || '批量导入失败'
+        });
+    }
+});
+
+router.get('/batch-import/remaining', auth, async (req, res) => {
+    try {
+        const vipStatus = await UserModel.checkVIPStatus(req.user.id);
+        const isVip = vipStatus && vipStatus.is_vip;
+        
+        if (isVip) {
+            return res.json({
+                success: true,
+                data: {
+                    isVip: true,
+                    remaining: -1,
+                    limit: -1,
+                    used: 0
+                }
+            });
+        }
+        
+        const today = new Date().toISOString().split('T')[0];
+        
+        const [statsRows] = await db.execute(
+            'SELECT batch_import_count, batch_import_date FROM user_stats WHERE user_id = ?',
+            [req.user.id]
+        );
+        
+        let used = 0;
+        if (statsRows.length > 0 && statsRows[0].batch_import_date === today) {
+            used = statsRows[0].batch_import_count || 0;
+        }
+        
+        const limit = 3;
+        const remaining = Math.max(0, limit - used);
+        
+        res.json({
+            success: true,
+            data: {
+                isVip: false,
+                remaining,
+                limit,
+                used
+            }
+        });
+    } catch (error) {
+        console.error('Get batch import remaining error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取批量导入剩余次数失败'
         });
     }
 });
