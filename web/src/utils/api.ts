@@ -149,7 +149,11 @@ export const libraryAPI = {
   search: (keyword: string, params?: any) => api.get('/libraries/search', { keyword, ...params }),
   toggleFavorite: (id: number) => api.post(`/libraries/${id}/favorite`),
   like: (id: number) => api.post(`/libraries/${id}/like`),
-  unlike: (id: number) => api.post(`/libraries/${id}/unlike`)
+  unlike: (id: number) => api.post(`/libraries/${id}/unlike`),
+  getPendingList: (page?: number, pageSize?: number) => api.get('/libraries/admin/pending', { page, pageSize }),
+  approveLibrary: (id: number, note?: string) => api.post(`/libraries/admin/${id}/approve`, { note }),
+  rejectLibrary: (id: number, note?: string) => api.post(`/libraries/admin/${id}/reject`, { note }),
+  getReviewHistory: (id: number) => api.get(`/libraries/admin/${id}/review-history`)
 }
 
 export const cardAPI = {
@@ -294,6 +298,30 @@ export const activationCodeAPI = {
   getList: (params?: any) => api.get('/admin/activation-codes', params),
   batchCreate: (data: { codes: string[]; duration_days: number }) => api.post('/admin/activation-codes/batch', data),
   delete: (id: number) => api.delete(`/admin/activation-codes/${id}`)
+}
+
+export const knowledgePackAPI = {
+  getList: (params?: any) => api.get('/knowledge-packs', params),
+  getFeatured: (limit?: number) => api.get('/knowledge-packs/featured', { limit }),
+  getCategories: () => api.get('/knowledge-packs/categories'),
+  getDetail: (id: number) => api.get(`/knowledge-packs/${id}`),
+  download: (id: number) => api.get(`/knowledge-packs/${id}/download`),
+  toggleFavorite: (id: number) => api.post(`/knowledge-packs/${id}/favorite`),
+  upload: (file: File, formData?: Record<string, any>) => api.upload('/knowledge-packs/upload', file, formData),
+  update: (id: number, data: any) => api.put(`/knowledge-packs/${id}`, data),
+  delete: (id: number) => api.delete(`/knowledge-packs/${id}`),
+  getAdminList: (params?: any) => api.get('/knowledge-packs/admin/list', params)
+}
+
+export const cardChangeReviewAPI = {
+  getLibrariesWithChanges: (params?: any) => api.get('/card-change-reviews/libraries', params),
+  getPendingByLibrary: (libraryId: number, params?: any) => api.get(`/card-change-reviews/library/${libraryId}`, params),
+  getPendingList: (params?: any) => api.get('/card-change-reviews/pending', params),
+  getMyReviews: (params?: any) => api.get('/card-change-reviews/my', params),
+  getDetail: (id: number) => api.get(`/card-change-reviews/${id}`),
+  approve: (id: number) => api.post(`/card-change-reviews/${id}/approve`),
+  reject: (id: number, note?: string) => api.post(`/card-change-reviews/${id}/reject`, { note }),
+  getCardReviews: (cardId: number) => api.get(`/card-change-reviews/card/${cardId}`)
 }
 
 export const isLoggedIn = () => {

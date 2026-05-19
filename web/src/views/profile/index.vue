@@ -290,11 +290,13 @@ import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import { useMessageStore } from '@/stores/message'
 import { studyAPI, authAPI } from '@/utils/api'
+import { usePermission } from '@/composables/usePermission'
 import Picker from '@/components/Picker.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
 const messageStore = useMessageStore()
+const { refreshVipStatus } = usePermission()
 
 const stats = ref({
   libraryCount: 0,
@@ -346,6 +348,7 @@ const goalPercent = computed(() => {
 
 onMounted(() => {
   loadData()
+  refreshVipStatus()
   
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
@@ -353,6 +356,7 @@ onMounted(() => {
 const onVisibilityChange = () => {
   if (document.visibilityState === 'visible') {
     loadData()
+    refreshVipStatus()
   }
 }
 

@@ -235,8 +235,10 @@ router.post('/test-login', async (req, res) => {
             });
         } else if (account === 'admin' && password === 'admin666') {
             let user = await UserModel.findByOpenid('admin_account');
+            console.log('Admin login - found user:', user ? { id: user.id, openid: user.openid, role: user.role } : null);
             
             if (!user) {
+                console.log('Admin user not found, creating new one...');
                 user = await UserModel.create({
                     openid: 'admin_account',
                     nickname: '管理员',
@@ -244,11 +246,14 @@ router.post('/test-login', async (req, res) => {
                     bio: '系统管理员',
                     role: 'admin'
                 });
+                console.log('Created admin user:', { id: user.id, openid: user.openid, role: user.role });
             }
 
             if (user.role !== 'admin') {
+                console.log('User role is not admin, updating...');
                 await db.execute('UPDATE users SET role = ? WHERE id = ?', ['admin', user.id]);
                 user = await UserModel.findById(user.id);
+                console.log('Updated user role:', user.role);
             }
 
             const token = jwt.sign(
@@ -257,6 +262,7 @@ router.post('/test-login', async (req, res) => {
                 { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
             );
 
+            console.log('Admin login successful, returning role: admin');
             res.json({
                 success: true,
                 data: {

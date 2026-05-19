@@ -15,7 +15,12 @@
       </div>
 
       <div class="form-item row">
-        <span class="form-label">公开知识库</span>
+        <div class="form-label-with-icon">
+          <span class="form-label">公开知识库</span>
+          <div class="info-icon" @click="showPublicTip = true">
+            <t-icon name="info-circle" size="16px" color="#94A3B8" />
+          </div>
+        </div>
         <div class="custom-switch" :class="{ active: isPublic }" @click="onTogglePublic">
           <div class="custom-switch-dot"></div>
         </div>
@@ -109,6 +114,21 @@
     cancel-btn="取消"
     @confirm="onConfirmCancel"
   />
+
+  <t-dialog
+    v-model:visible="showPublicTip"
+    header="公开知识库说明"
+    :footer="false"
+  >
+    <div class="public-tip-content">
+      <div class="tip-icon">
+        <t-icon name="info-circle" size="32px" color="#3B82F6" />
+      </div>
+      <div class="tip-text">
+        <p>公开知识库中的卡片编辑需要管理员审核通过才会生效！</p>
+      </div>
+    </div>
+  </t-dialog>
 </template>
 
 <script setup lang="ts">
@@ -135,6 +155,7 @@ const libraryName = ref('')
 const isPublic = ref(true)
 const outline = ref<OutlineItem[]>([])
 const showCancelDialog = ref(false)
+const showPublicTip = ref(false)
 const existingLibraryNames = ref<string[]>([])
 const loading = ref(false)
 
@@ -549,6 +570,28 @@ const onSubmit = async () => {
   display: block;
 }
 
+.form-label-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  .form-label {
+    margin-bottom: 0;
+  }
+}
+
+.info-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 2px;
+  
+  &:active {
+    opacity: 0.6;
+  }
+}
+
 .required {
   color: #e34d59;
 }
@@ -877,6 +920,32 @@ const onSubmit = async () => {
     opacity: 0.7;
     cursor: not-allowed;
     pointer-events: none;
+  }
+}
+
+.public-tip-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+}
+
+.tip-icon {
+  margin-bottom: 16px;
+}
+
+.tip-text {
+  text-align: center;
+  
+  p {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    margin: 0;
+    
+    &:not(:last-child) {
+      margin-bottom: 8px;
+    }
   }
 }
 </style>

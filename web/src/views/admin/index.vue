@@ -101,13 +101,16 @@
           <t-icon name="chevron-right" size="20px" color="#ccc" />
         </div>
 
-        <div class="broadcast-entry" @click="router.push('/admin/blocked-words')">
-          <div class="broadcast-entry-icon" style="background-color: rgba(245, 158, 11, 0.1);">
-            <t-icon name="filter" size="24px" color="#F59E0B" />
+        <div class="broadcast-entry" @click="router.push('/admin/library-review')">
+          <div class="broadcast-entry-icon" style="background-color: rgba(139, 92, 246, 0.15);">
+            <t-icon name="edit" size="24px" color="#8B5CF6" />
           </div>
           <div class="broadcast-entry-content">
-            <span class="broadcast-entry-title">屏蔽词管理</span>
-            <span class="broadcast-entry-desc">管理评论敏感词过滤</span>
+            <span class="broadcast-entry-title">卡片变更审核</span>
+            <span class="broadcast-entry-desc">审核卡片新建和修改</span>
+          </div>
+          <div class="badge-wrapper" v-if="pendingChangeCount > 0">
+            <span class="badge-number">{{ pendingChangeCount > 99 ? '99+' : pendingChangeCount }}</span>
           </div>
           <t-icon name="chevron-right" size="20px" color="#ccc" />
         </div>
@@ -130,6 +133,28 @@
           <div class="broadcast-entry-content">
             <span class="broadcast-entry-title">激活码管理</span>
             <span class="broadcast-entry-desc">生成和管理VIP激活码</span>
+          </div>
+          <t-icon name="chevron-right" size="20px" color="#ccc" />
+        </div>
+
+        <div class="broadcast-entry" @click="router.push('/admin/knowledge-packs')">
+          <div class="broadcast-entry-icon" style="background-color: rgba(16, 185, 129, 0.1);">
+            <t-icon name="folder" size="24px" color="#10B981" />
+          </div>
+          <div class="broadcast-entry-content">
+            <span class="broadcast-entry-title">知识包管理</span>
+            <span class="broadcast-entry-desc">上传、管理和删除PDF知识包</span>
+          </div>
+          <t-icon name="chevron-right" size="20px" color="#ccc" />
+        </div>
+
+        <div class="broadcast-entry" @click="router.push('/admin/blocked-words')">
+          <div class="broadcast-entry-icon" style="background-color: rgba(245, 158, 11, 0.1);">
+            <t-icon name="filter" size="24px" color="#F59E0B" />
+          </div>
+          <div class="broadcast-entry-content">
+            <span class="broadcast-entry-title">屏蔽词管理</span>
+            <span class="broadcast-entry-desc">管理评论敏感词过滤</span>
           </div>
           <t-icon name="chevron-right" size="20px" color="#ccc" />
         </div>
@@ -516,7 +541,7 @@ import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import api from '@/utils/api'
+import api, { cardChangeReviewAPI } from '@/utils/api'
 
 defineOptions({
   name: 'Admin'
@@ -534,6 +559,8 @@ const stats = ref({
   totalUsers: 0,
   totalComments: 0
 })
+
+const pendingChangeCount = ref(0)
 
 const libraries = ref<any[]>([])
 const libraryKeyword = ref('')
@@ -579,6 +606,18 @@ const loadStats = async () => {
     }
   } catch (error) {
     console.error('加载统计失败:', error)
+  }
+}
+
+const loadPendingChangeCount = async () => {
+  try {
+    const res = await cardChangeReviewAPI.getLibrariesWithChanges({ page: 1, pageSize: 100 })
+    if (res.success && res.data) {
+      const list = res.data.list || []
+      pendingChangeCount.value = list.reduce((sum: number, lib: any) => sum + (lib.pending_change_count || 0), 0)
+    }
+  } catch (error) {
+    console.error('加载待审核数量失败:', error)
   }
 }
 
@@ -937,6 +976,7 @@ watch(activeTab, (newTab) => {
 
 onMounted(() => {
   loadStats()
+  loadPendingChangeCount()
   loadLibraries()
   loadCards()
   loadHotCards()
@@ -1606,6 +1646,27 @@ onActivated(() => {
 .broadcast-entry-desc {
   font-size: 13px;
   color: #999;
+}
+
+.badge-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 8px;
+}
+
+.badge-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background-color: #f5222d;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 9px;
 }
 
 .comment-modal-overlay {

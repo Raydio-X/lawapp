@@ -12,7 +12,7 @@ class LibraryModel {
                    (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id AND f.user_id = ?) as is_favorited
                    FROM libraries l 
                    LEFT JOIN users u ON l.created_by = u.id 
-                   WHERE l.is_public = 1`;
+                   WHERE l.is_public = 1 AND l.status = 'approved'`;
         const values = [userId || 0, userId || 0];
 
         if (subject) {
@@ -29,7 +29,7 @@ class LibraryModel {
 
         const [rows] = await db.execute(sql, values);
         
-        let countSql = 'SELECT COUNT(*) as total FROM libraries WHERE is_public = 1';
+        let countSql = 'SELECT COUNT(*) as total FROM libraries WHERE is_public = 1 AND status = \'approved\'';
         const countValues = [];
         if (subject) {
             countSql += ' AND subject = ?';
@@ -100,7 +100,7 @@ class LibraryModel {
              (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'library' AND f.target_id = l.id) as favorite_count
              FROM libraries l 
              LEFT JOIN users u ON l.created_by = u.id 
-             WHERE l.is_public = 1 
+             WHERE l.is_public = 1 AND l.status = 'approved'
              ORDER BY l.view_count DESC, l.favorite_count DESC 
              LIMIT ${parseInt(limit)}`
         );
@@ -126,9 +126,12 @@ class LibraryModel {
     }
 
     static async create(data) {
+        const isPublic = data.is_public !== undefined ? data.is_public : 1;
+        const status = 'approved';
+        
         const [result] = await db.execute(
-            'INSERT INTO libraries (name, subject, description, cover_image, created_by, is_public) VALUES (?, ?, ?, ?, ?, ?)',
-            [data.name, data.subject, data.description || '', data.cover_image || '', data.created_by, data.is_public !== undefined ? data.is_public : 1]
+            'INSERT INTO libraries (name, subject, description, cover_image, created_by, is_public, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [data.name, data.subject, data.description || '', data.cover_image || '', data.created_by, isPublic, status]
         );
         return this.findById(result.insertId);
     }
@@ -176,7 +179,51 @@ class LibraryModel {
     }
 
     static async delete(id) {
+        const [cardIds] = await db.execute(
+            'SELECT id FROM cards WHERE library_id = ?',
+            [id]
+        );
+        
+        if (cardIds.length > 0) {
+            const cardIdList = cardIds.map(c => c.id);
+            
+            await db.execute(
+                `DELETE FROM card_mastery WHERE card_id IN (${cardIdList.map(() => '?').join(',')})`,
+                cardIdList
+            );
+            
+            await db.execute(
+                `DELETE FROM study_records WHERE card_id IN (${cardIdList.map(() => '?').join(',')})`,
+                cardIdList
+            );
+            
+            await db.execute(
+                `DELETE FROM user_likes WHERE target_type = 'card' AND target_id IN (${cardIdList.map(() => '?').join(',')})`,
+                cardIdList
+            );
+            
+            await db.execute(
+                `DELETE FROM favorites WHERE target_type = 'card' AND target_id IN (${cardIdList.map(() => '?').join(',')})`,
+                cardIdList
+            );
+            
+            await db.execute(
+                `DELETE FROM comments WHERE card_id IN (${cardIdList.map(() => '?').join(',')})`,
+                cardIdList
+            );
+        }
+        
+        await db.execute('DELETE FROM cards WHERE library_id = ?', [id]);
+        
+        await db.execute('DELETE FROM chapters WHERE library_id = ?', [id]);
+        
         await FavoriteModel.removeByLibrary(id);
+        
+        await db.execute(
+            'DELETE FROM user_likes WHERE target_type = \'library\' AND target_id = ?',
+            [id]
+        );
+        
         await db.execute('DELETE FROM libraries WHERE id = ?', [id]);
     }
 
@@ -227,6 +274,87 @@ class LibraryModel {
             'UPDATE libraries SET like_count = ? WHERE id = ?',
             [count, id]
         );
+    }
+
+    static async getPendingList(params = {}) {
+        const { page = 1, pageSize = 10 } = params;
+        const offset = (page - 1) * pageSize;
+
+        const [rows] = await db.execute(
+            `SELECT l.*, u.nickname as creator_name,
+             (SELECT COUNT(*) FROM cards c WHERE c.library_id = l.id) as card_count
+             FROM libraries l 
+             LEFT JOIN users u ON l.created_by = u.id 
+             WHERE l.status = 'pending'
+             ORDER BY l.created_at ASC 
+             LIMIT ${parseInt(pageSize)} OFFSET ${offset}`
+        );
+
+        const [countRows] = await db.execute(
+            "SELECT COUNT(*) as total FROM libraries WHERE status = 'pending'"
+        );
+
+        return {
+            list: rows,
+            pagination: {
+                page: parseInt(page),
+                pageSize: parseInt(pageSize),
+                total: countRows[0].total,
+                totalPages: Math.ceil(countRows[0].total / pageSize)
+            }
+        };
+    }
+
+    static async approve(id, reviewerId, note = '') {
+        await db.execute(
+            `UPDATE libraries 
+             SET status = 'approved', 
+                 review_note = ?, 
+                 reviewed_by = ?, 
+                 reviewed_at = NOW() 
+             WHERE id = ?`,
+            [note, reviewerId, id]
+        );
+
+        await db.execute(
+            `INSERT INTO library_reviews (library_id, reviewer_id, action, note)
+             VALUES (?, ?, 'approve', ?)`,
+            [id, reviewerId, note]
+        );
+
+        return this.findById(id);
+    }
+
+    static async reject(id, reviewerId, note = '') {
+        await db.execute(
+            `UPDATE libraries 
+             SET status = 'rejected', 
+                 review_note = ?, 
+                 reviewed_by = ?, 
+                 reviewed_at = NOW() 
+             WHERE id = ?`,
+            [note, reviewerId, id]
+        );
+
+        await db.execute(
+            `INSERT INTO library_reviews (library_id, reviewer_id, action, note)
+             VALUES (?, ?, 'reject', ?)`,
+            [id, reviewerId, note]
+        );
+
+        return this.findById(id);
+    }
+
+    static async getReviewHistory(libraryId) {
+        const [rows] = await db.execute(
+            `SELECT r.*, u.nickname as reviewer_name
+             FROM library_reviews r
+             LEFT JOIN users u ON r.reviewer_id = u.id
+             WHERE r.library_id = ?
+             ORDER BY r.created_at DESC`,
+            [libraryId]
+        );
+        return rows;
     }
 }
 

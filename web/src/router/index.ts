@@ -226,6 +226,42 @@ const routes: RouteRecordRaw[] = [
     meta: { title: '用户详情', requiresAdmin: true }
   },
   {
+    path: '/admin/knowledge-pack-upload',
+    name: 'AdminKnowledgePackUpload',
+    component: () => import('@/views/admin/KnowledgePackUpload.vue'),
+    meta: { title: '知识包上传', requiresAdmin: true }
+  },
+  {
+    path: '/admin/knowledge-packs',
+    name: 'AdminKnowledgePackManage',
+    component: () => import('@/views/admin/KnowledgePackManage.vue'),
+    meta: { title: '知识包管理', requiresAdmin: true }
+  },
+  {
+    path: '/admin/library-review',
+    name: 'AdminLibraryReview',
+    component: () => import('@/views/admin/LibraryReview.vue'),
+    meta: { title: '卡片变更审核', requiresAdmin: true }
+  },
+  {
+    path: '/admin/library-review/:id',
+    name: 'AdminLibraryReviewDetail',
+    component: () => import('@/views/admin/LibraryReviewDetail.vue'),
+    meta: { title: '卡片变更详情', requiresAdmin: true }
+  },
+  {
+    path: '/knowledge-packs',
+    name: 'KnowledgePackList',
+    component: () => import('@/views/knowledge-pack/List.vue'),
+    meta: { title: '知识包列表' }
+  },
+  {
+    path: '/knowledge-pack/:id',
+    name: 'KnowledgePackDetail',
+    component: () => import('@/views/knowledge-pack/Detail.vue'),
+    meta: { title: '知识包详情' }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/home'
   }
@@ -249,18 +285,22 @@ router.beforeEach((to, from, next) => {
 
   if (to.meta.requiresAdmin) {
     const userInfoStr = localStorage.getItem('userInfo')
+    console.log('Router guard - checking admin access for:', to.path)
+    console.log('Router guard - userInfo from localStorage:', userInfoStr)
     let userRole = 'user'
     if (userInfoStr) {
       try {
         const userInfo = JSON.parse(userInfoStr)
         userRole = userInfo.role || 'user'
+        console.log('Router guard - userRole:', userRole)
       } catch (e) {
         console.error('Failed to parse userInfo:', e)
       }
     }
     
     if (userRole !== 'admin') {
-      next({ name: 'Home' })
+      console.log('Router guard - access denied, redirecting to login')
+      next({ name: 'Login', query: { redirect: to.fullPath } })
       return
     }
   }

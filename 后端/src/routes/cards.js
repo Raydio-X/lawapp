@@ -562,20 +562,52 @@ router.post('/', auth, async (req, res) => {
             });
         }
 
-        const card = await CardModel.create({
-            library_id,
-            chapter_id,
-            question,
-            answer,
-            tags,
-            created_by: req.user.id,
-            is_public
-        });
+        const [libraryRows] = await db.execute(
+            'SELECT is_public, status FROM libraries WHERE id = ?',
+            [library_id]
+        );
 
-        res.status(201).json({
-            success: true,
-            data: card
-        });
+        const library = libraryRows[0];
+        const isPublicLibrary = library && library.is_public === 1 && library.status === 'approved';
+        const isAdmin = req.user.role === 'admin';
+
+        if (isPublicLibrary && !isAdmin) {
+            const CardChangeReviewModel = require('../models/CardChangeReview');
+            const review = await CardChangeReviewModel.create({
+                card_id: null,
+                library_id,
+                chapter_id: chapter_id || null,
+                change_type: 'create',
+                new_question: question,
+                new_answer: answer,
+                new_tags: tags || [],
+                created_by: req.user.id
+            });
+
+            res.status(201).json({
+                success: true,
+                data: {
+                    id: review.id,
+                    status: 'pending_review',
+                    message: '卡片已提交审核，审核通过后将自动发布'
+                }
+            });
+        } else {
+            const card = await CardModel.create({
+                library_id,
+                chapter_id,
+                question,
+                answer,
+                tags,
+                created_by: req.user.id,
+                is_public
+            });
+
+            res.status(201).json({
+                success: true,
+                data: card
+            });
+        }
     } catch (error) {
         console.error('Create card error:', error);
         res.status(500).json({
@@ -627,6 +659,44 @@ router.put('/:id', auth, async (req, res) => {
                     code: 400,
                     message: '您的文本包含敏感词，请修改后重新发布！'
                 });
+            }
+        }
+
+        if (card.library_id) {
+            const [libraryRows] = await db.execute(
+                'SELECT is_public, status FROM libraries WHERE id = ?',
+                [card.library_id]
+            );
+            
+            const library = libraryRows[0];
+            const isPublicLibrary = library && library.is_public === 1 && library.status === 'approved';
+            const isAdmin = req.user.role === 'admin';
+            
+            if (isPublicLibrary && !isAdmin) {
+                const CardChangeReviewModel = require('../models/CardChangeReview');
+                const review = await CardChangeReviewModel.create({
+                    card_id: parseInt(req.params.id),
+                    library_id: card.library_id,
+                    chapter_id: chapter_id !== undefined ? chapter_id : card.chapter_id,
+                    change_type: 'update',
+                    old_question: card.question,
+                    old_answer: card.answer,
+                    old_tags: card.tags,
+                    new_question: question !== undefined ? question : card.question,
+                    new_answer: answer !== undefined ? answer : card.answer,
+                    new_tags: tags !== undefined ? tags : card.tags,
+                    created_by: req.user.id
+                });
+                
+                res.json({
+                    success: true,
+                    data: {
+                        id: review.id,
+                        status: 'pending_review',
+                        message: '卡片修改已提交审核，审核通过后将自动更新'
+                    }
+                });
+                return;
             }
         }
 

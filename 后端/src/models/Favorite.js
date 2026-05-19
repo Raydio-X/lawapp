@@ -99,6 +99,12 @@ class FavoriteModel {
                 [targetType, targetId]
             );
             favoriteCount = rows[0].count;
+        } else if (targetType === 'knowledge_pack') {
+            const [rows] = await db.execute(
+                'SELECT COUNT(*) as count FROM favorites WHERE target_type = ? AND target_id = ?',
+                [targetType, targetId]
+            );
+            favoriteCount = rows[0].count;
         }
         
         return { 

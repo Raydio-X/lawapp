@@ -51,6 +51,8 @@
       </div>
     </div>
 
+    <KnowledgePacks ref="knowledgePacksRef" />
+
     <div class="section library-section">
       <div class="section-header">
         <div class="section-title-wrap">
@@ -125,6 +127,7 @@ import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI, cardAPI, isLoggedIn } from '@/utils/api'
 import EmptyState from '@/components/EmptyState.vue'
+import KnowledgePacks from './KnowledgePacks.vue'
 
 interface HotCard {
   id: number
@@ -149,6 +152,7 @@ interface Library {
 }
 
 const router = useRouter()
+const knowledgePacksRef = ref()
 
 const SUBJECT_TYPE_MAP: Record<string, string> = {
   '民法': 'civil',

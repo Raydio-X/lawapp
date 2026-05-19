@@ -4,7 +4,8 @@ const ChapterModel = require('../models/Chapter');
 const CardModel = require('../models/Card');
 const FavoriteModel = require('../models/Favorite');
 const LikeModel = require('../models/Like');
-const { auth, optionalAuth } = require('../middlewares/auth');
+const MessageModel = require('../models/message');
+const { auth, optionalAuth, adminAuth } = require('../middlewares/auth');
 
 const router = express.Router();
 
@@ -436,6 +437,102 @@ router.get('/:libraryId/cards/random', async (req, res) => {
             code: 500,
             message: '获取随机卡片失败'
         });
+    }
+});
+
+router.get('/admin/pending', adminAuth, async (req, res) => {
+    try {
+        const { page, pageSize } = req.query;
+        
+        const result = await LibraryModel.getPendingList({
+            page: parseInt(page) || 1,
+            pageSize: parseInt(pageSize) || 10
+        });
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('获取待审核知识库列表失败:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取待审核知识库列表失败' });
+    }
+});
+
+router.post('/admin/:id/approve', adminAuth, async (req, res) => {
+    try {
+        const { note } = req.body;
+        const library = await LibraryModel.findById(req.params.id);
+        
+        if (!library) {
+            return res.status(404).json({ success: false, code: 404, message: '知识库不存在' });
+        }
+
+        if (library.status !== 'pending') {
+            return res.status(400).json({ success: false, code: 400, message: '该知识库不在待审核状态' });
+        }
+
+        const updated = await LibraryModel.approve(req.params.id, req.user.id, note || '');
+        
+        res.json({
+            success: true,
+            data: updated,
+            message: '审核通过'
+        });
+    } catch (error) {
+        console.error('审核通过失败:', error);
+        res.status(500).json({ success: false, code: 500, message: '审核通过失败' });
+    }
+});
+
+router.post('/admin/:id/reject', adminAuth, async (req, res) => {
+    try {
+        const { note } = req.body;
+        const library = await LibraryModel.findById(req.params.id);
+        
+        if (!library) {
+            return res.status(404).json({ success: false, code: 404, message: '知识库不存在' });
+        }
+
+        if (library.status !== 'pending') {
+            return res.status(400).json({ success: false, code: 400, message: '该知识库不在待审核状态' });
+        }
+
+        const updated = await LibraryModel.reject(req.params.id, req.user.id, note || '');
+        
+        try {
+            await MessageModel.create({
+                user_id: library.created_by,
+                title: '知识库审核结果通知',
+                content: `您提交的知识库「${library.name}」审核未通过。${note ? `原因：${note}` : ''}`,
+                type: 'system'
+            });
+        } catch (msgError) {
+            console.error('发送审核通知失败:', msgError);
+        }
+        
+        res.json({
+            success: true,
+            data: updated,
+            message: '审核驳回'
+        });
+    } catch (error) {
+        console.error('审核驳回失败:', error);
+        res.status(500).json({ success: false, code: 500, message: '审核驳回失败' });
+    }
+});
+
+router.get('/admin/:id/review-history', adminAuth, async (req, res) => {
+    try {
+        const history = await LibraryModel.getReviewHistory(req.params.id);
+        
+        res.json({
+            success: true,
+            data: history
+        });
+    } catch (error) {
+        console.error('获取审核历史失败:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取审核历史失败' });
     }
 });
 

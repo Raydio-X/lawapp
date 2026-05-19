@@ -1,0 +1,25 @@
+-- 知识包表
+CREATE TABLE IF NOT EXISTS knowledge_packs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL COMMENT '知识包标题',
+    description TEXT COMMENT '知识包简介',
+    file_path VARCHAR(500) NOT NULL COMMENT 'PDF文件存储路径',
+    file_name VARCHAR(255) NOT NULL COMMENT '原始文件名',
+    file_size BIGINT NOT NULL COMMENT '文件大小(字节)',
+    file_type VARCHAR(50) DEFAULT 'application/pdf' COMMENT '文件MIME类型',
+    cover_image VARCHAR(500) COMMENT '封面图片路径',
+    category VARCHAR(100) COMMENT '分类',
+    tags JSON COMMENT '标签',
+    download_count INT DEFAULT 0 COMMENT '下载次数',
+    view_count INT DEFAULT 0 COMMENT '查看次数',
+    is_public TINYINT DEFAULT 1 COMMENT '是否公开 0-私有 1-公开',
+    is_featured TINYINT DEFAULT 0 COMMENT '是否精选 0-否 1-是',
+    created_by INT COMMENT '创建者ID',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_category (category),
+    INDEX idx_is_public (is_public),
+    INDEX idx_is_featured (is_featured),
+    INDEX idx_created_at (created_at),
+    INDEX idx_download_count (download_count)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识包表';

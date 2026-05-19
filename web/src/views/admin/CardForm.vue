@@ -914,7 +914,11 @@ const onSubmit = async () => {
     }
 
     if (res.success) {
-      MessagePlugin.success(isEdit.value ? '保存成功' : '创建成功')
+      if (res.data && res.data.status === 'pending_review') {
+        MessagePlugin.success(res.data.message || '卡片已提交审核，审核通过后将自动发布')
+      } else {
+        MessagePlugin.success(isEdit.value ? '保存成功' : '创建成功')
+      }
       router.push('/admin')
     } else {
       MessagePlugin.error(res.message || '操作失败')

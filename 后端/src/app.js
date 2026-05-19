@@ -15,6 +15,8 @@ const adminRoutes = require('./routes/admin');
 const messageRoutes = require('./routes/messages');
 const feedbackRoutes = require('./routes/feedback');
 const activationRoutes = require('./routes/activation');
+const knowledgePackRoutes = require('./routes/knowledgePacks');
+const cardChangeReviewRoutes = require('./routes/cardChangeReviews');
 
 const app = express();
 
@@ -24,7 +26,9 @@ const allowedOrigins = process.env.CORS_ORIGIN
         'http://localhost:5173',
         'http://localhost:3000',
         'http://127.0.0.1:5173',
-        'http://127.0.0.1:3000'
+        'http://127.0.0.1:3000',
+        'https://www.lawapp.top',
+        'http://www.lawapp.top'
     ];
 
 const corsOptions = {
@@ -45,6 +49,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use('/icons', express.static(path.join(__dirname, '../icons')));
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.get('/', (req, res) => {
     res.json({
@@ -94,10 +99,37 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/activation', activationRoutes);
+app.use('/api/knowledge-packs', knowledgePackRoutes);
+app.use('/api/card-change-reviews', cardChangeReviewRoutes);
 
 app.use((err, req, res, next) => {
     console.error('Error:', err);
     console.error('Stack:', err.stack);
+    
+    if (err.name === 'MulterError') {
+        let message = '文件上传失败';
+        if (err.code === 'LIMIT_FILE_SIZE') {
+            message = '文件大小超过限制（最大50MB）';
+        } else if (err.code === 'LIMIT_FILE_COUNT') {
+            message = '文件数量超过限制';
+        } else if (err.code === 'LIMIT_UNEXPECTED_FILE') {
+            message = '意外的文件字段';
+        }
+        return res.status(400).json({
+            success: false,
+            code: 400,
+            message
+        });
+    }
+    
+    if (err.message === '只支持PDF格式文件') {
+        return res.status(400).json({
+            success: false,
+            code: 400,
+            message: err.message
+        });
+    }
+    
     res.status(500).json({
         success: false,
         code: 500,

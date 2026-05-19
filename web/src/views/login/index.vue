@@ -128,7 +128,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { authAPI } from '@/utils/api'
+import { authAPI, activationAPI } from '@/utils/api'
 import { useUserStore } from '@/stores/user'
 
 declare global {
@@ -266,6 +266,7 @@ const initQQSDK = () => {
   script.setAttribute('id', 'qq-jssdk')
   script.async = true
   script.onload = () => {
+    console.log('QQ SDK loaded successfully')
   }
   script.onerror = () => {
     console.error('QQ SDK load failed')
@@ -291,48 +292,70 @@ const onQQLogin = () => {
 
   qqLoginLoading.value = true
 
-  window.QC.Login.showPopup({
-    appId: QQ_APP_ID,
-    redirectURI: QQ_REDIRECT_URI
-  })
+  try {
+    window.QC.Login.showPopup({
+      appId: QQ_APP_ID,
+      redirectURI: QQ_REDIRECT_URI
+    })
+  } catch (error) {
+    console.error('QQ登录弹出窗口失败:', error)
+    MessagePlugin.error('QQ登录失败，请稍后重试')
+    qqLoginLoading.value = false
+  }
 }
 
 const checkQQLoginStatus = () => {
   if (!window.QC || !QQ_APP_ID) return
 
-  if (window.QC.Login.check()) {
-    window.QC.Login.getMe(async (openId: string, accessToken: string) => {
-      try {
-        const res = await authAPI.qqLogin(accessToken, openId)
-        
-        if (res.success && res.data) {
-          userStore.setToken(res.data.token)
-          userStore.setUserInfo({
-            id: res.data.userInfo.id,
-            userId: res.data.userInfo.userId,
-            nickName: res.data.userInfo.nickname,
-            avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
-            bio: res.data.userInfo.bio,
-            role: res.data.userInfo.role
-          })
-          MessagePlugin.success('登录成功')
+  try {
+    if (window.QC.Login.check()) {
+      window.QC.Login.getMe(async (openId: string, accessToken: string) => {
+        try {
+          const res = await authAPI.qqLogin(accessToken, openId)
           
-          const redirect = route.query.redirect as string
-          if (redirect) {
-            router.push(redirect)
-          } else if (res.data.userInfo.role === 'admin') {
-            router.push('/admin')
-          } else {
-            router.push('/home')
+          if (res.success && res.data) {
+            userStore.setToken(res.data.token)
+            userStore.setUserInfo({
+              id: res.data.userInfo.id,
+              userId: res.data.userInfo.userId,
+              nickName: res.data.userInfo.nickname,
+              avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
+              bio: res.data.userInfo.bio,
+              role: res.data.userInfo.role
+            })
+            
+            try {
+              const vipRes = await activationAPI.getStatus()
+              if (vipRes.success && vipRes.data) {
+                userStore.setVipStatus({
+                  isVip: vipRes.data.is_vip || vipRes.data.isVip || false,
+                  vipExpireAt: vipRes.data.vip_expires_at || vipRes.data.vipExpireAt || null
+                })
+              }
+            } catch (error) {
+              console.error('获取VIP状态失败:', error)
+            }
+            
+            MessagePlugin.success('登录成功')
+            
+            const redirect = route.query.redirect as string
+            if (redirect) {
+              router.push(redirect)
+            } else if (res.data.userInfo.role === 'admin') {
+              router.push('/admin')
+            } else {
+              router.push('/home')
+            }
           }
+        } catch (error: any) {
+          MessagePlugin.error(error.message || 'QQ登录失败')
+        } finally {
+          qqLoginLoading.value = false
         }
-      } catch (error: any) {
-        MessagePlugin.error(error.message || 'QQ登录失败')
-      } finally {
-        qqLoginLoading.value = false
-      }
-    })
-  } else {
+      })
+    }
+  } catch (error) {
+    console.error('检查QQ登录状态失败:', error)
     qqLoginLoading.value = false
   }
 }
@@ -354,7 +377,9 @@ const handleTestLogin = async () => {
 
   try {
     const res = await authAPI.testLogin(testAccount.value, testPassword.value)
+    console.log('Login response:', res)
     if (res.success && res.data) {
+      console.log('User role from response:', res.data.userInfo.role)
       userStore.setToken(res.data.token)
       userStore.setUserInfo({
         id: res.data.userInfo.id,
@@ -364,14 +389,31 @@ const handleTestLogin = async () => {
         bio: res.data.userInfo.bio,
         role: res.data.userInfo.role
       })
+      
+      console.log('UserInfo saved to localStorage:', localStorage.getItem('userInfo'))
+      
+      try {
+        const vipRes = await activationAPI.getStatus()
+        if (vipRes.success && vipRes.data) {
+          userStore.setVipStatus({
+            isVip: vipRes.data.is_vip || vipRes.data.isVip || false,
+            vipExpireAt: vipRes.data.vip_expires_at || vipRes.data.vipExpireAt || null
+          })
+        }
+      } catch (error) {
+        console.error('获取VIP状态失败:', error)
+      }
+      
       MessagePlugin.success('登录成功')
       
       const redirect = route.query.redirect as string
       if (redirect) {
         router.push(redirect)
       } else if (res.data.userInfo.role === 'admin') {
+        console.log('Redirecting to /admin')
         router.push('/admin')
       } else {
+        console.log('Redirecting to /home')
         router.push('/home')
       }
     }
