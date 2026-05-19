@@ -610,10 +610,12 @@ router.post('/', auth, async (req, res) => {
         }
     } catch (error) {
         console.error('Create card error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
             code: 500,
-            message: '创建卡片失败'
+            message: '创建卡片失败',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });

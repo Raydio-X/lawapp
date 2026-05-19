@@ -11,34 +11,43 @@ const safeParseJSON = (str, defaultValue = null) => {
 
 class CardChangeReviewModel {
     static async create(data) {
-        const [result] = await db.execute(
-            `INSERT INTO card_change_reviews 
-            (card_id, library_id, chapter_id, change_type, old_question, old_answer, old_tags, 
-             new_question, new_answer, new_tags, created_by) 
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                data.card_id || null,
-                data.library_id,
-                data.chapter_id || null,
-                data.change_type,
-                data.old_question || null,
-                data.old_answer || null,
-                data.old_tags ? JSON.stringify(data.old_tags) : null,
-                data.new_question,
-                data.new_answer,
-                data.new_tags ? JSON.stringify(data.new_tags) : null,
-                data.created_by
-            ]
-        );
-
-        if (data.card_id) {
-            await db.execute(
-                'UPDATE cards SET has_pending_change = 1 WHERE id = ?',
-                [data.card_id]
+        try {
+            const [result] = await db.execute(
+                `INSERT INTO card_change_reviews 
+                (card_id, library_id, chapter_id, change_type, old_question, old_answer, old_tags, 
+                 new_question, new_answer, new_tags, created_by) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    data.card_id || null,
+                    data.library_id,
+                    data.chapter_id || null,
+                    data.change_type,
+                    data.old_question || null,
+                    data.old_answer || null,
+                    data.old_tags ? JSON.stringify(data.old_tags) : null,
+                    data.new_question,
+                    data.new_answer,
+                    data.new_tags ? JSON.stringify(data.new_tags) : null,
+                    data.created_by
+                ]
             );
-        }
 
-        return this.findById(result.insertId);
+            if (data.card_id) {
+                await db.execute(
+                    'UPDATE cards SET has_pending_change = 1 WHERE id = ?',
+                    [data.card_id]
+                );
+            }
+
+            return this.findById(result.insertId);
+        } catch (error) {
+            console.error('CardChangeReview.create error:', error);
+            console.error('Error code:', error.code);
+            if (error.code === 'ER_NO_SUCH_TABLE') {
+                throw new Error('数据库表 card_change_reviews 不存在，请运行迁移脚本创建表结构');
+            }
+            throw error;
+        }
     }
 
     static async findById(id) {
@@ -271,38 +280,55 @@ class CardChangeReviewModel {
         const { page = 1, pageSize = 10 } = params;
         const offset = (page - 1) * pageSize;
 
-        const [rows] = await db.execute(
-            `SELECT 
-                l.id,
-                l.name,
-                l.subject,
-                l.description,
-                l.created_at,
-                u.nickname as creator_name,
-                COUNT(ccr.id) as pending_change_count
-             FROM libraries l
-             INNER JOIN card_change_reviews ccr ON ccr.library_id = l.id AND ccr.status = 'pending'
-             LEFT JOIN users u ON l.created_by = u.id
-             GROUP BY l.id
-             ORDER BY MAX(ccr.created_at) DESC
-             LIMIT ${parseInt(pageSize)} OFFSET ${offset}`
-        );
+        try {
+            const [rows] = await db.execute(
+                `SELECT 
+                    l.id,
+                    l.name,
+                    l.subject,
+                    l.description,
+                    l.created_at,
+                    u.nickname as creator_name,
+                    COUNT(ccr.id) as pending_change_count
+                 FROM libraries l
+                 INNER JOIN card_change_reviews ccr ON ccr.library_id = l.id AND ccr.status = 'pending'
+                 LEFT JOIN users u ON l.created_by = u.id
+                 GROUP BY l.id
+                 ORDER BY MAX(ccr.created_at) DESC
+                 LIMIT ${parseInt(pageSize)} OFFSET ${offset}`
+            );
 
-        const [countRows] = await db.execute(
-            `SELECT COUNT(DISTINCT library_id) as total 
-             FROM card_change_reviews 
-             WHERE status = 'pending'`
-        );
+            const [countRows] = await db.execute(
+                `SELECT COUNT(DISTINCT library_id) as total 
+                 FROM card_change_reviews 
+                 WHERE status = 'pending'`
+            );
 
-        return {
-            list: rows,
-            pagination: {
-                page: parseInt(page),
-                pageSize: parseInt(pageSize),
-                total: countRows[0].total,
-                totalPages: Math.ceil(countRows[0].total / pageSize)
+            return {
+                list: rows,
+                pagination: {
+                    page: parseInt(page),
+                    pageSize: parseInt(pageSize),
+                    total: countRows[0].total,
+                    totalPages: Math.ceil(countRows[0].total / pageSize)
+                }
+            };
+        } catch (error) {
+            console.error('getLibrariesWithPendingChanges error:', error);
+            if (error.code === 'ER_NO_SUCH_TABLE') {
+                console.log('card_change_reviews table does not exist, returning empty list');
+                return {
+                    list: [],
+                    pagination: {
+                        page: parseInt(page),
+                        pageSize: parseInt(pageSize),
+                        total: 0,
+                        totalPages: 0
+                    }
+                };
             }
-        };
+            throw error;
+        }
     }
 
     static async getPendingByLibraryId(libraryId, params = {}) {

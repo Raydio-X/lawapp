@@ -19,10 +19,12 @@ router.get('/libraries', adminAuth, async (req, res) => {
         });
     } catch (error) {
         console.error('Get libraries with pending changes error:', error);
+        console.error('Error stack:', error.stack);
         res.status(500).json({
             success: false,
             code: 500,
-            message: '获取知识库列表失败'
+            message: '获取知识库列表失败',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
 });
