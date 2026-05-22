@@ -147,7 +147,7 @@
         </div>
       </div>
 
-      <div class="cards-section" v-if="selectedChapter">
+      <div class="cards-section" ref="cardsSectionRef" v-if="selectedChapter">
         <div class="cards-header">
           <div class="cards-header-left">
             <span class="cards-title">{{ selectedChapter.title }}</span>
@@ -272,7 +272,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI, cardAPI, chapterAPI, isLoggedIn } from '@/utils/api'
@@ -281,7 +281,10 @@ const router = useRouter()
 const route = useRoute()
 
 const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', 
-                    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十']
+                    '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+                    '二十一', '二十二', '二十三', '二十四', '二十五', '二十六', '二十七', '二十八', '二十九', '三十',
+                    '三十一', '三十二', '三十三', '三十四', '三十五', '三十六', '三十七', '三十八', '三十九', '四十',
+                    '四十一', '四十二', '四十三', '四十四', '四十五', '四十六', '四十七', '四十八', '四十九', '五十']
 
 const getChapterNum = (index: number) => chineseNum[index] || (index + 1)
 const getSectionNum = (chapterIndex: number, sectionIndex: number) => (chapterIndex + 1) + '-' + (sectionIndex + 1)
@@ -331,6 +334,7 @@ const selectedChapterIndex = ref(-1)
 const selectedChildIndex = ref(-1)
 const selectedGrandChildIndex = ref(-1)
 const selectedChapter = ref<Chapter | null>(null)
+const cardsSectionRef = ref<HTMLElement | null>(null)
 
 const isManageMode = ref(false)
 const selectedCardIds = ref<number[]>([])
@@ -536,6 +540,8 @@ const onChildChapterTap = (chapterIndex: number, childIndex: number) => {
   selectedChildIndex.value = childIndex
   selectedGrandChildIndex.value = -1
   selectedChapter.value = childChapter
+  
+  scrollToCardsSection()
 }
 
 const onGrandChildChapterTap = (chapterIndex: number, childIndex: number, grandChildIndex: number) => {
@@ -545,6 +551,26 @@ const onGrandChildChapterTap = (chapterIndex: number, childIndex: number, grandC
   selectedChildIndex.value = childIndex
   selectedGrandChildIndex.value = grandChildIndex
   selectedChapter.value = grandChildChapter
+  
+  scrollToCardsSection()
+}
+
+const scrollToCardsSection = () => {
+  nextTick(() => {
+    setTimeout(() => {
+      if (cardsSectionRef.value) {
+        const element = cardsSectionRef.value
+        const rect = element.getBoundingClientRect()
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+        const targetPosition = rect.top + scrollTop - 80
+        
+        window.scrollTo({
+          top: targetPosition,
+          behavior: 'smooth'
+        })
+      }
+    }, 100)
+  })
 }
 
 const onCardTap = (card: Card, cardIndex: number) => {

@@ -271,20 +271,12 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             const chapterLevel1 = row[3] ? String(row[3]).trim() : '';
             const chapterLevel2 = row[4] ? String(row[4]).trim() : '';
 
-            if (!question && !answer && !chapterLevel1) continue;
+            if (!question && !chapterLevel1) continue;
 
             if (!question) {
                 errors.push({
                     row: i + 2,
                     message: `第${i + 2}行：问题不能为空`
-                });
-                continue;
-            }
-
-            if (!answer) {
-                errors.push({
-                    row: i + 2,
-                    message: `第${i + 2}行：答案不能为空`
                 });
                 continue;
             }
@@ -306,13 +298,15 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                 continue;
             }
 
-            const answerCheck = await sensitiveWordFilter.contains(answer);
-            if (answerCheck.hasSensitive) {
-                errors.push({
-                    row: i + 2,
-                    message: `第${i + 2}行：您的文本包含敏感词，请修改后重新发布！`
-                });
-                continue;
+            if (answer) {
+                const answerCheck = await sensitiveWordFilter.contains(answer);
+                if (answerCheck.hasSensitive) {
+                    errors.push({
+                        row: i + 2,
+                        message: `第${i + 2}行：您的文本包含敏感词，请修改后重新发布！`
+                    });
+                    continue;
+                }
             }
 
             let keywordsArray = [];

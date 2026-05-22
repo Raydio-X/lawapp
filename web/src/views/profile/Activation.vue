@@ -106,7 +106,7 @@
                 <span class="row-desc">每日批量导入次数</span>
               </div>
               <div class="privilege-col col-normal">
-                <span class="col-value">1次</span>
+                <span class="col-value">3次</span>
               </div>
               <div class="privilege-col col-vip">
                 <span class="col-value vip-text">无限制</span>

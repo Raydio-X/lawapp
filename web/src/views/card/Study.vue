@@ -1757,18 +1757,21 @@ const saveStudyProgress = () => {
 
 .study-nav-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 450px;
   background: #fff;
-  padding: 12px 16px;
-  padding-bottom: calc(12px + constant(safe-area-inset-bottom));
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.06);
+  padding: 10px 20px;
+  padding-bottom: calc(10px + constant(safe-area-inset-bottom));
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  border-radius: 28px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 170px;
+  gap: 0;
   z-index: 100;
   
   &.study-mode {

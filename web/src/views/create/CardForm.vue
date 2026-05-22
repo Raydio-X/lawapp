@@ -92,7 +92,7 @@
           <div class="form-item">
             <div class="form-label">
               <span class="label-text">答案</span>
-              <span class="label-required">*</span>
+              <span class="label-hint">可选</span>
             </div>
             <div class="editor-card" :class="{ focused: answerFocused }">
               <div class="editor-toolbar" ref="toolbarRef">
@@ -312,9 +312,7 @@ const chapterOptions = computed<PickerOption[]>(() => {
 })
 
 const canSubmit = computed(() => {
-  const text = answerText.value.replace(/\s/g, '')
-  const result = question.value.trim() && text && selectedLibrary.value
-  return result
+  return question.value.trim() && selectedLibrary.value
 })
 
 const initQuill = () => {
@@ -891,12 +889,6 @@ const onSubmitClick = () => {
   
   if (!question.value.trim()) {
     MessagePlugin.warning('请输入题目')
-    return
-  }
-  
-  const text = answerText.value.replace(/\s/g, '')
-  if (!text) {
-    MessagePlugin.warning('请输入答案')
     return
   }
   

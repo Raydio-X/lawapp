@@ -223,6 +223,10 @@
             v-model="cardKeyword"
             @keyup.enter="onCardSearch"
           />
+          <div class="batch-import-btn" @click="onBatchImport" v-if="!isBatchSelectMode">
+            <t-icon name="upload" size="16px" color="#00A870" />
+            <span>批量导入</span>
+          </div>
           <div class="add-btn" @click="router.push('/admin/card-form')" v-if="!isBatchSelectMode">
             <t-icon name="add" size="18px" color="#fff" />
             <span>新建</span>
@@ -533,6 +537,148 @@
         </Transition>
       </div>
     </Transition>
+
+    <div class="batch-popup" v-if="showBatchImport" @click.self="showBatchImport = false">
+      <div class="batch-container" @click.stop>
+        <div class="batch-header">
+          <span class="batch-title">批量导入</span>
+          <div class="batch-close" @click="showBatchImport = false">
+            <t-icon name="close" size="16px" color="#999" />
+          </div>
+        </div>
+
+        <div class="batch-step" v-if="batchStep === 1">
+          <div class="batch-step-header">
+            <span class="batch-step-num">1</span>
+            <span class="batch-step-title">选择目标知识库</span>
+          </div>
+          <div class="batch-library-list">
+            <div 
+              class="batch-library-item" 
+              :class="{ selected: batchLibraryId === item.id }"
+              v-for="item in batchLibraries" 
+              :key="item.id"
+              @click="onSelectBatchLibrary(item)"
+            >
+              <div class="batch-library-radio">
+                <div class="batch-radio-dot" v-if="batchLibraryId === item.id"></div>
+              </div>
+              <div class="batch-library-info">
+                <span class="batch-library-name">{{ item.name }}</span>
+                <span class="batch-library-count">{{ item.card_count || 0 }}张卡片</span>
+              </div>
+            </div>
+          </div>
+          <div class="batch-empty" v-if="batchLibraries.length === 0">
+            <span>请先创建知识库</span>
+          </div>
+          <div class="batch-step-footer">
+            <div 
+              class="batch-next-btn" 
+              :class="{ disabled: !batchLibraryId }"
+              @click="onBatchNext"
+            >下一步</div>
+          </div>
+        </div>
+
+        <div class="batch-step" v-if="batchStep === 2">
+          <div class="batch-step-header">
+            <span class="batch-step-num">2</span>
+            <span class="batch-step-title">上传Excel文件</span>
+          </div>
+          
+          <div class="batch-upload-area" @click="onChooseFile">
+            <div class="batch-upload-content" v-if="!batchFileName">
+              <t-icon name="upload" size="32px" color="#00A870" />
+              <span class="batch-upload-text">点击选择Excel文件</span>
+              <span class="batch-upload-hint">支持 .xlsx / .xls 格式</span>
+            </div>
+            <div class="batch-upload-done" v-else>
+              <t-icon name="file" size="24px" color="#00A870" />
+              <span class="batch-file-name">{{ batchFileName }}</span>
+              <span class="batch-file-change">点击更换文件</span>
+            </div>
+          </div>
+
+          <div class="batch-template-section">
+            <div class="batch-template-title">
+              <t-icon name="info-circle" size="14px" color="#999" />
+              <span>模板格式说明</span>
+            </div>
+            <div class="batch-template-info">
+              <span class="batch-template-row"><span class="col-a">A列</span><span class="col-b">问题（必填）</span></span>
+              <span class="batch-template-row"><span class="col-a">B列</span><span class="col-b">答案（必填）</span></span>
+              <span class="batch-template-row"><span class="col-a">C列</span><span class="col-b">关键词（选填，英文逗号分隔）</span></span>
+              <span class="batch-template-row"><span class="col-a">D列</span><span class="col-b">一级标题（必填）</span></span>
+              <span class="batch-template-row"><span class="col-a">E列</span><span class="col-b">二级标题（选填）</span></span>
+            </div>
+            <div class="batch-download-template" @click="onDownloadTemplate">
+              <t-icon name="download" size="14px" color="#3B82F6" />
+              <span>下载模板</span>
+            </div>
+          </div>
+
+          <div class="batch-step-actions">
+            <div class="batch-prev-btn" @click="onBatchPrev">上一步</div>
+            <div 
+              class="batch-next-btn" 
+              :class="{ disabled: !batchFileName }"
+              @click="onBatchParse"
+            >解析文件</div>
+          </div>
+        </div>
+
+        <div class="batch-step" v-if="batchStep === 3">
+          <div class="batch-step-header">
+            <span class="batch-step-num">3</span>
+            <span class="batch-step-title">预览并确认</span>
+          </div>
+
+          <div class="batch-preview-summary">
+            <span class="batch-preview-total">共解析到 <span class="highlight">{{ batchCards.length }}</span> 张卡片</span>
+            <span class="batch-preview-error" v-if="batchErrors.length > 0">
+              <span class="error-count">{{ batchErrors.length }} 条数据有误</span>
+            </span>
+          </div>
+
+          <div class="batch-preview-list">
+            <div class="batch-preview-item" v-for="(item, index) in batchCards" :key="index">
+              <div class="batch-preview-index">{{ index + 1 }}</div>
+              <div class="batch-preview-content">
+                <span class="batch-preview-q">Q: {{ item.question }}</span>
+                <span class="batch-preview-a">A: {{ item.answer }}</span>
+                <span class="batch-preview-keywords" v-if="item.keywords && item.keywords.length > 0">
+                  <t-icon name="discount" size="12px" color="#F59E0B" />
+                  {{ item.keywords.join(', ') }}
+                </span>
+                <span class="batch-preview-chapter" v-if="item.chapterLevel1">
+                  <t-icon name="folder" size="12px" color="#3B82F6" />
+                  {{ item.chapterLevel1 }}<span v-if="item.chapterLevel2"> / {{ item.chapterLevel2 }}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div class="batch-step-actions">
+            <div class="batch-prev-btn" @click="onBatchPrev">上一步</div>
+            <div class="batch-next-btn" @click="onBatchConfirm">确认导入</div>
+          </div>
+        </div>
+
+        <div class="batch-step" v-if="batchStep === 4">
+          <div class="batch-result">
+            <div class="batch-result-icon">
+              <t-icon name="check-circle" size="48px" color="#00A870" />
+            </div>
+            <span class="batch-result-title">导入成功</span>
+            <span class="batch-result-desc">已成功导入 {{ batchImportCount }} 张卡片</span>
+          </div>
+          <div class="batch-step-footer">
+            <div class="batch-next-btn" @click="onCloseBatchImport">完成</div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -597,6 +743,16 @@ const deleteIndex = ref(-1)
 
 const showCommentDetail = ref(false)
 const currentComment = ref<any>(null)
+
+const showBatchImport = ref(false)
+const batchStep = ref(1)
+const batchLibraryId = ref(0)
+const batchFileName = ref('')
+const batchCards = ref<any[]>([])
+const batchErrors = ref<any[]>([])
+const batchFile = ref<File | null>(null)
+const batchLibraries = ref<any[]>([])
+const batchImportCount = ref(0)
 
 const loadStats = async () => {
   try {
@@ -962,6 +1118,151 @@ const onLogout = () => {
       confirmDialog.hide()
     }
   })
+}
+
+const onBatchImport = async () => {
+  try {
+    const res = await api.get('/admin/libraries', { page: 1, pageSize: 100 })
+    if (res.success && res.data) {
+      batchLibraries.value = res.data.list || []
+    }
+  } catch (error) {
+    console.error('加载知识库失败:', error)
+  }
+  
+  batchStep.value = 1
+  batchLibraryId.value = 0
+  batchFileName.value = ''
+  batchCards.value = []
+  batchErrors.value = []
+  batchFile.value = null
+  batchImportCount.value = 0
+  showBatchImport.value = true
+}
+
+const onSelectBatchLibrary = (item: any) => {
+  batchLibraryId.value = item.id
+}
+
+const onBatchNext = () => {
+  if (batchStep.value === 1 && !batchLibraryId.value) return
+  if (batchStep.value === 2 && !batchFileName.value) return
+  batchStep.value++
+}
+
+const onBatchPrev = () => {
+  batchStep.value--
+}
+
+const onChooseFile = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.xlsx,.xls'
+  input.onchange = (e: any) => {
+    const file = e.target.files[0]
+    if (file) {
+      batchFileName.value = file.name
+      batchFile.value = file
+    }
+  }
+  input.click()
+}
+
+const onBatchParse = async () => {
+  if (!batchFile.value) return
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', batchFile.value)
+    formData.append('library_id', String(batchLibraryId.value))
+    formData.append('preview', 'true')
+    
+    const res = await fetch('/api/cards/batch-import', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: formData
+    })
+    
+    const data = await res.json()
+    
+    if (data.success) {
+      batchCards.value = data.data.cards || []
+      batchErrors.value = data.data.errors || []
+      batchStep.value = 3
+    } else {
+      MessagePlugin.error(data.message || '解析失败')
+    }
+  } catch (error) {
+    console.error('解析文件失败:', error)
+    MessagePlugin.error('解析文件失败，请检查文件格式')
+  }
+}
+
+const onBatchConfirm = async () => {
+  if (!batchFile.value) return
+  
+  try {
+    const formData = new FormData()
+    formData.append('file', batchFile.value)
+    formData.append('library_id', String(batchLibraryId.value))
+    
+    const res = await fetch('/api/cards/batch-import', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: formData
+    })
+    
+    const data = await res.json()
+    
+    if (data.success) {
+      batchImportCount.value = data.data.count || batchCards.value.length
+      batchStep.value = 4
+      cardPage.value = 1
+      allCards.value = []
+      loadCards()
+      loadStats()
+    } else {
+      MessagePlugin.error(data.message || '导入失败')
+    }
+  } catch (error) {
+    console.error('导入失败:', error)
+    MessagePlugin.error('导入失败，请重试')
+  }
+}
+
+const onCloseBatchImport = () => {
+  showBatchImport.value = false
+}
+
+const onDownloadTemplate = async () => {
+  try {
+    const response = await fetch('/api/cards/template', {
+      method: 'GET',
+    })
+    
+    if (!response.ok) {
+      throw new Error('下载失败')
+    }
+    
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '批量导入模板.xlsx'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    MessagePlugin.success('模板下载成功')
+  } catch (error) {
+    console.error('下载模板失败:', error)
+    MessagePlugin.error('模板下载失败，请重试')
+  }
 }
 
 watch(cardFilterPublic, () => {
@@ -1940,5 +2241,424 @@ onActivated(() => {
   .tab-bar .tab-item {
     min-width: 60px;
   }
+}
+
+.batch-import-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #fff;
+  border: 1px solid #00A870;
+  color: #00A870;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  height: 36px;
+}
+
+.batch-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: flex-end;
+}
+
+.batch-container {
+  width: 100%;
+  max-height: 85vh;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.batch-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: #333;
+}
+
+.batch-close {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.batch-step {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.batch-step-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.batch-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3B82F6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.batch-step-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+}
+
+.batch-library-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.batch-library-item {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.batch-library-item.selected {
+  background: #eff6ff;
+  border: 1px solid #3B82F6;
+}
+
+.batch-library-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.batch-library-item.selected .batch-library-radio {
+  border-color: #3B82F6;
+}
+
+.batch-radio-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3B82F6;
+}
+
+.batch-library-info {
+  flex: 1;
+}
+
+.batch-library-name {
+  display: block;
+  font-size: 15px;
+  color: #333;
+  margin-bottom: 2px;
+}
+
+.batch-library-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.batch-empty {
+  padding: 40px;
+  text-align: center;
+  color: #999;
+}
+
+.batch-step-footer {
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.batch-next-btn {
+  width: 100%;
+  height: 44px;
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+
+.batch-next-btn.disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.batch-upload-area {
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  padding: 32px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 16px;
+}
+
+.batch-upload-area:active {
+  border-color: #3B82F6;
+  background: #f8fafc;
+}
+
+.batch-upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.batch-upload-text {
+  font-size: 15px;
+  color: #333;
+}
+
+.batch-upload-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.batch-upload-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.batch-file-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.batch-file-change {
+  font-size: 12px;
+  color: #3B82F6;
+}
+
+.batch-template-section {
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.batch-template-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.batch-template-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.batch-template-row {
+  display: flex;
+  font-size: 12px;
+}
+
+.col-a {
+  width: 40px;
+  color: #999;
+}
+
+.col-b {
+  color: #666;
+}
+
+.batch-download-template {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #3B82F6;
+  cursor: pointer;
+}
+
+.batch-step-actions {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.batch-prev-btn {
+  flex: 1;
+  height: 44px;
+  background: #f5f6fa;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  color: #666;
+  cursor: pointer;
+}
+
+.batch-step-actions .batch-next-btn {
+  flex: 1;
+}
+
+.batch-preview-summary {
+  margin-bottom: 12px;
+}
+
+.batch-preview-total {
+  font-size: 14px;
+  color: #666;
+}
+
+.batch-preview-total .highlight {
+  color: #3B82F6;
+  font-weight: 600;
+}
+
+.batch-preview-error {
+  margin-left: 8px;
+}
+
+.error-count {
+  color: #f5222d;
+  font-size: 13px;
+}
+
+.batch-preview-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.batch-preview-item {
+  display: flex;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.batch-preview-index {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #3B82F6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.batch-preview-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.batch-preview-q {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-preview-a {
+  display: block;
+  font-size: 12px;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-preview-keywords {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #F59E0B;
+}
+
+.batch-preview-chapter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #3B82F6;
+}
+
+.batch-result {
+  padding: 40px;
+  text-align: center;
+}
+
+.batch-result-icon {
+  margin-bottom: 16px;
+}
+
+.batch-result-title {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.batch-result-desc {
+  font-size: 14px;
+  color: #666;
 }
 </style>

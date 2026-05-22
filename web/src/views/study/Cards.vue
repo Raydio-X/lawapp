@@ -1337,22 +1337,24 @@ const loadLearnedStatesFromStorage = () => {
 
 .study-nav-bar {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
-  padding: 10px 16px;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px);
+  max-width: 600px;
+  background: #fff;
+  padding: 10px 20px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  border-radius: 35px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0;
   z-index: 100;
-  border-top: 1px solid rgba(0, 0, 0, 0.05);
   
   &.study-mode {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
+    background: linear-gradient(135deg, #f8faff 0%, #fff 100%);
   }
   
   .nav-btn {
@@ -1428,6 +1430,7 @@ const loadLearnedStatesFromStorage = () => {
       background: linear-gradient(135deg, #E34D59 0%, #F66C5C 100%);
       box-shadow: 0 3px 12px rgba(227, 77, 89, 0.35);
       flex: 1;
+      max-width: 140px;
       
       &.disabled {
         opacity: 0.5;
@@ -1442,6 +1445,7 @@ const loadLearnedStatesFromStorage = () => {
       background: linear-gradient(135deg, #00A870 0%, #00C853 100%);
       box-shadow: 0 3px 12px rgba(0, 168, 112, 0.35);
       flex: 1;
+      max-width: 140px;
       
       &.disabled {
         opacity: 0.5;
