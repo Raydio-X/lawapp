@@ -246,10 +246,10 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             }
         }
 
-        const workbook = xlsx.readFile(req.file.path);
+        const workbook = xlsx.readFile(req.file.path, { cellText: false, cellDates: true });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
-        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1 });
+        const rows = xlsx.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: '' });
 
         if (rows.length < 2) {
             return res.status(400).json({
@@ -263,10 +263,18 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
         const cards = [];
         const errors = [];
 
+        const processText = (text) => {
+            if (!text) return '';
+            let str = String(text);
+            str = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            str = str.trim();
+            return str;
+        };
+
         for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
-            const question = row[0] ? String(row[0]).trim() : '';
-            const answer = row[1] ? String(row[1]).trim() : '';
+            const question = processText(row[0]);
+            const answer = processText(row[1]);
             const keywords = row[2] ? String(row[2]).trim() : '';
             const chapterLevel1 = row[3] ? String(row[3]).trim() : '';
             const chapterLevel2 = row[4] ? String(row[4]).trim() : '';

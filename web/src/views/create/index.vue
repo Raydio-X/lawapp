@@ -224,6 +224,13 @@
             </span>
           </div>
 
+          <div class="batch-error-list" v-if="batchErrors.length > 0">
+            <div class="batch-error-item" v-for="(error, index) in batchErrors" :key="index">
+              <span class="batch-error-row">第 {{ error.row }} 行</span>
+              <span class="batch-error-message">{{ error.message }}</span>
+            </div>
+          </div>
+
           <div class="batch-preview-list">
             <div class="batch-preview-item" v-for="(item, index) in batchCards" :key="index">
               <div class="batch-preview-index">{{ index + 1 }}</div>
@@ -1224,6 +1231,47 @@ const onDownloadTemplate = async () => {
   background: rgba(227, 77, 89, 0.08);
   padding: 2px 8px;
   border-radius: 4px;
+}
+
+.batch-error-list {
+  margin: 12px 0;
+  padding: 12px;
+  background: rgba(227, 77, 89, 0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(227, 77, 89, 0.15);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.batch-error-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(227, 77, 89, 0.08);
+}
+
+.batch-error-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.batch-error-item:first-child {
+  padding-top: 0;
+}
+
+.batch-error-row {
+  font-size: 13px;
+  font-weight: 600;
+  color: #E34D59;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.batch-error-message {
+  font-size: 13px;
+  color: #E34D59;
+  line-height: 1.5;
 }
 
 .batch-result {
