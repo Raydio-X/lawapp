@@ -89,10 +89,10 @@ const drawChart = () => {
   
   drawGrid(centerX, centerY, radius, n)
   drawAxes(centerX, centerY, radius, n)
-  drawPolygon(centerX, centerY, radius, avgData, maxValues, n, 'rgba(255,159,64,0.10)', 'rgba(255,159,64,0.7)', 2)
-  drawPolygon(centerX, centerY, radius, userData, maxValues, n, 'rgba(91,143,249,0.10)', 'rgba(91,143,249,0.6)', 2)
-  drawDataPoints(centerX, centerY, radius, avgData, maxValues, n, '#FF9500')
-  drawDataPoints(centerX, centerY, radius, userData, maxValues, n, '#5B8FF9')
+  drawPolygon(centerX, centerY, radius, avgData, maxValues, n, 'rgba(255,159,64,0.25)', 'rgba(255,159,64,0.7)', 2)
+  drawPolygon(centerX, centerY, radius, userData, maxValues, n, 'rgba(91,143,249,0.15)', 'rgba(91,143,249,0.6)', 2)
+  drawDataPoints(centerX, centerY, radius, avgData, maxValues, n, '#FF9500', 3)
+  drawDataPoints(centerX, centerY, radius, userData, maxValues, n, '#5B8FF9', 4)
   drawLabels(centerX, centerY, radius, dimensions, userData, avgData, n)
 }
 
@@ -170,7 +170,8 @@ const drawDataPoints = (
   data: number[],
   maxValues: number[],
   n: number,
-  color: string
+  color: string,
+  pointRadius: number = 4
 ) => {
   if (!ctx) return
   for (let i = 0; i < n; i++) {
@@ -182,7 +183,7 @@ const drawDataPoints = (
     const y = centerY + r * Math.sin(angle)
     
     ctx.beginPath()
-    ctx.arc(x, y, 4, 0, Math.PI * 2)
+    ctx.arc(x, y, pointRadius, 0, Math.PI * 2)
     ctx.fillStyle = color
     ctx.fill()
     ctx.strokeStyle = '#fff'

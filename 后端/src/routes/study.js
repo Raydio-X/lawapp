@@ -357,4 +357,28 @@ router.post('/reset/:libraryId', auth, async (req, res) => {
     }
 });
 
+router.get('/time-distribution', auth, async (req, res) => {
+    try {
+        const { year, month } = req.query;
+        
+        const distribution = await StudyModel.getTimeDistribution(
+            req.user.id,
+            parseInt(year) || new Date().getFullYear(),
+            parseInt(month) || new Date().getMonth() + 1
+        );
+
+        res.json({
+            success: true,
+            data: distribution
+        });
+    } catch (error) {
+        console.error('Get time distribution error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取学习时段分布失败'
+        });
+    }
+});
+
 module.exports = router;

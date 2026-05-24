@@ -217,6 +217,7 @@ export const studyAPI = {
   getHeatmap: (year?: number) => api.get('/study/heatmap', { year }),
   getMonthlyStats: (year: number, month: number) => api.get('/study/monthly-stats', { year, month }),
   getMonthlyAvgStats: (year: number, month: number) => api.get('/study/monthly-avg-stats', { year, month }),
+  getTimeDistribution: (year: number, month: number) => api.get('/study/time-distribution', { year, month }),
   recordStudyTime: (libraryId: number | null, duration: number) => api.post('/study/time', { libraryId, duration }),
   getStudyTime: () => api.get('/study/time'),
   getTodayStudyTime: () => api.get('/study/today-time'),

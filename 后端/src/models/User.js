@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const UserIdGenerator = require('../utils/userIdGenerator');
+const MessageModel = require('./message');
 
 class UserModel {
     static async findByOpenid(openid) {
@@ -180,6 +181,28 @@ class UserModel {
                 'UPDATE users SET is_vip = 0 WHERE id = ?',
                 [userId]
             );
+            
+            try {
+                const [existingMessages] = await db.execute(
+                    `SELECT id FROM messages 
+                     WHERE user_id = ? 
+                     AND type = 'vip_expire' 
+                     AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)`,
+                    [userId]
+                );
+                
+                if (existingMessages.length === 0) {
+                    await MessageModel.create({
+                        user_id: userId,
+                        title: 'VIP会员已过期',
+                        content: '您的VIP会员已过期，部分功能将受到限制。如需继续使用VIP专属功能，请前往激活中心续费。',
+                        type: 'vip_expire'
+                    });
+                }
+            } catch (error) {
+                console.error('发送VIP过期通知失败:', error);
+            }
+            
             return false;
         }
 

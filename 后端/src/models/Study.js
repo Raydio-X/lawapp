@@ -530,6 +530,27 @@ class StudyModel {
 
         return true;
     }
+
+    static async getTimeDistribution(userId, year, month) {
+        const [rows] = await db.execute(
+            `SELECT HOUR(created_at) as hour, SUM(study_duration) as total_duration
+             FROM study_records
+             WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?
+             GROUP BY HOUR(created_at)
+             ORDER BY hour ASC`,
+            [userId, year, month]
+        );
+
+        const distribution = Array(24).fill(0);
+        
+        rows.forEach(row => {
+            const hour = row.hour;
+            const durationMinutes = Math.round((row.total_duration || 0) / 60);
+            distribution[hour] = durationMinutes;
+        });
+
+        return distribution;
+    }
 }
 
 module.exports = StudyModel;
