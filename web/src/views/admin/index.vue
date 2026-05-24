@@ -313,13 +313,6 @@
                   <t-tag :theme="card.is_public ? 'success' : 'warning'" variant="light" size="small">
                     {{ card.is_public ? '公开' : '私有' }}
                   </t-tag>
-                  <t-tag 
-                    v-for="tag in card.tags" 
-                    :key="tag" 
-                    theme="primary" 
-                    variant="light" 
-                    size="small"
-                  >{{ tag }}</t-tag>
                 </div>
               </div>
             </div>
@@ -372,13 +365,6 @@
                 <t-tag :theme="card.is_public ? 'success' : 'warning'" variant="light" size="small">
                   {{ card.is_public ? '公开' : '私有' }}
                 </t-tag>
-                <t-tag 
-                  v-for="tag in card.tags" 
-                  :key="tag" 
-                  theme="primary" 
-                  variant="light" 
-                  size="small"
-                >{{ tag }}</t-tag>
               </div>
             </div>
             <div class="item-actions">
@@ -2681,6 +2667,8 @@ onActivated(() => {
   margin-top: 4px;
   font-size: 12px;
   color: #F59E0B;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .batch-preview-chapter {

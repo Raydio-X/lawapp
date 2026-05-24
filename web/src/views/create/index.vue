@@ -1204,6 +1204,8 @@ const onDownloadTemplate = async () => {
   align-items: center;
   gap: 4px;
   margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .batch-preview-chapter {

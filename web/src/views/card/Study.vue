@@ -63,7 +63,7 @@
             <span>参考答案</span>
           </div>
           <div class="answer-content">
-            <span class="answer-text" v-html="currentCard.answer"></span>
+            <span class="answer-text" v-html="processedAnswer"></span>
           </div>
         </div>
       </div>
@@ -246,7 +246,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, onActivated } from 'vue'
+import { ref, onMounted, onUnmounted, watch, onActivated, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, favoriteAPI, commentAPI } from '@/utils/api'
@@ -293,6 +293,15 @@ const singleCard = ref(false)
 const mode = ref('')
 const libraryId = ref<number | string | null>(null)
 const libraryName = ref('')
+
+const processedAnswer = computed(() => {
+  if (!currentCard.value?.answer) return ''
+  let answer = currentCard.value.answer
+  if (answer.includes('<') && answer.includes('>')) {
+    return answer
+  }
+  return answer.replace(/\n/g, '<br>')
+})
 
 const relatedLoading = ref(false)
 const relatedCards = ref<Card[]>([])
@@ -455,12 +464,21 @@ const loadHotCards = async (cardId: string | undefined, index: number) => {
         return
       }
       
-      const currentIdx = index || 0
-      const card = list[currentIdx] || list[0]
+      let targetIndex = 0
+      if (cardId) {
+        const foundIndex = list.findIndex((c: any) => c.id === parseInt(cardId))
+        if (foundIndex >= 0) {
+          targetIndex = foundIndex
+        }
+      } else if (index >= 0 && index < list.length) {
+        targetIndex = index
+      }
+      
+      const card = list[targetIndex]
       
       cardList.value = list
       totalCards.value = list.length
-      currentIndex.value = currentIdx
+      currentIndex.value = targetIndex
       currentCard.value = card
       answerRevealed.value = mode.value !== 'study'
       
@@ -487,12 +505,22 @@ const loadLibraryCards = async (cardId: string | undefined, index: number) => {
       
       if (data.cardList && data.cardList.length > 0) {
         const list = data.cardList
-        const currentIdx = index || 0
-        const card = list[currentIdx] || list[0]
+        let targetIndex = 0
+        
+        if (cardId) {
+          const foundIndex = list.findIndex((c: any) => c.id === parseInt(cardId))
+          if (foundIndex >= 0) {
+            targetIndex = foundIndex
+          }
+        } else if (index >= 0 && index < list.length) {
+          targetIndex = index
+        }
+        
+        const card = list[targetIndex]
         
         cardList.value = list
         totalCards.value = list.length
-        currentIndex.value = currentIdx
+        currentIndex.value = targetIndex
         currentCard.value = card
         answerRevealed.value = mode.value !== 'study'
         libraryName.value = data.libraryName || libraryName.value
@@ -529,12 +557,21 @@ const loadLibraryCards = async (cardId: string | undefined, index: number) => {
         return
       }
       
-      const currentIdx = index || 0
-      const card = list[currentIdx] || list[0]
+      let targetIndex = 0
+      if (cardId) {
+        const foundIndex = list.findIndex((c: any) => c.id === parseInt(cardId))
+        if (foundIndex >= 0) {
+          targetIndex = foundIndex
+        }
+      } else if (index >= 0 && index < list.length) {
+        targetIndex = index
+      }
+      
+      const card = list[targetIndex]
       
       cardList.value = list
       totalCards.value = list.length
-      currentIndex.value = currentIdx
+      currentIndex.value = targetIndex
       currentCard.value = card
       answerRevealed.value = mode.value !== 'study'
       

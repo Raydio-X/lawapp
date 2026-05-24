@@ -419,7 +419,7 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                     question: card.question,
                     answer: card.answer,
                     keywords: card.keywords,
-                    tags: [],
+                    tags: card.keywords,
                     created_by: req.user.id,
                     is_public: 0
                 });

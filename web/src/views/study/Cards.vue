@@ -83,7 +83,7 @@
             </div>
           </div>
           <div class="answer-content">
-            <span class="answer-text" v-html="currentCard.answer || '暂无答案'"></span>
+            <span class="answer-text" v-html="processedAnswer"></span>
           </div>
           
           <div class="difficulty-section">
@@ -198,7 +198,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { cardAPI, commentAPI, studyAPI } from '@/utils/api'
@@ -245,6 +245,15 @@ const isRandomMode = ref(false)
 const isReviewMode = ref(false)
 const isDifficultyMode = ref(false)
 const difficultyName = ref('')
+
+const processedAnswer = computed(() => {
+  if (!currentCard.value?.answer) return '暂无答案'
+  let answer = currentCard.value.answer
+  if (answer.includes('<') && answer.includes('>')) {
+    return answer
+  }
+  return answer.replace(/\n/g, '<br>')
+})
 
 const getStorageKey = () => {
   if (isDifficultyMode.value) return 'difficultyCardsData'

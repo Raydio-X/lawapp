@@ -49,7 +49,7 @@
             </div>
             <div class="card-answer">
               <span class="label-tag answer-tag">答</span>
-              <span class="card-text answer-text" v-html="card.answer"></span>
+              <span class="card-text answer-text" v-html="processAnswer(card.answer)"></span>
             </div>
           </div>
           <div class="card-footer">
@@ -91,6 +91,14 @@ interface Card {
 const cards = ref<Card[]>([])
 const loading = ref(true)
 const keyword = ref('')
+
+const processAnswer = (answer: string) => {
+  if (!answer) return ''
+  if (answer.includes('<') && answer.includes('>')) {
+    return answer
+  }
+  return answer.replace(/\n/g, '<br>')
+}
 
 const filteredCards = computed(() => {
   if (!keyword.value.trim()) {

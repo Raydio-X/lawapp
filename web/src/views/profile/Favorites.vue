@@ -100,7 +100,7 @@
             </div>
             <div class="card-content">
               <div class="card-question">{{ card.question }}</div>
-              <div class="card-answer" v-html="card.answer"></div>
+              <div class="card-answer" v-html="processAnswer(card.answer)"></div>
             </div>
           </div>
         </div>
@@ -181,6 +181,14 @@ const targetLibraryId = ref<number | null>(null)
 const targetChapterId = ref<number | null>(null)
 const myLibraryOptions = ref<{ label: string; value: number }[]>([])
 const chapterOptions = ref<{ label: string; value: number }[]>([])
+
+const processAnswer = (answer: string) => {
+  if (!answer) return ''
+  if (answer.includes('<') && answer.includes('>')) {
+    return answer
+  }
+  return answer.replace(/\n/g, '<br>')
+}
 
 const isAllSelected = computed(() => {
   return libraryCards.value.length > 0 && selectedCardIds.value.length === libraryCards.value.length

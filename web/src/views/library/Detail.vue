@@ -91,15 +91,7 @@
               <div class="tree-expand-placeholder" v-else></div>
               <div class="tree-content">
                 <span class="tree-title">第{{ getChapterNum(chapterIndex) }}章 {{ chapter.title }}</span>
-                <div class="tree-meta">
-                  <div class="tree-progress-bar">
-                    <div 
-                      class="tree-progress-fill" 
-                      :style="{ width: chapter.cards.length > 0 ? (chapter.learnedCount / chapter.cards.length * 100) + '%' : '0%' }"
-                    ></div>
-                  </div>
-                  <span class="tree-count">{{ chapter.learnedCount }}/{{ chapter.cards.length }}</span>
-                </div>
+                <span class="tree-card-count">{{ getTotalCardsCount(chapter) }}张</span>
               </div>
             </div>
 
@@ -335,6 +327,16 @@ const selectedChildIndex = ref(-1)
 const selectedGrandChildIndex = ref(-1)
 const selectedChapter = ref<Chapter | null>(null)
 const cardsSectionRef = ref<HTMLElement | null>(null)
+
+const getTotalCardsCount = (chapter: Chapter): number => {
+  let count = chapter.cards.length
+  if (chapter.children && chapter.children.length > 0) {
+    chapter.children.forEach(child => {
+      count += getTotalCardsCount(child)
+    })
+  }
+  return count
+}
 
 const isManageMode = ref(false)
 const selectedCardIds = ref<number[]>([])
@@ -584,13 +586,15 @@ const onCardTap = (card: Card, cardIndex: number) => {
     chapter.cards.forEach(c => {
       allCardsFlat.push({
         id: c.id,
-        question: c.title,
-        answer: allCards.value.find(ac => ac.id === c.id)?.answer || '',
+        question: c.question,
+        answer: c.answer,
         tags: c.tags,
         learned: c.learned
       })
     })
   })
+  
+  const targetIndex = allCardsFlat.findIndex(c => c.id === card.id)
   
   localStorage.setItem('libraryCardsData', JSON.stringify({
     cardList: allCardsFlat,
@@ -598,18 +602,12 @@ const onCardTap = (card: Card, cardIndex: number) => {
     libraryName: libraryName.value
   }))
   
-  let globalIndex = 0
-  for (let i = 0; i < selectedChapterIndex.value; i++) {
-    globalIndex += chapters.value[i].cards.length
-  }
-  globalIndex += cardIndex
-  
   router.push({
     path: '/card/study',
     query: {
       cardId: card.id,
       libraryId: libraryId.value,
-      index: globalIndex
+      index: targetIndex >= 0 ? targetIndex : 0
     }
   })
 }
@@ -1135,6 +1133,13 @@ const onToggleFavorite = async () => {
   color: #64748B;
   min-width: 30px;
   text-align: right;
+}
+
+.tree-card-count {
+  font-size: 12px;
+  color: #3B82F6;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .tree-count.sub {
