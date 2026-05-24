@@ -287,6 +287,8 @@ onMounted(() => {
   color: #1E293B;
   line-height: 1.5;
   flex: 1;
+  white-space: pre-wrap;
+  word-break: break-word;
   
   :deep(.highlight) {
     color: #3B82F6;

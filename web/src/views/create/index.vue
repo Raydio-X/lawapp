@@ -1182,18 +1182,16 @@ const onDownloadTemplate = async () => {
   color: #1E293B;
   display: block;
   margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .batch-preview-a {
   font-size: 12px;
   color: #64748B;
   display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .batch-preview-keywords {

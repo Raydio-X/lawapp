@@ -2662,18 +2662,16 @@ onActivated(() => {
   font-size: 14px;
   color: #333;
   margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .batch-preview-a {
   display: block;
   font-size: 12px;
   color: #666;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .batch-preview-keywords {

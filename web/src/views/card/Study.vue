@@ -1034,6 +1034,8 @@ const saveStudyProgress = () => {
   color: #1E293B;
   line-height: 1.8;
   font-weight: 500;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .keyword-section {
@@ -1165,6 +1167,8 @@ const saveStudyProgress = () => {
   font-size: 15px;
   color: #1E293B;
   line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
   
   :deep(ol), :deep(ul) {
     padding-left: 1.5em;
