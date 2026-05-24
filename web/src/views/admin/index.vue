@@ -687,7 +687,7 @@ import { ref, computed, onMounted, onActivated, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
-import api, { cardChangeReviewAPI } from '@/utils/api'
+import api, { cardChangeReviewAPI, libraryAPI } from '@/utils/api'
 
 defineOptions({
   name: 'Admin'
@@ -1122,9 +1122,15 @@ const onLogout = () => {
 
 const onBatchImport = async () => {
   try {
-    const res = await api.get('/admin/libraries', { page: 1, pageSize: 100 })
+    const res = await libraryAPI.getMyLibraries({ page: 1, pageSize: 100 })
     if (res.success && res.data) {
-      batchLibraries.value = res.data.list || []
+      let list = []
+      if (Array.isArray(res.data)) {
+        list = res.data
+      } else if (res.data.list && Array.isArray(res.data.list)) {
+        list = res.data.list
+      }
+      batchLibraries.value = list
     }
   } catch (error) {
     console.error('加载知识库失败:', error)

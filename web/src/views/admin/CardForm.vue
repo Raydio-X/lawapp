@@ -746,7 +746,7 @@ const loadCardData = async () => {
 const loadLibraries = async () => {
   loading.value = true
   try {
-    const res = await libraryAPI.getList({ page: 1, pageSize: 100 })
+    const res = await libraryAPI.getMyLibraries({ page: 1, pageSize: 100 })
     
     if (res.success && res.data) {
       let list = []

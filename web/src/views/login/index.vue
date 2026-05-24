@@ -28,7 +28,10 @@
           shape="round"
         />
       </div>
-      <span class="app-name">律卡</span>
+      <div class="app-name-wrapper">
+        <span class="app-name">律卡</span>
+        <span class="app-name-en">Keycards</span>
+      </div>
       <span class="app-slogan">高效记忆 · 轻松备考</span>
     </div>
 
@@ -638,8 +641,21 @@ onMounted(() => {
   font-size: 24px;
   font-weight: 700;
   color: #1E293B;
-  margin-bottom: 6px;
   letter-spacing: 2px;
+}
+
+.app-name-wrapper {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  margin-bottom: 6px;
+}
+
+.app-name-en {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: 1px;
 }
 
 .app-slogan {
