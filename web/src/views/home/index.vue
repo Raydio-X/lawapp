@@ -85,7 +85,7 @@
         >
           <div class="library-card-left">
             <div class="library-cover">
-              <div class="cover-bg" :class="'cover-' + item.subjectType"></div>
+              <div class="cover-bg" :style="{ background: `linear-gradient(135deg, ${item.coverColor} 0%, ${item.coverColor}99 100%)` }"></div>
               <div class="cover-icon">
                 <t-icon name="book" size="22px" color="#fff" />
               </div>
@@ -149,6 +149,7 @@ interface Library {
   favorites: number
   isFavorited: boolean
   createdAt: string
+  coverColor?: string
 }
 
 const router = useRouter()
@@ -159,6 +160,13 @@ const SUBJECT_TYPE_MAP: Record<string, string> = {
   '刑法': 'criminal',
   '宪法': 'constitution',
   '行政法': 'admin'
+}
+
+const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981']
+
+const getRandomColor = () => {
+  const randomIndex = Math.floor(Math.random() * COVER_COLORS.length)
+  return COVER_COLORS[randomIndex]
 }
 
 const currentSort = ref('hot')
@@ -217,7 +225,8 @@ const loadLibraries = async () => {
         cardCount: item.card_count || 0,
         favorites: item.favorite_count || 0,
         isFavorited: Boolean(item.is_favorited),
-        createdAt: item.created_at || item.createdAt || new Date().toISOString()
+        createdAt: item.created_at || item.createdAt || new Date().toISOString(),
+        coverColor: item.cover_color || getRandomColor()
       }))
       
       allLibraries.value = libs

@@ -32,7 +32,7 @@
           <span class="favorite-text">{{ isFavorited ? '已收藏' : '收藏' }}</span>
         </div>
         <div class="library-header">
-          <div class="library-icon-large">
+          <div class="library-icon-large" :style="{ background: `linear-gradient(135deg, ${coverColor} 0%, ${coverColor}99 100%)`, boxShadow: `0 4px 12px ${coverColor}4D` }">
             <t-icon name="book" size="32px" color="#fff" />
           </div>
           <div class="library-info">
@@ -347,6 +347,15 @@ const totalCards = ref(0)
 const learnedCards = ref(0)
 const progress = ref(0)
 
+const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981']
+
+const getRandomColor = () => {
+  const randomIndex = Math.floor(Math.random() * COVER_COLORS.length)
+  return COVER_COLORS[randomIndex]
+}
+
+const coverColor = ref(getRandomColor())
+
 const selectedChapterIndex = ref(-1)
 const selectedChildIndex = ref(-1)
 const selectedGrandChildIndex = ref(-1)
@@ -521,6 +530,7 @@ const loadLibraryData = async (restoreState: boolean = false) => {
       creatorName.value = lib.creator_name || '未知'
       isFavorited.value = Boolean(lib.is_favorited)
       favoriteCount.value = lib.favorite_count || 0
+      coverColor.value = lib.cover_color || getRandomColor()
       
       if (lib.chapters && lib.chapters.length > 0) {
         processChapters(lib.chapters)

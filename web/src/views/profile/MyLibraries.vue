@@ -43,7 +43,7 @@
           @click="onLibraryTap(library)"
         >
           <div class="library-icon">
-            <t-icon name="folder" size="28px" color="#3B82F6" />
+            <t-icon name="folder" size="28px" :color="library.coverColor" />
           </div>
           <div class="library-info">
             <span class="library-name" v-html="highlightText(library.name, keyword)"></span>
@@ -79,6 +79,7 @@ interface Library {
   name: string
   subject?: string
   card_count: number
+  coverColor?: string
 }
 
 const libraries = ref<Library[]>([])
@@ -96,12 +97,22 @@ const filteredLibraries = computed(() => {
   )
 })
 
+const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981']
+
+const getRandomColor = () => {
+  const randomIndex = Math.floor(Math.random() * COVER_COLORS.length)
+  return COVER_COLORS[randomIndex]
+}
+
 const loadLibraries = async () => {
   loading.value = true
   try {
     const res = await libraryAPI.getMyLibraries()
     if (res.success && res.data) {
-      libraries.value = res.data.list || res.data || []
+      libraries.value = (res.data.list || res.data || []).map((item: any) => ({
+        ...item,
+        coverColor: item.cover_color || getRandomColor()
+      }))
     }
   } catch (error) {
     console.error('加载知识库失败:', error)

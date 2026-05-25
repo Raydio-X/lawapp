@@ -129,9 +129,12 @@ class LibraryModel {
         const isPublic = data.is_public !== undefined ? data.is_public : 1;
         const status = 'approved';
         
+        const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981'];
+        const randomColor = COVER_COLORS[Math.floor(Math.random() * COVER_COLORS.length)];
+        
         const [result] = await db.execute(
-            'INSERT INTO libraries (name, subject, description, cover_image, created_by, is_public, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [data.name, data.subject, data.description || '', data.cover_image || '', data.created_by, isPublic, status]
+            'INSERT INTO libraries (name, subject, description, cover_image, cover_color, created_by, is_public, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [data.name, data.subject, data.description || '', data.cover_image || '', randomColor, data.created_by, isPublic, status]
         );
         return this.findById(result.insertId);
     }

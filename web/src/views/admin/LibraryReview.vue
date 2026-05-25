@@ -27,7 +27,7 @@
         >
           <div class="library-main">
             <div class="library-icon">
-              <t-icon name="edit" size="24px" color="#8B5CF6" />
+              <t-icon name="edit" size="24px" :color="library.coverColor" />
             </div>
             <div class="library-content">
               <div class="library-title">{{ library.name }}</div>
@@ -79,6 +79,7 @@ interface Library {
   created_at: string
   creator_name: string
   pending_change_count?: number
+  coverColor?: string
 }
 
 const router = useRouter()
@@ -100,6 +101,13 @@ onMounted(() => {
   loadLibrariesWithChanges()
 })
 
+const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981']
+
+const getRandomColor = () => {
+  const randomIndex = Math.floor(Math.random() * COVER_COLORS.length)
+  return COVER_COLORS[randomIndex]
+}
+
 const loadLibrariesWithChanges = async () => {
   loading.value = true
   try {
@@ -108,7 +116,10 @@ const loadLibrariesWithChanges = async () => {
       pageSize: pageSize
     })
     if (res && res.success && res.data) {
-      librariesWithChanges.value = res.data.list
+      librariesWithChanges.value = res.data.list.map((item: any) => ({
+        ...item,
+        coverColor: item.cover_color || getRandomColor()
+      }))
       pagination.value = res.data.pagination
     }
   } catch (error) {

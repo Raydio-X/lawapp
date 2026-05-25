@@ -1,0 +1,1 @@
+ALTER TABLE libraries ADD COLUMN cover_color VARCHAR(20) DEFAULT '#3B82F6' COMMENT '封面颜色';

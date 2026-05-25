@@ -64,6 +64,7 @@ async function initDatabase() {
                 subject VARCHAR(50) NOT NULL,
                 description TEXT,
                 cover_image VARCHAR(500) DEFAULT '',
+                cover_color VARCHAR(20) DEFAULT '#3B82F6' COMMENT '封面颜色',
                 created_by INT NOT NULL,
                 is_public TINYINT DEFAULT 1,
                 status VARCHAR(20) DEFAULT 'approved' COMMENT '审核状态: pending-待审核, approved-审核通过, rejected-审核驳回',

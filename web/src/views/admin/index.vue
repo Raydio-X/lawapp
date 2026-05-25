@@ -2889,8 +2889,5 @@ onActivated(() => {
 .import-status {
   font-size: 13px;
   color: #999;
-  padding: 6px 12px;
-  background: #F3F4F6;
-  border-radius: 12px;
 }
 </style>

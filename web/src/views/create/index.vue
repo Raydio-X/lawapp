@@ -88,7 +88,7 @@
           @mouseleave="item.pressed = false"
         >
           <div class="library-item-icon">
-            <t-icon name="book" size="24px" color="#3B82F6" />
+            <t-icon name="book" size="24px" :color="item.coverColor" />
           </div>
           <div class="library-item-content">
             <span class="library-item-name">{{ item.name }}</span>
@@ -327,11 +327,19 @@ import { usePermission } from '@/composables/usePermission'
 const router = useRouter()
 const { canUseBatchImport, isVip, limits, batchImportUsedToday, checkBatchImportStatus, recordBatchImportUsage } = usePermission()
 
+const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981']
+
+const getRandomColor = () => {
+  const randomIndex = Math.floor(Math.random() * COVER_COLORS.length)
+  return COVER_COLORS[randomIndex]
+}
+
 interface Library {
   id: number
   name: string
   subject: string
   cardCount: number
+  coverColor?: string
   pressed?: boolean
 }
 
@@ -383,6 +391,7 @@ const loadMyLibraries = async () => {
         name: item.name,
         subject: item.subject || '未分类',
         cardCount: item.card_count || 0,
+        coverColor: item.cover_color || getRandomColor(),
         pressed: false
       }))
     }
@@ -1473,9 +1482,6 @@ const onDownloadTemplate = async () => {
 .import-status {
   font-size: 13px;
   color: #999;
-  padding: 6px 12px;
-  background: #F3F4F6;
-  border-radius: 12px;
 }
 
 .delete-confirm-overlay {
