@@ -263,7 +263,16 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
         const cards = [];
         const errors = [];
 
-        const processText = (text) => {
+        const processQuestion = (text) => {
+            if (!text) return '';
+            let str = String(text);
+            str = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+            str = str.trim();
+            const paragraphs = str.split('\n').filter(p => p.trim() !== '');
+            return paragraphs.join(' ');
+        };
+
+        const processAnswer = (text) => {
             if (!text) return '';
             let str = String(text);
             str = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -279,8 +288,8 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
 
         for (let i = 0; i < dataRows.length; i++) {
             const row = dataRows[i];
-            const question = processText(row[0]);
-            const answer = processText(row[1]);
+            const question = processQuestion(row[0]);
+            const answer = processAnswer(row[1]);
             const keywords = row[2] ? String(row[2]).trim() : '';
             const chapterLevel1 = row[3] ? String(row[3]).trim() : '';
             const chapterLevel2 = row[4] ? String(row[4]).trim() : '';

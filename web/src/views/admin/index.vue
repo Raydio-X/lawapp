@@ -658,6 +658,38 @@
           </div>
         </div>
 
+        <div class="batch-step" v-if="batchStep === 3.5">
+          <div class="batch-step-header">
+            <span class="batch-step-num">4</span>
+            <span class="batch-step-title">导入中</span>
+          </div>
+
+          <div class="import-progress-container">
+            <div class="import-progress-animation">
+              <div class="import-spinner">
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+                <div class="spinner-ring"></div>
+              </div>
+            </div>
+            
+            <div class="import-progress-info">
+              <div class="import-progress-percent">{{ importProgress }}%</div>
+              <div class="import-progress-bar">
+                <div class="import-progress-fill" :style="{ width: importProgress + '%' }"></div>
+              </div>
+              <div class="import-progress-count">
+                <span>正在导入</span>
+                <span class="import-current">{{ importCurrent }}</span>
+                <span>/</span>
+                <span class="import-total">{{ importTotal }}</span>
+                <span>张卡片</span>
+              </div>
+              <div class="import-status" v-if="importStatus">{{ importStatus }}</div>
+            </div>
+          </div>
+        </div>
+
         <div class="batch-step" v-if="batchStep === 4">
           <div class="batch-result">
             <div class="batch-result-icon">
@@ -746,6 +778,11 @@ const batchErrors = ref<any[]>([])
 const batchFile = ref<File | null>(null)
 const batchLibraries = ref<any[]>([])
 const batchImportCount = ref(0)
+
+const importProgress = ref(0)
+const importCurrent = ref(0)
+const importTotal = ref(0)
+const importStatus = ref('')
 
 const loadStats = async () => {
   try {
@@ -1207,10 +1244,25 @@ const onBatchParse = async () => {
 const onBatchConfirm = async () => {
   if (!batchFile.value) return
   
+  batchStep.value = 3.5
+  importProgress.value = 0
+  importCurrent.value = 0
+  importTotal.value = batchCards.value.length
+  importStatus.value = '准备导入...'
+  
+  const progressInterval = setInterval(() => {
+    if (importProgress.value < 90) {
+      importProgress.value = Math.floor(importProgress.value + Math.random() * 5)
+      if (importProgress.value > 90) importProgress.value = 90
+    }
+  }, 200)
+  
   try {
     const formData = new FormData()
     formData.append('file', batchFile.value)
     formData.append('library_id', String(batchLibraryId.value))
+    
+    importStatus.value = '正在上传文件...'
     
     const res = await fetch('/api/cards/batch-import', {
       method: 'POST',
@@ -1220,21 +1272,40 @@ const onBatchConfirm = async () => {
       body: formData
     })
     
+    importStatus.value = '正在处理数据...'
+    
     const data = await res.json()
     
+    clearInterval(progressInterval)
+    
     if (data.success) {
-      batchImportCount.value = data.data.count || batchCards.value.length
-      batchStep.value = 4
-      cardPage.value = 1
-      allCards.value = []
-      loadCards()
-      loadStats()
+      importProgress.value = 100
+      importCurrent.value = data.data.count || batchCards.value.length
+      importStatus.value = '导入完成！'
+      
+      setTimeout(() => {
+        batchImportCount.value = data.data.count || batchCards.value.length
+        batchStep.value = 4
+        cardPage.value = 1
+        allCards.value = []
+        loadCards()
+        loadStats()
+      }, 500)
     } else {
+      importStatus.value = '导入失败'
       MessagePlugin.error(data.message || '导入失败')
+      setTimeout(() => {
+        batchStep.value = 3
+      }, 1000)
     }
   } catch (error) {
     console.error('导入失败:', error)
+    clearInterval(progressInterval)
+    importStatus.value = '导入失败'
     MessagePlugin.error('导入失败，请重试')
+    setTimeout(() => {
+      batchStep.value = 3
+    }, 1000)
   }
 }
 
@@ -2711,5 +2782,115 @@ onActivated(() => {
 .batch-result-desc {
   font-size: 14px;
   color: #666;
+}
+
+.import-progress-container {
+  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.import-progress-animation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.import-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.spinner-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  animation: spinner-rotate 1.5s linear infinite;
+}
+
+.spinner-ring:nth-child(1) {
+  border-top-color: #3B82F6;
+  animation-delay: 0s;
+}
+
+.spinner-ring:nth-child(2) {
+  border-right-color: #60A5FA;
+  animation-delay: 0.5s;
+}
+
+.spinner-ring:nth-child(3) {
+  border-bottom-color: #93C5FD;
+  animation-delay: 1s;
+}
+
+@keyframes spinner-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.import-progress-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.import-progress-percent {
+  font-size: 32px;
+  font-weight: 700;
+  color: #3B82F6;
+  font-family: 'DIN Alternate', 'Helvetica Neue', sans-serif;
+}
+
+.import-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #E5E7EB;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.import-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3B82F6 0%, #60A5FA 50%, #93C5FD 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.import-progress-count {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+}
+
+.import-current {
+  font-weight: 600;
+  color: #3B82F6;
+}
+
+.import-total {
+  font-weight: 600;
+  color: #333;
+}
+
+.import-status {
+  font-size: 13px;
+  color: #999;
+  padding: 6px 12px;
+  background: #F3F4F6;
+  border-radius: 12px;
 }
 </style>
