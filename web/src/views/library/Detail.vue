@@ -177,6 +177,9 @@
               <div class="action-btn edit" @click.stop="onEditCard(card)">
                 <t-icon name="edit" size="16px" color="#3B82F6" />
               </div>
+              <div class="action-btn delete" @click.stop="onDeleteCard(card)">
+                <t-icon name="delete" size="16px" color="#EF4444" />
+              </div>
             </div>
             <div class="card-arrow" v-else>
               <t-icon name="chevron-right" size="20px" color="#ccc" />
@@ -260,14 +263,35 @@
         </div>
       </div>
     </div>
+
+    <div class="delete-confirm-overlay" v-if="showDeleteConfirm" @click.self="showDeleteConfirm = false">
+      <div class="delete-confirm-dialog">
+        <div class="delete-confirm-header">
+          <t-icon name="error-circle" size="24px" color="#EF4444" />
+          <span class="delete-confirm-title">确认删除</span>
+        </div>
+        <div class="delete-confirm-body">
+          <p class="delete-confirm-text">确定要删除卡片「{{ deleteCardTitle }}」吗？</p>
+          <p class="delete-confirm-tip">删除后无法恢复</p>
+        </div>
+        <div class="delete-confirm-footer">
+          <div class="delete-btn cancel" @click="showDeleteConfirm = false">取消</div>
+          <div class="delete-btn confirm" @click="onConfirmDelete">确认删除</div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
+import { ref, onMounted, computed, nextTick, onActivated, onDeactivated } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI, cardAPI, chapterAPI, isLoggedIn } from '@/utils/api'
+
+defineOptions({
+  name: 'LibraryDetail'
+})
 
 const router = useRouter()
 const route = useRoute()
@@ -276,7 +300,8 @@ const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九
                     '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
                     '二十一', '二十二', '二十三', '二十四', '二十五', '二十六', '二十七', '二十八', '二十九', '三十',
                     '三十一', '三十二', '三十三', '三十四', '三十五', '三十六', '三十七', '三十八', '三十九', '四十',
-                    '四十一', '四十二', '四十三', '四十四', '四十五', '四十六', '四十七', '四十八', '四十九', '五十']
+                    '四十一', '四十二', '四十三', '四十四', '四十五', '四十六', '四十七', '四十八', '四十九', '五十',
+                    '五十一', '五十二', '五十三', '五十四', '五十五', '五十六', '五十七', '五十八', '五十九', '六十']
 
 const getChapterNum = (index: number) => chineseNum[index] || (index + 1)
 const getSectionNum = (chapterIndex: number, sectionIndex: number) => (chapterIndex + 1) + '-' + (sectionIndex + 1)
@@ -347,6 +372,10 @@ const targetLibraryId = ref<number | null>(null)
 const myLibraryOptions = ref<{ label: string; value: number }[]>([])
 const moveChapterOptions = ref<FlatChapter[]>([])
 
+const showDeleteConfirm = ref(false)
+const deleteCardId = ref<number | null>(null)
+const deleteCardTitle = ref('')
+
 const flatChapters = computed<FlatChapter[]>(() => {
   const result: FlatChapter[] = []
   const flatten = (chapterList: Chapter[]) => {
@@ -365,14 +394,120 @@ const flatChapters = computed<FlatChapter[]>(() => {
   return result
 })
 
+const savePageState = () => {
+  const expandedStates: { [key: number]: boolean } = {}
+  const saveExpanded = (chapterList: Chapter[]) => {
+    chapterList.forEach(ch => {
+      if (ch.expanded) {
+        expandedStates[ch.id] = true
+      }
+      if (ch.children && ch.children.length > 0) {
+        saveExpanded(ch.children)
+      }
+    })
+  }
+  saveExpanded(chapters.value)
+  
+  const state = {
+    scrollY: window.scrollY,
+    expandedStates,
+    selectedChapterIndex: selectedChapterIndex.value,
+    selectedChildIndex: selectedChildIndex.value,
+    selectedGrandChildIndex: selectedGrandChildIndex.value,
+    selectedChapterId: selectedChapter.value?.id || null,
+    isManageMode: isManageMode.value
+  }
+  
+  localStorage.setItem(`libraryDetail_${libraryId.value}_state`, JSON.stringify(state))
+}
+
+const restorePageState = () => {
+  const stateStr = localStorage.getItem(`libraryDetail_${libraryId.value}_state`)
+  if (!stateStr) return false
+  
+  try {
+    const state = JSON.parse(stateStr)
+    
+    const restoreExpanded = (chapterList: Chapter[]) => {
+      chapterList.forEach(ch => {
+        ch.expanded = state.expandedStates[ch.id] || false
+        if (ch.children && ch.children.length > 0) {
+          restoreExpanded(ch.children)
+        }
+      })
+    }
+    restoreExpanded(chapters.value)
+    
+    selectedChapterIndex.value = state.selectedChapterIndex
+    selectedChildIndex.value = state.selectedChildIndex
+    selectedGrandChildIndex.value = state.selectedGrandChildIndex
+    
+    if (state.selectedChapterId) {
+      const findChapter = (chapterList: Chapter[]): Chapter | null => {
+        for (const ch of chapterList) {
+          if (ch.id === state.selectedChapterId) return ch
+          if (ch.children && ch.children.length > 0) {
+            const found = findChapter(ch.children)
+            if (found) return found
+          }
+        }
+        return null
+      }
+      selectedChapter.value = findChapter(chapters.value)
+    }
+    
+    isManageMode.value = state.isManageMode || false
+    
+    nextTick(() => {
+      window.scrollTo({ top: state.scrollY, behavior: 'instant' })
+    })
+    
+    return true
+  } catch (error) {
+    console.error('恢复状态失败:', error)
+    return false
+  }
+}
+
 onMounted(() => {
   libraryId.value = parseInt(route.params.id as string) || 0
   libraryName.value = (route.query.name as string) || '知识库详情'
   loadLibraryData()
 })
 
-const loadLibraryData = async () => {
+onActivated(() => {
+  const needReload = localStorage.getItem('libraryCardsData') === null
+  
+  if (needReload) {
+    loadLibraryData(true)
+  } else {
+    restorePageState()
+  }
+})
+
+onDeactivated(() => {
+  savePageState()
+})
+
+const loadLibraryData = async (restoreState: boolean = false) => {
   loading.value = true
+  
+  allCards.value = []
+  chapters.value.forEach(chapter => {
+    chapter.cards = []
+    chapter.learnedCount = 0
+    const clearChildren = (ch: Chapter) => {
+      if (ch.children && ch.children.length > 0) {
+        ch.children.forEach(child => {
+          child.cards = []
+          child.learnedCount = 0
+          clearChildren(child)
+        })
+      }
+    }
+    clearChildren(chapter)
+  })
+  
   try {
     const [libRes, cardsRes] = await Promise.all([
       libraryAPI.getDetail(libraryId.value),
@@ -399,7 +534,9 @@ const loadLibraryData = async () => {
 
     calculateProgress()
 
-    if (chapters.value.length > 0) {
+    if (restoreState) {
+      restorePageState()
+    } else if (chapters.value.length > 0) {
       expandAndSelectChapter(0)
     }
   } catch (error) {
@@ -575,41 +712,49 @@ const scrollToCardsSection = () => {
   })
 }
 
-const onCardTap = (card: Card, cardIndex: number) => {
+const onCardTap = async (card: Card, cardIndex: number) => {
   if (isManageMode.value) {
     onSelectCard(card.id)
     return
   }
   
-  const allCardsFlat: any[] = []
-  chapters.value.forEach(chapter => {
-    chapter.cards.forEach(c => {
-      allCardsFlat.push({
+  try {
+    const res = await cardAPI.getList({ 
+      library_id: libraryId.value, 
+      page: 1, 
+      pageSize: 1000 
+    })
+    
+    if (res.success && res.data) {
+      const allCardsFlat = (res.data.list || res.data || []).map((c: any) => ({
         id: c.id,
         question: c.question,
         answer: c.answer,
-        tags: c.tags,
-        learned: c.learned
+        tags: c.tags || [],
+        learned: c.is_learned || false
+      }))
+      
+      const targetIndex = allCardsFlat.findIndex((c: any) => c.id === card.id)
+      
+      localStorage.setItem('libraryCardsData', JSON.stringify({
+        cardList: allCardsFlat,
+        libraryId: libraryId.value,
+        libraryName: libraryName.value
+      }))
+      
+      router.push({
+        path: '/card/study',
+        query: {
+          cardId: card.id,
+          libraryId: libraryId.value,
+          index: targetIndex >= 0 ? targetIndex : 0
+        }
       })
-    })
-  })
-  
-  const targetIndex = allCardsFlat.findIndex(c => c.id === card.id)
-  
-  localStorage.setItem('libraryCardsData', JSON.stringify({
-    cardList: allCardsFlat,
-    libraryId: libraryId.value,
-    libraryName: libraryName.value
-  }))
-  
-  router.push({
-    path: '/card/study',
-    query: {
-      cardId: card.id,
-      libraryId: libraryId.value,
-      index: targetIndex >= 0 ? targetIndex : 0
     }
-  })
+  } catch (error) {
+    console.error('加载卡片列表失败:', error)
+    MessagePlugin.error('加载失败，请重试')
+  }
 }
 
 const onToggleManageMode = () => {
@@ -654,6 +799,33 @@ const onEditCard = (card: Card) => {
       libraryName: libraryName.value
     }
   })
+}
+
+const onDeleteCard = (card: Card) => {
+  deleteCardId.value = card.id
+  deleteCardTitle.value = card.title || card.question
+  showDeleteConfirm.value = true
+}
+
+const onConfirmDelete = async () => {
+  if (!deleteCardId.value) return
+  
+  try {
+    const res = await cardAPI.delete(deleteCardId.value)
+    if (res.success) {
+      MessagePlugin.success('删除成功')
+      showDeleteConfirm.value = false
+      deleteCardId.value = null
+      deleteCardTitle.value = ''
+      
+      loadLibraryData(true)
+    } else {
+      MessagePlugin.error(res.message || '删除失败')
+    }
+  } catch (error) {
+    console.error('删除卡片失败:', error)
+    MessagePlugin.error('删除失败')
+  }
 }
 
 const onShowMoveDialog = async () => {
@@ -1347,11 +1519,22 @@ const onToggleFavorite = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(59, 130, 246, 0.1);
   cursor: pointer;
   
-  &:active {
-    background: rgba(59, 130, 246, 0.2);
+  &.edit {
+    background: rgba(59, 130, 246, 0.1);
+    
+    &:active {
+      background: rgba(59, 130, 246, 0.2);
+    }
+  }
+  
+  &.delete {
+    background: rgba(239, 68, 68, 0.1);
+    
+    &:active {
+      background: rgba(239, 68, 68, 0.2);
+    }
   }
 }
 
@@ -1525,6 +1708,85 @@ const onToggleFavorite = async () => {
 
 .move-btn.confirm {
   background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  color: #fff;
+  font-weight: 600;
+}
+
+.delete-confirm-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.delete-confirm-dialog {
+  width: 320px;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.delete-confirm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 20px 20px 12px;
+}
+
+.delete-confirm-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.delete-confirm-body {
+  padding: 0 20px 20px;
+}
+
+.delete-confirm-text {
+  font-size: 15px;
+  color: #333;
+  margin: 0 0 8px;
+  line-height: 1.5;
+}
+
+.delete-confirm-tip {
+  font-size: 13px;
+  color: #999;
+  margin: 0;
+}
+
+.delete-confirm-footer {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  border-top: 1px solid #E7E7E7;
+}
+
+.delete-btn {
+  flex: 1;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.delete-btn.cancel {
+  background: #f5f6fa;
+  color: #666;
+}
+
+.delete-btn.confirm {
+  background: linear-gradient(135deg, #EF4444 0%, #F87171 100%);
   color: #fff;
   font-weight: 600;
 }

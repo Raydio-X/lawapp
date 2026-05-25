@@ -342,6 +342,8 @@ const loadCardData = () => {
       }
       loading.value = false
       
+      window.scrollTo({ top: 0, behavior: 'instant' })
+      
       if (!isReviewMode.value && !isDifficultyMode.value) {
         cardList.value.forEach(card => {
           if (card.learned && card.id) {
@@ -1157,6 +1159,22 @@ const loadLearnedStatesFromStorage = () => {
     &:last-child {
       margin-bottom: 0;
     }
+  }
+  
+  :deep(.ql-indent-1) {
+    padding-left: 2em;
+  }
+  
+  :deep(.ql-indent-2) {
+    padding-left: 4em;
+  }
+  
+  :deep(.ql-indent-3) {
+    padding-left: 6em;
+  }
+  
+  :deep(.ql-indent-4) {
+    padding-left: 8em;
   }
 }
 

@@ -384,7 +384,12 @@ onUnmounted(() => {
 })
 
 onActivated(() => {
-  if (currentCard.value && answerRevealed.value) {
+  if (!currentCard.value) return
+  
+  const storedData = localStorage.getItem('libraryCardsData')
+  if (!storedData && libraryId.value && libraryId.value !== 'hot_cards') {
+    loadCardData(String(currentCard.value.id), currentIndex.value)
+  } else if (answerRevealed.value) {
     loadLinkedCards()
   }
 })
@@ -403,6 +408,8 @@ const loadCardData = async (cardId: string | undefined, index: number) => {
       MessagePlugin.error('参数错误')
       setTimeout(() => router.back(), 1500)
     }
+    
+    window.scrollTo({ top: 0, behavior: 'instant' })
   } catch (error) {
     console.error('加载卡片失败:', error)
     MessagePlugin.error('加载失败')
@@ -1233,6 +1240,22 @@ const saveStudyProgress = () => {
     &:last-child {
       margin-bottom: 0;
     }
+  }
+  
+  :deep(.ql-indent-1) {
+    padding-left: 2em;
+  }
+  
+  :deep(.ql-indent-2) {
+    padding-left: 4em;
+  }
+  
+  :deep(.ql-indent-3) {
+    padding-left: 6em;
+  }
+  
+  :deep(.ql-indent-4) {
+    padding-left: 8em;
   }
 }
 

@@ -971,13 +971,18 @@ const onConfirmDelete = async () => {
       showDeleteConfirm.value = false
       
       if (deleteType.value === 'library') {
-        libraries.value.splice(deleteIndex.value, 1)
+        loadLibraries()
+        loadStats()
       } else if (deleteType.value === 'card') {
-        cards.value.splice(deleteIndex.value, 1)
+        cardPage.value = 1
+        allCards.value = []
+        loadCards()
+        loadStats()
       } else if (deleteType.value === 'hotCard') {
-        hotCards.value.splice(deleteIndex.value, 1)
+        loadHotCards()
+        loadStats()
       } else if (deleteType.value === 'comment') {
-        comments.value.splice(deleteIndex.value, 1)
+        loadComments()
       }
     }
   } catch (error) {
@@ -1288,6 +1293,12 @@ onActivated(() => {
   if (savedTab && savedTab !== activeTab.value) {
     activeTab.value = savedTab
   }
+  
+  loadStats()
+  loadLibraries()
+  loadCards()
+  loadHotCards()
+  loadComments()
 })
 </script>
 

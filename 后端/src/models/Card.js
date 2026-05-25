@@ -8,7 +8,7 @@ class CardModel {
         const { page = 1, pageSize = 10, libraryId, chapterId, userId } = params;
         const offset = (page - 1) * pageSize;
 
-        let sql = `SELECT c.*, l.name as library_name, ch.name as chapter_name,
+        let sql = `SELECT c.*, l.name as library_name, ch.name as chapter_name, ch.parent_id as chapter_parent_id,
                    (SELECT COUNT(*) FROM study_records sr WHERE sr.card_id = c.id AND sr.user_id = ?) as study_count,
                    (SELECT COUNT(*) FROM user_likes ul WHERE ul.target_type = 'card' AND ul.target_id = c.id AND ul.user_id = ?) as is_liked,
                    (SELECT COUNT(*) FROM favorites f WHERE f.target_type = 'card' AND f.target_id = c.id AND f.user_id = ?) as is_favorited,
@@ -31,7 +31,15 @@ class CardModel {
             values.push(chapterId);
         }
 
-        sql += ` ORDER BY c.created_at DESC LIMIT ${parseInt(pageSize)} OFFSET ${offset}`;
+        if (libraryId) {
+            sql += ` ORDER BY 
+                COALESCE(ch.parent_id, 0) ASC,
+                COALESCE(ch.id, 0) ASC,
+                c.id ASC
+                LIMIT ${parseInt(pageSize)} OFFSET ${offset}`;
+        } else {
+            sql += ` ORDER BY c.created_at DESC LIMIT ${parseInt(pageSize)} OFFSET ${offset}`;
+        }
 
         const [rows] = await db.execute(sql, values);
         

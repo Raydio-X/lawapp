@@ -1,6 +1,6 @@
 <template>
   <router-view v-slot="{ Component, route }">
-    <keep-alive :include="['Admin']">
+    <keep-alive :include="['Admin', 'LibraryDetail']">
       <component :is="Component" :key="route.fullPath" />
     </keep-alive>
   </router-view>

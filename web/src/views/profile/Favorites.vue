@@ -756,6 +756,22 @@ const onConfirmCopy = async () => {
   :deep(table) {
     font-size: 11px;
   }
+  
+  :deep(.ql-indent-1) {
+    padding-left: 2em;
+  }
+  
+  :deep(.ql-indent-2) {
+    padding-left: 4em;
+  }
+  
+  :deep(.ql-indent-3) {
+    padding-left: 6em;
+  }
+  
+  :deep(.ql-indent-4) {
+    padding-left: 8em;
+  }
 }
 
 .cards-loading {

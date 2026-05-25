@@ -268,7 +268,13 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             let str = String(text);
             str = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
             str = str.trim();
-            return str;
+            const paragraphs = str.split('\n').filter(p => p.trim() !== '');
+            if (paragraphs.length > 1) {
+                return paragraphs.map(p => `<p>${p}</p>`).join('');
+            } else if (paragraphs.length === 1) {
+                return `<p>${paragraphs[0]}</p>`;
+            }
+            return '';
         };
 
         for (let i = 0; i < dataRows.length; i++) {

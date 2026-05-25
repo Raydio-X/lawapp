@@ -219,6 +219,7 @@ interface Library {
 interface Chapter {
   id: number
   name: string
+  children?: Chapter[]
 }
 
 interface PickerOption {
@@ -242,6 +243,9 @@ const selectedLibrary = ref<Library | null>(null)
 const selectedChapter = ref<Chapter | null>(null)
 const selectedLibraryIndex = ref<(string | number)[]>([])
 const selectedChapterIndex = ref<(string | number)[]>([])
+
+const originalChapterId = ref<number | null>(null)
+const originalLibraryId = ref<number | null>(null)
 
 const libraries = ref<Library[]>([])
 const chapters = ref<Chapter[]>([])
@@ -606,38 +610,63 @@ const formatBulletList = () => {
 
 const formatIndent = () => {
   if (!quillInstance.value) return
-  const format = quillInstance.value.getFormat()
-  const currentIndent = (format.indent as number) || 0
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  const [line, offset] = quillInstance.value.getLine(selection.index)
+  if (!line) return
+  
+  const lineStart = selection.index - offset
+  const lineLength = line.length()
+  const lineEnd = lineStart + lineLength - 1
+  
+  const lineFormat = quillInstance.value.getFormat(lineStart, lineLength - 1)
+  const currentIndent = (lineFormat.indent as number) || 0
+  
   if (currentIndent < 4) {
+    quillInstance.value.setSelection(lineStart, lineLength - 1, 'silent')
     quillInstance.value.format('indent', currentIndent + 1)
+    quillInstance.value.setSelection(selection.index, 0, 'silent')
   }
 }
 
 const formatOutdent = () => {
   if (!quillInstance.value) return
-  const format = quillInstance.value.getFormat()
-  const currentIndent = (format.indent as number) || 0
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  const [line, offset] = quillInstance.value.getLine(selection.index)
+  if (!line) return
+  
+  const lineStart = selection.index - offset
+  const lineLength = line.length()
+  const lineEnd = lineStart + lineLength - 1
+  
+  const lineFormat = quillInstance.value.getFormat(lineStart, lineLength - 1)
+  const currentIndent = (lineFormat.indent as number) || 0
+  
   if (currentIndent > 0) {
+    quillInstance.value.setSelection(lineStart, lineLength - 1, 'silent')
     quillInstance.value.format('indent', currentIndent - 1)
+    quillInstance.value.setSelection(selection.index, 0, 'silent')
   }
 }
 
 const formatTextIndent = () => {
   if (!quillInstance.value) return
   const selection = quillInstance.value.getSelection()
-  if (selection) {
-    const currentFormat = quillInstance.value.getFormat(selection.index, selection.length)
-    quillInstance.value.format('indent', currentFormat.indent ? false : 1)
-    
-    const [block] = quillInstance.value.getLine(selection.index)
-    if (block) {
-      const blot = block.domNode as HTMLElement
-      if (!currentFormat.indent) {
-        blot.style.textIndent = '2em'
-      } else {
-        blot.style.textIndent = ''
-      }
-    }
+  if (!selection) return
+  
+  const [line] = quillInstance.value.getLine(selection.index)
+  if (!line) return
+  
+  const blot = line.domNode as HTMLElement
+  const currentTextIndent = blot.style.textIndent
+  
+  if (currentTextIndent && currentTextIndent !== '0em') {
+    blot.style.textIndent = ''
+  } else {
+    blot.style.textIndent = '2em'
   }
 }
 
@@ -736,6 +765,8 @@ const loadCardData = async () => {
       if (res.data.tags && Array.isArray(res.data.tags)) {
         keywords.value = res.data.tags
       }
+      originalChapterId.value = res.data.chapter_id || null
+      originalLibraryId.value = res.data.library_id || null
     }
   } catch (error) {
     console.error('加载卡片失败:', error)
@@ -771,9 +802,28 @@ const loadLibraries = async () => {
       }
       
       if (libraries.value.length > 0 && !isHot.value) {
-        selectedLibrary.value = libraries.value[0]
-        selectedLibraryIndex.value = [libraries.value[0].id]
-        loadChapters(libraries.value[0].id)
+        let targetLibraryId: number | null = null
+        
+        if (isEdit.value && originalLibraryId.value) {
+          targetLibraryId = originalLibraryId.value
+        }
+        
+        if (targetLibraryId) {
+          const lib = libraries.value.find(l => l.id === targetLibraryId)
+          if (lib) {
+            selectedLibrary.value = lib
+            selectedLibraryIndex.value = [lib.id]
+            loadChapters(lib.id)
+          } else {
+            selectedLibrary.value = libraries.value[0]
+            selectedLibraryIndex.value = [libraries.value[0].id]
+            loadChapters(libraries.value[0].id)
+          }
+        } else {
+          selectedLibrary.value = libraries.value[0]
+          selectedLibraryIndex.value = [libraries.value[0].id]
+          loadChapters(libraries.value[0].id)
+        }
       }
     }
   } catch (error) {
@@ -793,7 +843,26 @@ const loadChapters = async (libraryId: number) => {
     if (res.success && res.data) {
       chapters.value = res.data || []
       
-      if (chapters.value.length > 0) {
+      if (isEdit.value && originalChapterId.value) {
+        const findChapter = (chapterList: Chapter[]): Chapter | null => {
+          for (const ch of chapterList) {
+            if (ch.id === originalChapterId.value) return ch
+            if (ch.children && ch.children.length > 0) {
+              const found = findChapter(ch.children)
+              if (found) return found
+            }
+          }
+          return null
+        }
+        const targetChapter = findChapter(chapters.value)
+        if (targetChapter) {
+          selectedChapter.value = targetChapter
+          selectedChapterIndex.value = [targetChapter.id]
+        } else {
+          selectedChapter.value = null
+          selectedChapterIndex.value = []
+        }
+      } else if (chapters.value.length > 0) {
         selectedChapter.value = chapters.value[0]
         selectedChapterIndex.value = [chapters.value[0].id]
       } else {
@@ -892,10 +961,26 @@ const onSubmit = async () => {
       is_hot: isHot.value
     }
     
-    if (!isHot.value && selectedLibrary.value) {
-      data.library_id = selectedLibrary.value.id
-      if (selectedChapter.value) {
-        data.chapter_id = selectedChapter.value.id
+    if (!isHot.value) {
+      if (isEdit.value) {
+        if (selectedLibrary.value && selectedLibrary.value.id !== originalLibraryId.value) {
+          data.library_id = selectedLibrary.value.id
+        } else {
+          data.library_id = originalLibraryId.value
+        }
+        
+        if (selectedChapter.value && selectedChapter.value.id !== originalChapterId.value) {
+          data.chapter_id = selectedChapter.value.id
+        } else {
+          data.chapter_id = originalChapterId.value
+        }
+      } else {
+        if (selectedLibrary.value) {
+          data.library_id = selectedLibrary.value.id
+          if (selectedChapter.value) {
+            data.chapter_id = selectedChapter.value.id
+          }
+        }
       }
     }
 

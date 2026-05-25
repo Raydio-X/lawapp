@@ -215,6 +215,7 @@ interface Library {
 interface Chapter {
   id: number
   name: string
+  children?: Chapter[]
 }
 
 interface PickerOption {
@@ -238,6 +239,9 @@ const selectedLibrary = ref<Library | null>(null)
 const selectedChapter = ref<Chapter | null>(null)
 const selectedLibraryIndex = ref<(string | number)[]>([])
 const selectedChapterIndex = ref<(string | number)[]>([])
+
+const originalChapterId = ref<number | null>(null)
+const originalLibraryId = ref<number | null>(null)
 
 const libraries = ref<Library[]>([])
 const chapters = ref<Chapter[]>([])
@@ -604,39 +608,63 @@ const formatBulletList = () => {
 
 const formatIndent = () => {
   if (!quillInstance.value) return
-  const format = quillInstance.value.getFormat()
-  const currentIndent = (format.indent as number) || 0
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  const [line, offset] = quillInstance.value.getLine(selection.index)
+  if (!line) return
+  
+  const lineStart = selection.index - offset
+  const lineLength = line.length()
+  const lineEnd = lineStart + lineLength - 1
+  
+  const lineFormat = quillInstance.value.getFormat(lineStart, lineLength - 1)
+  const currentIndent = (lineFormat.indent as number) || 0
+  
   if (currentIndent < 4) {
+    quillInstance.value.setSelection(lineStart, lineLength - 1, 'silent')
     quillInstance.value.format('indent', currentIndent + 1)
+    quillInstance.value.setSelection(selection.index, 0, 'silent')
   }
 }
 
 const formatOutdent = () => {
   if (!quillInstance.value) return
-  const format = quillInstance.value.getFormat()
-  const currentIndent = (format.indent as number) || 0
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  const [line, offset] = quillInstance.value.getLine(selection.index)
+  if (!line) return
+  
+  const lineStart = selection.index - offset
+  const lineLength = line.length()
+  const lineEnd = lineStart + lineLength - 1
+  
+  const lineFormat = quillInstance.value.getFormat(lineStart, lineLength - 1)
+  const currentIndent = (lineFormat.indent as number) || 0
+  
   if (currentIndent > 0) {
+    quillInstance.value.setSelection(lineStart, lineLength - 1, 'silent')
     quillInstance.value.format('indent', currentIndent - 1)
+    quillInstance.value.setSelection(selection.index, 0, 'silent')
   }
 }
 
 const formatTextIndent = () => {
   if (!quillInstance.value) return
   const selection = quillInstance.value.getSelection()
-  if (selection) {
-    const currentFormat = quillInstance.value.getFormat(selection.index, selection.length)
-    const indentStyle = currentFormat.indent ? '0em' : '2em'
-    quillInstance.value.format('indent', currentFormat.indent ? false : 1)
-    
-    const [block] = quillInstance.value.getLine(selection.index)
-    if (block) {
-      const blot = block.domNode as HTMLElement
-      if (indentStyle === '2em') {
-        blot.style.textIndent = '2em'
-      } else {
-        blot.style.textIndent = ''
-      }
-    }
+  if (!selection) return
+  
+  const [line] = quillInstance.value.getLine(selection.index)
+  if (!line) return
+  
+  const blot = line.domNode as HTMLElement
+  const currentTextIndent = blot.style.textIndent
+  
+  if (currentTextIndent && currentTextIndent !== '0em') {
+    blot.style.textIndent = ''
+  } else {
+    blot.style.textIndent = '2em'
   }
 }
 
@@ -739,6 +767,8 @@ const loadCardData = async () => {
       if (res.data.tags && Array.isArray(res.data.tags)) {
         keywords.value = res.data.tags
       }
+      originalChapterId.value = res.data.chapter_id || null
+      originalLibraryId.value = res.data.library_id || null
     }
   } catch (error) {
     console.error('加载卡片失败:', error)
@@ -773,9 +803,19 @@ const loadLibraries = async () => {
         return
       }
       
-      const libraryId = route.query.libraryId as string
-      if (libraryId) {
-        const lib = libraries.value.find(l => l.id === parseInt(libraryId))
+      let targetLibraryId: number | null = null
+      
+      if (isEdit.value && originalLibraryId.value) {
+        targetLibraryId = originalLibraryId.value
+      } else {
+        const libraryId = route.query.libraryId as string
+        if (libraryId) {
+          targetLibraryId = parseInt(libraryId)
+        }
+      }
+      
+      if (targetLibraryId) {
+        const lib = libraries.value.find(l => l.id === targetLibraryId)
         if (lib) {
           selectedLibrary.value = lib
           selectedLibraryIndex.value = [lib.id]
@@ -809,7 +849,26 @@ const loadChapters = async (libraryId: number) => {
     if (res.success && res.data) {
       chapters.value = res.data || []
       
-      if (chapters.value.length > 0) {
+      if (isEdit.value && originalChapterId.value) {
+        const findChapter = (chapterList: Chapter[]): Chapter | null => {
+          for (const ch of chapterList) {
+            if (ch.id === originalChapterId.value) return ch
+            if (ch.children && ch.children.length > 0) {
+              const found = findChapter(ch.children)
+              if (found) return found
+            }
+          }
+          return null
+        }
+        const targetChapter = findChapter(chapters.value)
+        if (targetChapter) {
+          selectedChapter.value = targetChapter
+          selectedChapterIndex.value = [targetChapter.id]
+        } else {
+          selectedChapter.value = null
+          selectedChapterIndex.value = []
+        }
+      } else if (chapters.value.length > 0) {
         selectedChapter.value = chapters.value[0]
         selectedChapterIndex.value = [chapters.value[0].id]
       } else {
@@ -914,9 +973,28 @@ const onSubmit = async () => {
   try {
     const html = quillInstance.value ? quillInstance.value.root.innerHTML : answer.value
     
+    let chapterIdToSave: number | null = null
+    let libraryIdToSave: number = selectedLibrary.value!.id
+    
+    if (isEdit.value) {
+      if (selectedChapter.value && selectedChapter.value.id !== originalChapterId.value) {
+        chapterIdToSave = selectedChapter.value.id
+      } else {
+        chapterIdToSave = originalChapterId.value
+      }
+      if (selectedLibrary.value && selectedLibrary.value.id !== originalLibraryId.value) {
+        libraryIdToSave = selectedLibrary.value.id
+      } else {
+        libraryIdToSave = originalLibraryId.value!
+      }
+    } else {
+      chapterIdToSave = selectedChapter.value?.id || null
+      libraryIdToSave = selectedLibrary.value!.id
+    }
+    
     const data = {
-      library_id: selectedLibrary.value!.id,
-      chapter_id: selectedChapter.value?.id || null,
+      library_id: libraryIdToSave,
+      chapter_id: chapterIdToSave,
       question: question.value.trim(),
       answer: html,
       tags: keywords.value.filter(k => k.trim()),
@@ -931,6 +1009,7 @@ const onSubmit = async () => {
     }
 
     if (res.success) {
+      localStorage.removeItem('libraryCardsData')
       if (res.data && res.data.status === 'pending_review') {
         MessagePlugin.success(res.data.message || '卡片已提交审核，审核通过后将自动发布')
       } else {
