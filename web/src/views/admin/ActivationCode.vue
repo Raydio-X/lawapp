@@ -257,8 +257,26 @@ const loadMore = () => {
 
 const onCopyCode = async (code: string) => {
   try {
-    await navigator.clipboard.writeText(code)
-    MessagePlugin.success('已复制到剪贴板')
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(code)
+      MessagePlugin.success('已复制到剪贴板')
+    } else {
+      const textArea = document.createElement('textarea')
+      textArea.value = code
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-9999px'
+      textArea.style.top = '-9999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      const successful = document.execCommand('copy')
+      document.body.removeChild(textArea)
+      if (successful) {
+        MessagePlugin.success('已复制到剪贴板')
+      } else {
+        MessagePlugin.error('复制失败')
+      }
+    }
   } catch (error) {
     MessagePlugin.error('复制失败')
   }

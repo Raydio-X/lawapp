@@ -215,6 +215,8 @@ defineExpose({
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 .pack-desc {
@@ -223,9 +225,11 @@ defineExpose({
   line-height: 1.4;
   margin-bottom: 8px;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 .pack-meta {

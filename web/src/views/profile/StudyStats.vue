@@ -79,46 +79,7 @@
           <span class="section-subtitle">各时段学习时长统计</span>
         </div>
         
-        <div class="chart-container">
-          <div class="y-axis-wrapper">
-            <span class="axis-label y-axis-label">学习时长(分钟)</span>
-            <div class="chart-y-axis">
-              <span class="y-label" v-for="(label, index) in yAxisLabels" :key="index">{{ label }}</span>
-            </div>
-          </div>
-          <div class="chart-main">
-            <div class="chart-bars">
-              <div 
-                class="bar-item" 
-                v-for="(value, index) in timeDistribution" 
-                :key="index"
-              >
-                <div 
-                  class="bar" 
-                  :style="{ height: getBarHeight(value) + '%' }"
-                  :class="{ 'has-value': value > 0 }"
-                >
-                  <span class="bar-value" v-if="value > 0">{{ value }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="chart-x-axis">
-              <span class="x-label" v-for="hour in displayHours" :key="hour">{{ hour }}</span>
-            </div>
-            <span class="axis-label x-axis-label">时间段(小时)</span>
-          </div>
-        </div>
-        
-        <div class="chart-legend">
-          <div class="legend-item">
-            <div class="legend-color"></div>
-            <span class="legend-text">学习时长（分钟）</span>
-          </div>
-          <div class="peak-time" v-if="peakTimeInfo">
-            <t-icon name="time" size="14px" color="#3B82F6" />
-            <span>最佳学习时段：{{ peakTimeInfo }}</span>
-          </div>
-        </div>
+        <TimeDistributionChart :data="timeDistribution" />
       </div>
     </div>
 
@@ -139,12 +100,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onActivated, computed } from 'vue'
+import { ref, onMounted, onUnmounted, onActivated, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { studyAPI } from '@/utils/api'
 import { usePermission } from '@/composables/usePermission'
 import { useUserStore } from '@/stores/user'
 import RadarChart from '@/components/RadarChart.vue'
+import TimeDistributionChart from '@/components/TimeDistributionChart.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -163,6 +125,10 @@ const tooltipLeft = ref(0)
 const arrowOffset = ref(50)
 const showArrowTop = ref(true)
 
+const loading = ref(false)
+const timeDistributionLoading = ref(false)
+let refreshTimer: NodeJS.Timeout | null = null
+
 const monthStats = ref({
   totalDays: 0,
   totalTime: '0h',
@@ -175,41 +141,6 @@ const radarUserData = ref<number[]>([0, 0, 0, 0, 0])
 const radarAvgData = ref<number[]>([0, 0, 0, 0, 0])
 
 const timeDistribution = ref<number[]>(Array(24).fill(0))
-
-const displayHours = computed(() => {
-  return Array.from({ length: 24 }, (_, i) => i)
-})
-
-const maxValue = computed(() => {
-  const max = Math.max(...timeDistribution.value)
-  return max > 0 ? max : 1
-})
-
-const yAxisLabels = computed(() => {
-  const max = maxValue.value
-  const step = Math.ceil(max / 4)
-  return [max, Math.round(max * 0.75), Math.round(max * 0.5), Math.round(max * 0.25), 0]
-})
-
-const peakTimeInfo = computed(() => {
-  const max = Math.max(...timeDistribution.value)
-  if (max === 0) return null
-  
-  const peakHour = timeDistribution.value.indexOf(max)
-  const formatHour = (hour: number) => {
-    if (hour === 0) return '凌晨0点'
-    if (hour < 6) return `凌晨${hour}点`
-    if (hour < 12) return `上午${hour}点`
-    if (hour === 12) return '中午12点'
-    return `下午${hour - 12}点`
-  }
-  return `${formatHour(peakHour)}（${max}分钟）`
-})
-
-const getBarHeight = (value: number) => {
-  if (value === 0) return 0
-  return (value / maxValue.value) * 100
-}
 
 const daysInMonth = computed(() => {
   return new Date(currentYear.value, currentMonth.value, 0).getDate()
@@ -236,11 +167,41 @@ onMounted(() => {
   updateDate.value = `${now.getMonth() + 1}月${now.getDate()}日`
   
   loadStudyData()
+  startAutoRefresh()
+  
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+
+onUnmounted(() => {
+  stopAutoRefresh()
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 
 onActivated(() => {
   loadStudyData()
 })
+
+const handleVisibilityChange = () => {
+  if (document.visibilityState === 'visible') {
+    loadTimeDistribution(true)
+  }
+}
+
+const startAutoRefresh = () => {
+  stopAutoRefresh()
+  refreshTimer = setInterval(() => {
+    if (document.visibilityState === 'visible') {
+      loadTimeDistribution(true)
+    }
+  }, 30000)
+}
+
+const stopAutoRefresh = () => {
+  if (refreshTimer) {
+    clearInterval(refreshTimer)
+    refreshTimer = null
+  }
+}
 
 const loadStudyData = async () => {
   try {
@@ -281,14 +242,30 @@ const loadAvgStats = async () => {
   }
 }
 
-const loadTimeDistribution = async () => {
+const loadTimeDistribution = async (forceRefresh = false) => {
+  if (timeDistributionLoading.value) return
+  
+  timeDistributionLoading.value = true
   try {
+    console.log('Loading time distribution for:', currentYear.value, currentMonth.value)
     const res = await studyAPI.getTimeDistribution(currentYear.value, currentMonth.value)
+    console.log('Time distribution response:', res)
+    
     if (res.success && res.data) {
-      timeDistribution.value = res.data
+      const newData = Array.isArray(res.data) && res.data.length === 24 
+        ? res.data 
+        : Array(24).fill(0)
+      console.log('Setting time distribution data:', newData)
+      timeDistribution.value = newData
+    } else {
+      console.warn('No valid data in response')
+      timeDistribution.value = Array(24).fill(0)
     }
   } catch (error) {
     console.error('加载时段分布数据失败:', error)
+    timeDistribution.value = Array(24).fill(0)
+  } finally {
+    timeDistributionLoading.value = false
   }
 }
 
@@ -738,158 +715,6 @@ const onCellTap = (day: any, event: MouseEvent) => {
   padding: 16px;
   margin-top: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.chart-container {
-  display: flex;
-  margin-top: 16px;
-  margin-bottom: 8px;
-}
-
-.y-axis-wrapper {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  padding-right: 4px;
-}
-
-.axis-label {
-  font-size: 10px;
-  color: #666;
-  font-weight: 500;
-}
-
-.y-axis-label {
-  writing-mode: vertical-lr;
-  margin-right: 4px;
-  white-space: nowrap;
-}
-
-.chart-y-axis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  width: 24px;
-  height: 120px;
-}
-
-.y-label {
-  font-size: 9px;
-  color: #999;
-  text-align: right;
-  line-height: 1;
-}
-
-.chart-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-bars {
-  display: flex;
-  align-items: flex-end;
-  height: 120px;
-  gap: 2px;
-  background: linear-gradient(to top, #f8f9fa 0%, transparent 100%);
-  border-bottom: 1px solid #e8e9eb;
-}
-
-.bar-item {
-  flex: 1;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  height: 100%;
-}
-
-.bar {
-  width: 100%;
-  max-width: 16px;
-  min-height: 2px;
-  background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%);
-  border-radius: 3px 3px 0 0;
-  position: relative;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.bar:not(.has-value) {
-  background: #f0f0f0;
-  min-height: 2px;
-}
-
-.bar.has-value:hover {
-  filter: brightness(1.1);
-  transform: scaleY(1.02);
-}
-
-.bar-value {
-  position: absolute;
-  top: -16px;
-  font-size: 8px;
-  color: #3B82F6;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.chart-x-axis {
-  display: flex;
-  margin-top: 4px;
-}
-
-.x-axis-label {
-  margin-top: 4px;
-  text-align: center;
-  display: block;
-}
-
-.x-label {
-  flex: 1;
-  font-size: 8px;
-  color: #999;
-  text-align: center;
-  min-width: 0;
-}
-
-.chart-legend {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 12px;
-  border-top: 0.5px solid #f0f0f0;
-  margin-top: 8px;
-}
-
-.legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend-color {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
-  background: linear-gradient(180deg, #60A5FA 0%, #3B82F6 100%);
-}
-
-.legend-text {
-  font-size: 11px;
-  color: #666;
-}
-
-.peak-time {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: #3B82F6;
-  background: #f0f7ff;
-  padding: 4px 8px;
-  border-radius: 4px;
 }
 
 .tooltip-mask {

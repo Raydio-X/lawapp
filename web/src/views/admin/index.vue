@@ -90,6 +90,8 @@
           </div>
         </div>
 
+        <DailyUsersChart />
+
         <div class="broadcast-entry" @click="router.push('/admin/broadcast')">
           <div class="broadcast-entry-icon">
             <t-icon name="notification-add" size="24px" color="#3B82F6" />
@@ -713,6 +715,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import api, { cardChangeReviewAPI, libraryAPI } from '@/utils/api'
+import DailyUsersChart from '@/components/DailyUsersChart.vue'
 
 defineOptions({
   name: 'Admin'

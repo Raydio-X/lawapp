@@ -277,6 +277,22 @@ async function initDatabase() {
         console.log('Created study_time_records table');
 
         await connection.query(`
+            CREATE TABLE study_hour_records (
+                id INT PRIMARY KEY AUTO_INCREMENT,
+                user_id INT NOT NULL,
+                library_id INT NULL,
+                duration INT NOT NULL DEFAULT 0 COMMENT '学习时长(秒)',
+                study_date DATE NOT NULL,
+                hour TINYINT NOT NULL COMMENT '小时(0-23)',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_date_hour (user_id, study_date, hour),
+                INDEX idx_study_date (study_date)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        `);
+        console.log('Created study_hour_records table');
+
+        await connection.query(`
             CREATE TABLE study_progress (
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 user_id INT NOT NULL UNIQUE,

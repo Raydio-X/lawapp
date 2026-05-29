@@ -228,6 +228,36 @@ async function migrateDatabase() {
             console.error('添加 batch_import_date 字段失败:', error.message);
         }
 
+        console.log('\n=== 检查并创建 study_hour_records 表 ===');
+        
+        try {
+            const [tables] = await connection.query('SHOW TABLES LIKE "study_hour_records"');
+            if (tables.length === 0) {
+                console.log('创建 study_hour_records 表...');
+                await connection.query(`
+                    CREATE TABLE study_hour_records (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        user_id INT NOT NULL,
+                        library_id INT NULL,
+                        duration INT NOT NULL DEFAULT 0 COMMENT '学习时长(秒)',
+                        study_date DATE NOT NULL,
+                        hour TINYINT NOT NULL COMMENT '小时(0-23)',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_user_date_hour (user_id, study_date, hour),
+                        INDEX idx_study_date (study_date),
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (library_id) REFERENCES libraries(id) ON DELETE SET NULL
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+                `);
+                console.log('✓ study_hour_records 表已创建');
+            } else {
+                console.log('✓ study_hour_records 表已存在');
+            }
+        } catch (error) {
+            console.error('创建 study_hour_records 表失败:', error.message);
+        }
+
         console.log('\n=== 检查并创建 card_change_reviews 表 ===');
         
         try {

@@ -253,6 +253,7 @@ export const examAPI = {
 
 export const adminAPI = {
   getStats: () => api.get('/admin/stats'),
+  getDailyUsersStats: (days?: number) => api.get('/admin/stats/daily-users', { days }),
   getLibraries: (params?: any) => api.get('/admin/libraries', params),
   createLibrary: (data: any) => api.post('/admin/libraries', data),
   updateLibrary: (id: number, data: any) => api.put(`/admin/libraries/${id}`, data),

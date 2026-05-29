@@ -131,11 +131,15 @@ router.get('/:id/download', async (req, res) => {
 
         await KnowledgePackModel.incrementDownloadCount(pack.id);
 
-        res.download(pack.file_path, pack.file_name, (err) => {
-            if (err) {
-                console.error('文件下载失败:', err);
-            }
-        });
+        const filename = pack.file_name;
+        const encodedFilename = encodeURIComponent(filename);
+        const asciiFilename = filename.replace(/[^\x00-\x7F]/g, '_');
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`);
+        
+        const fileStream = fs.createReadStream(pack.file_path);
+        fileStream.pipe(res);
     } catch (error) {
         console.error('下载知识包失败:', error);
         res.status(500).json({ success: false, code: 500, message: '下载知识包失败' });
@@ -154,8 +158,12 @@ router.get('/:id/preview', async (req, res) => {
             return res.status(404).json({ success: false, code: 404, message: '文件不存在' });
         }
 
+        const filename = pack.file_name;
+        const encodedFilename = encodeURIComponent(filename);
+        const asciiFilename = filename.replace(/[^\x00-\x7F]/g, '_');
+        
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(pack.file_name)}"`);
+        res.setHeader('Content-Disposition', `inline; filename="${asciiFilename}"; filename*=UTF-8''${encodedFilename}`);
         
         const fileStream = fs.createReadStream(pack.file_path);
         fileStream.pipe(res);
@@ -213,11 +221,21 @@ router.post('/upload', adminAuth, upload.single('file'), async (req, res) => {
             }
         }
 
+        let originalFilename = req.file.originalname;
+        try {
+            const decoded = Buffer.from(originalFilename, 'latin1').toString('utf8');
+            if (!decoded.includes('�')) {
+                originalFilename = decoded;
+            }
+        } catch (e) {
+            console.log('Filename decode error:', e);
+        }
+
         const pack = await KnowledgePackModel.create({
             title: title.trim(),
             description: description?.trim() || '',
             file_path: req.file.path,
-            file_name: req.file.originalname,
+            file_name: originalFilename,
             file_size: req.file.size,
             file_type: req.file.mimetype,
             category: category?.trim() || null,

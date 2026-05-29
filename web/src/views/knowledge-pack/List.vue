@@ -314,9 +314,11 @@ const onPackTap = (pack: KnowledgePack) => {
   color: #64748B;
   margin-bottom: 8px;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
 }
 
 .pack-meta {

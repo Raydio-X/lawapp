@@ -456,6 +456,54 @@ router.get('/stats', adminAuth, async (req, res) => {
     }
 });
 
+router.get('/stats/daily-users', adminAuth, async (req, res) => {
+    try {
+        const db = require('../config/database');
+        const { days = 30 } = req.query;
+        const daysNum = parseInt(days) || 30;
+
+        const [rows] = await db.execute(
+            `SELECT 
+                DATE(created_at) as date,
+                COUNT(*) as count
+            FROM users
+            WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+            GROUP BY DATE(created_at)
+            ORDER BY date ASC`,
+            [daysNum]
+        );
+
+        const result = [];
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - daysNum);
+        startDate.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i <= daysNum; i++) {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() + i);
+            const dateStr = date.toISOString().split('T')[0];
+            
+            const found = rows.find(row => {
+                const rowDate = new Date(row.date);
+                return rowDate.toISOString().split('T')[0] === dateStr;
+            });
+
+            result.push({
+                date: dateStr,
+                count: found ? found.count : 0
+            });
+        }
+
+        res.json({
+            success: true,
+            data: result
+        });
+    } catch (error) {
+        console.error('Admin get daily users stats error:', error);
+        res.status(500).json({ success: false, code: 500, message: '获取每日新增用户统计失败' });
+    }
+});
+
 router.get('/users', adminAuth, async (req, res) => {
     try {
         const db = require('../config/database');

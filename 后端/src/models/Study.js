@@ -290,6 +290,8 @@ class StudyModel {
 
     static async recordStudyTime(userId, libraryId, duration) {
         const today = getTodayLocal();
+        const now = new Date();
+        const currentHour = now.getHours();
         
         const [existing] = await db.execute(
             'SELECT * FROM study_time_records WHERE user_id = ? AND study_date = ?',
@@ -311,6 +313,25 @@ class StudyModel {
             await db.execute(
                 'UPDATE study_time_records SET duration = ? WHERE user_id = ? AND study_date = ?',
                 [newDuration, userId, today]
+            );
+        }
+
+        const [hourRecord] = await db.execute(
+            'SELECT * FROM study_hour_records WHERE user_id = ? AND study_date = ? AND hour = ?',
+            [userId, today, currentHour]
+        );
+
+        if (hourRecord.length === 0) {
+            await db.execute(
+                `INSERT INTO study_hour_records (user_id, library_id, duration, study_date, hour) 
+                 VALUES (?, ?, ?, ?, ?)`,
+                [userId, libraryId, duration, today, currentHour]
+            );
+        } else {
+            const newHourDuration = hourRecord[0].duration + duration;
+            await db.execute(
+                'UPDATE study_hour_records SET duration = ? WHERE user_id = ? AND study_date = ? AND hour = ?',
+                [newHourDuration, userId, today, currentHour]
             );
         }
 
@@ -533,10 +554,10 @@ class StudyModel {
 
     static async getTimeDistribution(userId, year, month) {
         const [rows] = await db.execute(
-            `SELECT HOUR(created_at) as hour, SUM(study_duration) as total_duration
-             FROM study_records
-             WHERE user_id = ? AND YEAR(created_at) = ? AND MONTH(created_at) = ?
-             GROUP BY HOUR(created_at)
+            `SELECT hour, SUM(duration) as total_duration
+             FROM study_hour_records
+             WHERE user_id = ? AND YEAR(study_date) = ? AND MONTH(study_date) = ?
+             GROUP BY hour
              ORDER BY hour ASC`,
             [userId, year, month]
         );
