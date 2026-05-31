@@ -128,7 +128,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, nextTick } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { authAPI, activationAPI } from '@/utils/api'
@@ -341,6 +341,8 @@ const checkQQLoginStatus = () => {
             
             MessagePlugin.success('登录成功')
             
+            await nextTick()
+            
             const redirect = route.query.redirect as string
             if (redirect) {
               router.push(redirect)
@@ -408,6 +410,8 @@ const handleTestLogin = async () => {
       }
       
       MessagePlugin.success('登录成功')
+      
+      await nextTick()
       
       const redirect = route.query.redirect as string
       if (redirect) {

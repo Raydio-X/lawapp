@@ -1,8 +1,0 @@
-{
-  "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-tag": "tdesign-miniprogram/tag/tag"
-  },
-  "navigationBarTitleText": "知识库详情",
-  "enablePullDownRefresh": true
-}

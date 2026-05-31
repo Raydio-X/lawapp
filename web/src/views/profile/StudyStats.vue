@@ -247,15 +247,12 @@ const loadTimeDistribution = async (forceRefresh = false) => {
   
   timeDistributionLoading.value = true
   try {
-    console.log('Loading time distribution for:', currentYear.value, currentMonth.value)
     const res = await studyAPI.getTimeDistribution(currentYear.value, currentMonth.value)
-    console.log('Time distribution response:', res)
     
     if (res.success && res.data) {
       const newData = Array.isArray(res.data) && res.data.length === 24 
         ? res.data 
         : Array(24).fill(0)
-      console.log('Setting time distribution data:', newData)
       timeDistribution.value = newData
     } else {
       console.warn('No valid data in response')

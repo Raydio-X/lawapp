@@ -1,8 +1,0 @@
-{
-  "navigationBarTitleText": "消息中心",
-  "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-popup": "tdesign-miniprogram/popup/popup"
-  },
-  "enablePullDownRefresh": true
-}

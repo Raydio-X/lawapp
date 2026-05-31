@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "新建知识库",
-  "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "t-dialog": "tdesign-miniprogram/dialog/dialog"
-  }
-}

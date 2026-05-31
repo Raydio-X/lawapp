@@ -1,7 +1,0 @@
-{
-  "navigationBarTitleText": "学习统计",
-  "usingComponents": {
-    "t-icon": "tdesign-miniprogram/icon/icon",
-    "radar-chart": "/components/radar-chart/index"
-  }
-}

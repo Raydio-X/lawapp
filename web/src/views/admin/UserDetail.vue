@@ -34,10 +34,6 @@
             <span class="info-value">{{ userDetail.user_id }}</span>
           </div>
           <div class="info-item">
-            <span class="info-label">性别</span>
-            <span class="info-value">{{ userDetail.gender }}</span>
-          </div>
-          <div class="info-item">
             <span class="info-label">手机号</span>
             <span class="info-value">{{ userDetail.phone || '未绑定' }}</span>
           </div>

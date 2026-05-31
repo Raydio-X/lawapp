@@ -29,9 +29,6 @@
             <span class="user-id" v-if="userStore.userIdCode">ID: {{ userStore.userIdCode }}</span>
           </div>
         </div>
-        <div class="user-edit" @click="onEditProfile">
-          <t-icon name="edit" size="16px" color="#fff" />
-        </div>
       </div>
 
       <div class="stats-section">
@@ -193,86 +190,6 @@
 
     <div class="bottom-placeholder"></div>
 
-    <div class="nickname-popup" v-if="showNicknamePopup" @click.self="showNicknamePopup = false">
-      <div class="nickname-popup-container" @click.stop>
-        <div class="nickname-popup-header">
-          <template v-if="editStep === 'menu'">
-            <span class="nickname-popup-title">编辑资料</span>
-            <div class="nickname-popup-close" @click="showNicknamePopup = false">
-              <t-icon name="close" size="16px" color="#999" />
-            </div>
-          </template>
-          <template v-else>
-            <div class="back-btn" @click="editStep = 'menu'">
-              <t-icon name="chevron-left" size="18px" color="#666" />
-            </div>
-            <span class="nickname-popup-title">{{ editStep === 'avatar' ? '编辑头像' : '编辑昵称' }}</span>
-            <div class="placeholder"></div>
-          </template>
-        </div>
-        
-        <div class="nickname-popup-body" v-if="editStep === 'menu'">
-          <div class="menu-item" @click="editStep = 'avatar'">
-            <div class="menu-left">
-              <t-icon name="user-avatar" size="20px" color="#333" />
-              <span class="menu-text">编辑头像</span>
-            </div>
-            <t-icon name="chevron-right" size="16px" color="#999" />
-          </div>
-          <div class="menu-item" @click="editStep = 'nickname'">
-            <div class="menu-left">
-              <t-icon name="edit-1" size="20px" color="#333" />
-              <span class="menu-text">编辑昵称</span>
-            </div>
-            <t-icon name="chevron-right" size="16px" color="#999" />
-          </div>
-        </div>
-        
-        <div class="nickname-popup-body" v-else-if="editStep === 'avatar'">
-          <div class="avatar-section">
-            <div class="avatar-list">
-              <div 
-                v-for="avatar in avatarList" 
-                :key="avatar.id"
-                class="avatar-item"
-                :class="{ selected: selectedAvatar === avatar.url }"
-                @click="selectedAvatar = avatar.url"
-              >
-                <img :src="avatar.url" :alt="avatar.name" class="avatar-img" />
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="nickname-popup-body" v-else-if="editStep === 'nickname'">
-          <div class="nickname-section">
-            <div class="nickname-input-wrapper">
-              <input 
-                class="nickname-input" 
-                placeholder="请输入昵称" 
-                v-model="nicknameInput"
-                maxlength="10"
-              />
-              <span class="nickname-count">{{ nicknameInput.length }}/10</span>
-            </div>
-            <div class="nickname-tip warning" v-if="!nicknameCheckResult.canUpdate">
-              <t-icon name="info-circle" size="14px" color="#ff9800" />
-              <span>昵称修改需间隔30天，还需等待{{ nicknameCheckResult.remainingDays }}天</span>
-            </div>
-            <div class="nickname-tip" v-else>
-              <t-icon name="info-circle" size="14px" color="#94A3B8" />
-              <span>每30天仅允许修改一次昵称</span>
-            </div>
-          </div>
-        </div>
-        
-        <div class="nickname-popup-footer" v-if="editStep !== 'menu'">
-          <div class="nickname-popup-btn cancel" @click="editStep = 'menu'">取消</div>
-          <div class="nickname-popup-btn confirm" @click="onConfirmProfile">确定</div>
-        </div>
-      </div>
-    </div>
-
     <Picker
       v-model:visible="showPlanPicker"
       title="设置每日学习目标"
@@ -325,21 +242,6 @@ const planOptions = computed(() => {
     value: count
   }))
 })
-
-const showNicknamePopup = ref(false)
-const editStep = ref<'menu' | 'avatar' | 'nickname'>('menu')
-const nicknameInput = ref('')
-const selectedAvatar = ref('')
-const nicknameCheckResult = ref<{ canUpdate: boolean; remainingDays: number }>({ canUpdate: true, remainingDays: 0 })
-
-const avatarList = [
-  { id: 1, name: '头像1', url: '/assets/images/avatars/avatar-1.png' },
-  { id: 2, name: '头像2', url: '/assets/images/avatars/avatar-2.png' },
-  { id: 3, name: '头像3', url: '/assets/images/avatars/avatar-3.png' },
-  { id: 4, name: '头像4', url: '/assets/images/avatars/avatar-4.png' },
-  { id: 5, name: '头像5', url: '/assets/images/avatars/avatar-5.png' },
-  { id: 6, name: '头像6', url: '/assets/images/avatars/avatar-6.png' }
-]
 
 const goalPercent = computed(() => {
   const percent = (studyProgress.value.todayCards / studyProgress.value.dailyGoal) * 100
@@ -404,68 +306,6 @@ const loadData = async () => {
   }
 }
 
-const onEditProfile = async () => {
-  nicknameInput.value = userStore.displayName
-  selectedAvatar.value = userStore.avatarUrl
-  editStep.value = 'menu'
-  showNicknamePopup.value = true
-  
-  try {
-    const res = await authAPI.checkNicknameUpdate()
-    if (res.success && res.data) {
-      nicknameCheckResult.value = res.data
-    }
-  } catch (error) {
-    console.error('检查昵称修改状态失败:', error)
-  }
-}
-
-const onConfirmProfile = async () => {
-  const updateData: any = {}
-  let hasChange = false
-  
-  if (editStep.value === 'avatar') {
-    if (selectedAvatar.value && selectedAvatar.value !== userStore.avatarUrl) {
-      updateData.avatar = selectedAvatar.value
-      hasChange = true
-    }
-  } else if (editStep.value === 'nickname') {
-    if (nicknameInput.value !== userStore.displayName) {
-      if (!nicknameCheckResult.value.canUpdate) {
-        MessagePlugin.warning(`昵称修改需要间隔30天，还需等待${nicknameCheckResult.value.remainingDays}天`)
-        return
-      }
-      updateData.nickname = nicknameInput.value
-      hasChange = true
-    }
-  }
-  
-  if (!hasChange) {
-    showNicknamePopup.value = false
-    return
-  }
-  
-  try {
-    const res = await authAPI.updateProfile(updateData)
-    if (res.success) {
-      if (updateData.nickname) {
-        userStore.updateDisplayName(updateData.nickname)
-        nicknameCheckResult.value = { canUpdate: false, remainingDays: 30 }
-      }
-      if (updateData.avatar) {
-        userStore.updateAvatar(updateData.avatar)
-      }
-      MessagePlugin.success('资料更新成功')
-      showNicknamePopup.value = false
-    } else {
-      MessagePlugin.error(res.message || '资料更新失败')
-    }
-  } catch (error) {
-    console.error('更新资料失败:', error)
-    MessagePlugin.error('资料更新失败')
-  }
-}
-
 const onStatTap = (type: string) => {
   if (type === 'library') {
     router.push('/profile/libraries')
@@ -520,22 +360,6 @@ const onPlanConfirm = async (value: (string | number)[]) => {
   } catch (error: any) {
     console.error('设置学习计划失败:', error)
     MessagePlugin.error(error.message || '设置失败')
-  }
-}
-
-const onConfirmNickname = async () => {
-  if (!nicknameInput.value.trim()) {
-    MessagePlugin.warning('请输入昵称')
-    return
-  }
-  
-  try {
-    userStore.updateDisplayName(nicknameInput.value.trim())
-    showNicknamePopup.value = false
-    MessagePlugin.success('修改成功')
-  } catch (error) {
-    console.error('修改昵称失败:', error)
-    MessagePlugin.error('修改失败')
   }
 }
 
@@ -723,23 +547,6 @@ const onLogout = () => {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
   margin-top: 2px;
-}
-
-.user-edit {
-  width: 32px;
-  height: 32px;
-  background-color: rgba(255, 255, 255, 0.25);
-  border-radius: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(5px);
-  border: 0.5px solid rgba(255, 255, 255, 0.4);
-  cursor: pointer;
-  
-  &:active {
-    background-color: rgba(255, 255, 255, 0.4);
-  }
 }
 
 .stats-section {
@@ -1102,226 +909,5 @@ const onLogout = () => {
 
 .bottom-placeholder {
   height: 24px;
-}
-
-.nickname-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 10001;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.nickname-popup-container {
-  width: 300px;
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  animation: scaleIn 0.2s ease;
-}
-
-@keyframes scaleIn {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.nickname-popup-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  border-bottom: 1px solid #E2E8F0;
-}
-
-.nickname-popup-header .back-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.nickname-popup-header .placeholder {
-  width: 28px;
-}
-
-.nickname-popup-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1E293B;
-}
-
-.nickname-popup-close {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #F8FAFC;
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.nickname-popup-body {
-  padding: 20px 16px 30px;
-}
-
-.nickname-popup-body .menu-item {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 12px;
-  background: #F8FAFC;
-  border-radius: 10px;
-  margin-bottom: 12px;
-  cursor: pointer;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-  
-  &:active {
-    background: #F1F5F9;
-  }
-}
-
-.nickname-popup-body .menu-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.nickname-popup-body .menu-text {
-  font-size: 15px;
-  color: #333;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  margin-bottom: 12px;
-  display: block;
-}
-
-.avatar-section {
-  margin-bottom: 24px;
-}
-
-.avatar-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.avatar-item {
-  position: relative;
-  aspect-ratio: 1;
-  border-radius: 50%;
-  overflow: hidden;
-  cursor: pointer;
-  box-shadow: 0 0 0 2px transparent;
-  transition: all 0.2s ease;
-  
-  &:active {
-    transform: scale(0.95);
-  }
-  
-  &.selected {
-    box-shadow: 0 0 0 2px #00B578;
-  }
-}
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.nickname-section {
-  margin-bottom: 0;
-}
-
-.nickname-input-wrapper {
-  display: flex;
-  align-items: center;
-  border: 1px solid #E2E8F0;
-  border-radius: 8px;
-  padding: 0 12px;
-  background: #F8FAFC;
-}
-
-.nickname-input-wrapper:focus-within {
-  border-color: #3B82F6;
-  background: #fff;
-}
-
-.nickname-input {
-  flex: 1;
-  height: 40px;
-  font-size: 14px;
-  color: #1E293B;
-  border: none;
-  outline: none;
-  background: transparent;
-}
-
-.nickname-count {
-  font-size: 12px;
-  color: #94A3B8;
-  margin-left: 8px;
-}
-
-.nickname-tip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 12px;
-  font-size: 12px;
-  color: #94A3B8;
-}
-
-.nickname-tip.warning {
-  padding: 8px 12px;
-  background: #FFF8E1;
-  border-radius: 6px;
-  color: #F57C00;
-}
-
-.nickname-popup-footer {
-  display: flex;
-  border-top: 1px solid #E2E8F0;
-}
-
-.nickname-popup-btn {
-  flex: 1;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.nickname-popup-btn.cancel {
-  color: #64748B;
-  border-right: 1px solid #E2E8F0;
-}
-
-.nickname-popup-btn.confirm {
-  color: #3B82F6;
 }
 </style>

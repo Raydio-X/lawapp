@@ -69,7 +69,6 @@ const initChart = () => {
   }
   
   const validatedData = validateData(props.data)
-  console.log('Initializing chart with data:', validatedData)
   
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value)
@@ -272,8 +271,6 @@ onUnmounted(() => {
 })
 
 watch(() => props.data, (newData, oldData) => {
-  console.log('Data changed:', { newData, oldData })
-  
   if (!chartInstance) {
     initChart()
     return
