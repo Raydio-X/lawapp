@@ -10,32 +10,28 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
-    redirect: '/home'
-  },
-  {
-    path: '/app',
     component: () => import('@/layouts/TabBarLayout.vue'),
     children: [
       {
-        path: '/home',
+        path: '',
         name: 'Home',
         component: () => import('@/views/home/index.vue'),
         meta: { title: '社区' }
       },
       {
-        path: '/study',
+        path: 'study',
         name: 'Study',
         component: () => import('@/views/study/index.vue'),
         meta: { title: '学习' }
       },
       {
-        path: '/create',
+        path: 'create',
         name: 'Create',
         component: () => import('@/views/create/index.vue'),
         meta: { title: '创作' }
       },
       {
-        path: '/profile',
+        path: 'profile',
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: { title: '我的' }
@@ -275,27 +271,21 @@ router.beforeEach((to, from, next) => {
   }
 
   if (to.meta.requiresAdmin) {
-    console.log('Router guard - checking admin access for:', to.path)
-    
     let userRole = 'user'
     
     if (userStore.userInfo && userStore.userInfo.role) {
       userRole = userStore.userInfo.role
-      console.log('Router guard - userRole from store:', userRole)
     } else {
       userStore.loadUserInfo()
       
       if (userStore.userInfo && userStore.userInfo.role) {
         userRole = userStore.userInfo.role
-        console.log('Router guard - userRole from reloaded store:', userRole)
       } else {
         const userInfoStr = localStorage.getItem('userInfo')
-        console.log('Router guard - userInfo from localStorage:', userInfoStr)
         if (userInfoStr) {
           try {
             const userInfo = JSON.parse(userInfoStr)
             userRole = userInfo.role || 'user'
-            console.log('Router guard - userRole from localStorage:', userRole)
           } catch (e) {
             console.error('Failed to parse userInfo:', e)
           }
@@ -304,12 +294,9 @@ router.beforeEach((to, from, next) => {
     }
     
     if (userRole !== 'admin') {
-      console.log('Router guard - access denied, redirecting to login')
       next({ name: 'Login', query: { redirect: to.fullPath } })
       return
     }
-    
-    console.log('Router guard - access granted')
   }
   
   next()

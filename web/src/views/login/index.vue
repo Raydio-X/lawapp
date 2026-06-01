@@ -341,18 +341,30 @@ const checkQQLoginStatus = () => {
             
             MessagePlugin.success('登录成功')
             
+            await nextTick()
+            await new Promise(resolve => setTimeout(resolve, 200))
+            
             userStore.loadUserInfo()
             
             await nextTick()
-            await new Promise(resolve => setTimeout(resolve, 100))
             
             const redirect = route.query.redirect as string
+            const isAdmin = userStore.userInfo && userStore.userInfo.role === 'admin'
+            
             if (redirect) {
-              router.replace(redirect)
-            } else if (res.data.userInfo.role === 'admin') {
+              if (isAdmin) {
+                if (redirect === '/' || redirect === '/home' || redirect === '/study' || redirect === '/create' || redirect === '/profile') {
+                  router.replace('/admin')
+                } else {
+                  router.replace(redirect)
+                }
+              } else {
+                router.replace(redirect)
+              }
+            } else if (isAdmin) {
               router.replace('/admin')
             } else {
-              router.replace('/home')
+              router.replace('/')
             }
           }
         } catch (error: any) {
@@ -385,9 +397,7 @@ const handleTestLogin = async () => {
 
   try {
     const res = await authAPI.testLogin(testAccount.value, testPassword.value)
-    console.log('Login response:', res)
     if (res.success && res.data) {
-      console.log('User role from response:', res.data.userInfo.role)
       userStore.setToken(res.data.token)
       userStore.setUserInfo({
         id: res.data.userInfo.id,
@@ -397,8 +407,6 @@ const handleTestLogin = async () => {
         bio: res.data.userInfo.bio,
         role: res.data.userInfo.role
       })
-      
-      console.log('UserInfo saved to localStorage:', localStorage.getItem('userInfo'))
       
       try {
         const vipRes = await activationAPI.getStatus()
@@ -414,20 +422,30 @@ const handleTestLogin = async () => {
       
       MessagePlugin.success('登录成功')
       
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
       userStore.loadUserInfo()
       
       await nextTick()
-      await new Promise(resolve => setTimeout(resolve, 100))
       
       const redirect = route.query.redirect as string
+      const isAdmin = userStore.userInfo && userStore.userInfo.role === 'admin'
+      
       if (redirect) {
-        router.replace(redirect)
-      } else if (res.data.userInfo.role === 'admin') {
-        console.log('Redirecting to /admin')
+        if (isAdmin) {
+          if (redirect === '/' || redirect === '/home' || redirect === '/study' || redirect === '/create' || redirect === '/profile') {
+            router.replace('/admin')
+          } else {
+            router.replace(redirect)
+          }
+        } else {
+          router.replace(redirect)
+        }
+      } else if (isAdmin) {
         router.replace('/admin')
       } else {
-        console.log('Redirecting to /home')
-        router.replace('/home')
+        router.replace('/')
       }
     }
   } catch (error: any) {
