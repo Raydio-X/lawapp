@@ -10,41 +10,32 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/',
+    redirect: '/home'
+  },
+  {
+    path: '/app',
     component: () => import('@/layouts/TabBarLayout.vue'),
-    redirect: (to) => {
-      const userInfoStr = localStorage.getItem('userInfo')
-      let userRole = 'user'
-      if (userInfoStr) {
-        try {
-          const userInfo = JSON.parse(userInfoStr)
-          userRole = userInfo.role || 'user'
-        } catch (e) {
-          console.error('Failed to parse userInfo:', e)
-        }
-      }
-      return userRole === 'admin' ? '/admin' : '/home'
-    },
     children: [
       {
-        path: 'home',
+        path: '/home',
         name: 'Home',
         component: () => import('@/views/home/index.vue'),
         meta: { title: '社区' }
       },
       {
-        path: 'study',
+        path: '/study',
         name: 'Study',
         component: () => import('@/views/study/index.vue'),
         meta: { title: '学习' }
       },
       {
-        path: 'create',
+        path: '/create',
         name: 'Create',
         component: () => import('@/views/create/index.vue'),
         meta: { title: '创作' }
       },
       {
-        path: 'profile',
+        path: '/profile',
         name: 'Profile',
         component: () => import('@/views/profile/index.vue'),
         meta: { title: '我的' }
@@ -175,7 +166,7 @@ const routes: RouteRecordRaw[] = [
     path: '/admin',
     name: 'Admin',
     component: () => import('@/views/admin/index.vue'),
-    meta: { title: '管理后台', requiresAdmin: true, keepAlive: true }
+    meta: { title: '管理后台', requiresAdmin: true }
   },
   {
     path: '/admin/broadcast',
