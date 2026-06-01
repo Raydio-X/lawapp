@@ -2,8 +2,16 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { useUserStore } from '@/stores/user'
 import router from '@/router'
+import { Capacitor } from '@capacitor/core'
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api'
+const getBaseUrl = () => {
+  if (Capacitor.isNativePlatform()) {
+    return 'https://lawapp.top/api'
+  }
+  return import.meta.env.VITE_API_BASE_URL || '/api'
+}
+
+const BASE_URL = getBaseUrl()
 
 interface ApiResponse<T = any> {
   success: boolean

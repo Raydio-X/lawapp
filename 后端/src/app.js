@@ -28,7 +28,10 @@ const allowedOrigins = process.env.CORS_ORIGIN
         'http://127.0.0.1:5173',
         'http://127.0.0.1:3000',
         'https://www.lawapp.top',
-        'http://www.lawapp.top'
+        'http://www.lawapp.top',
+        'capacitor://localhost',
+        'ionic://localhost',
+        'http://localhost'
     ];
 
 const corsOptions = {
