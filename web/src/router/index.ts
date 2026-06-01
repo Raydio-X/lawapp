@@ -292,15 +292,22 @@ router.beforeEach((to, from, next) => {
       userRole = userStore.userInfo.role
       console.log('Router guard - userRole from store:', userRole)
     } else {
-      const userInfoStr = localStorage.getItem('userInfo')
-      console.log('Router guard - userInfo from localStorage:', userInfoStr)
-      if (userInfoStr) {
-        try {
-          const userInfo = JSON.parse(userInfoStr)
-          userRole = userInfo.role || 'user'
-          console.log('Router guard - userRole from localStorage:', userRole)
-        } catch (e) {
-          console.error('Failed to parse userInfo:', e)
+      userStore.loadUserInfo()
+      
+      if (userStore.userInfo && userStore.userInfo.role) {
+        userRole = userStore.userInfo.role
+        console.log('Router guard - userRole from reloaded store:', userRole)
+      } else {
+        const userInfoStr = localStorage.getItem('userInfo')
+        console.log('Router guard - userInfo from localStorage:', userInfoStr)
+        if (userInfoStr) {
+          try {
+            const userInfo = JSON.parse(userInfoStr)
+            userRole = userInfo.role || 'user'
+            console.log('Router guard - userRole from localStorage:', userRole)
+          } catch (e) {
+            console.error('Failed to parse userInfo:', e)
+          }
         }
       }
     }

@@ -341,15 +341,18 @@ const checkQQLoginStatus = () => {
             
             MessagePlugin.success('登录成功')
             
+            userStore.loadUserInfo()
+            
             await nextTick()
+            await new Promise(resolve => setTimeout(resolve, 100))
             
             const redirect = route.query.redirect as string
             if (redirect) {
-              router.push(redirect)
+              router.replace(redirect)
             } else if (res.data.userInfo.role === 'admin') {
-              router.push('/admin')
+              router.replace('/admin')
             } else {
-              router.push('/home')
+              router.replace('/home')
             }
           }
         } catch (error: any) {
@@ -411,17 +414,20 @@ const handleTestLogin = async () => {
       
       MessagePlugin.success('登录成功')
       
+      userStore.loadUserInfo()
+      
       await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 100))
       
       const redirect = route.query.redirect as string
       if (redirect) {
-        router.push(redirect)
+        router.replace(redirect)
       } else if (res.data.userInfo.role === 'admin') {
         console.log('Redirecting to /admin')
-        router.push('/admin')
+        router.replace('/admin')
       } else {
         console.log('Redirecting to /home')
-        router.push('/home')
+        router.replace('/home')
       }
     }
   } catch (error: any) {
