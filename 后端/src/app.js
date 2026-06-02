@@ -20,25 +20,45 @@ const cardChangeReviewRoutes = require('./routes/cardChangeReviews');
 
 const app = express();
 
-const allowedOrigins = process.env.CORS_ORIGIN 
-    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : [
-        'http://localhost:5173',
-        'http://localhost:3000',
-        'http://127.0.0.1:5173',
-        'http://127.0.0.1:3000',
-        'https://www.lawapp.top',
-        'http://www.lawapp.top',
-        'capacitor://localhost',
-        'ionic://localhost',
-        'http://localhost'
+const defaultOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3000',
+    'https://www.lawapp.top',
+    'http://www.lawapp.top',
+    'https://lawapp.top',
+    'http://lawapp.top'
+];
+
+const mobileOrigins = [
+    'capacitor://localhost',
+    'ionic://localhost',
+    'http://localhost',
+    'https://localhost',
+    'file://'
+];
+
+let allowedOrigins;
+if (process.env.CORS_ORIGIN) {
+    allowedOrigins = [
+        ...process.env.CORS_ORIGIN.split(',').map(origin => origin.trim()),
+        ...mobileOrigins
     ];
+} else {
+    allowedOrigins = [...defaultOrigins, ...mobileOrigins];
+}
+
+console.log('CORS Allowed Origins:', allowedOrigins);
 
 const corsOptions = {
     origin: function (origin, callback) {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        if (!origin) {
+            callback(null, true);
+        } else if (allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
+            console.log('CORS blocked origin:', origin);
             callback(new Error('Not allowed by CORS'));
         }
     },

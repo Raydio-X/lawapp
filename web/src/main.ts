@@ -8,6 +8,7 @@ import 'quill/dist/quill.snow.css'
 import App from './App.vue'
 import router from './router'
 import './styles/index.scss'
+import { useGestureNavigation } from './utils/gestureNavigation'
 
 const app = createApp(App)
 
@@ -17,3 +18,5 @@ app.use(TDesign)
 app.use(TDesignIcons)
 
 app.mount('#app')
+
+useGestureNavigation(router)
