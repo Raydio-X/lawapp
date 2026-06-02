@@ -270,6 +270,35 @@ router.beforeEach((to, from, next) => {
     return
   }
 
+  if (to.path === '/' && token) {
+    let userRole = 'user'
+    
+    if (userStore.userInfo && userStore.userInfo.role) {
+      userRole = userStore.userInfo.role
+    } else {
+      userStore.loadUserInfo()
+      
+      if (userStore.userInfo && userStore.userInfo.role) {
+        userRole = userStore.userInfo.role
+      } else {
+        const userInfoStr = localStorage.getItem('userInfo')
+        if (userInfoStr) {
+          try {
+            const userInfo = JSON.parse(userInfoStr)
+            userRole = userInfo.role || 'user'
+          } catch (e) {
+            console.error('Failed to parse userInfo:', e)
+          }
+        }
+      }
+    }
+    
+    if (userRole === 'admin') {
+      next('/admin')
+      return
+    }
+  }
+
   if (to.meta.requiresAdmin) {
     let userRole = 'user'
     

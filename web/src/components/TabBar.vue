@@ -44,7 +44,7 @@ const messageStore = useMessageStore()
 
 const tabList: TabItem[] = [
   {
-    path: '/home',
+    path: '/',
     text: '社区',
     icon: '/assets/images/tabbar/home.png',
     selectedIcon: '/assets/images/tabbar/home-active.png'
