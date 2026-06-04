@@ -6,6 +6,12 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   server: {
     androidScheme: 'https'
+  },
+  plugins: {
+    QQLogin: {
+      appId: '1904114043',
+      appKey: 'eEcmxxoYCdwBJFxS'
+    }
   }
 };
 

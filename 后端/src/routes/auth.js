@@ -7,10 +7,19 @@ const router = express.Router();
 
 router.post('/qq-login', async (req, res) => {
     try {
-        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId } = req.body;
+        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId, platform } = req.body;
 
-        const qqAppId = process.env.QQ_APP_ID;
-        const qqAppKey = process.env.QQ_APP_KEY;
+        // 根据平台选择不同的APP配置
+        const isMobile = platform === 'mobile';
+        let qqAppId, qqAppKey;
+        
+        if (isMobile) {
+            qqAppId = process.env.QQ_MOBILE_APP_ID || process.env.QQ_APP_ID;
+            qqAppKey = process.env.QQ_MOBILE_APP_KEY || process.env.QQ_APP_KEY;
+        } else {
+            qqAppId = process.env.QQ_WEB_APP_ID || process.env.QQ_APP_ID;
+            qqAppKey = process.env.QQ_WEB_APP_KEY || process.env.QQ_APP_KEY;
+        }
 
         if (!qqAppId || !qqAppKey) {
             return res.status(500).json({
@@ -67,17 +76,36 @@ router.post('/qq-login', async (req, res) => {
             }
         }
 
+        // 尝试获取 unionId（用于跨应用识别同一用户）
+        let unionid = null;
+        try {
+            const unionidResponse = await fetch(
+                `https://graph.qq.com/user/get_unionid?access_token=${accessToken}`
+            );
+            const unionidData = await unionidResponse.json();
+            unionid = unionidData.unionid;
+            console.log('QQ unionId:', unionid);
+        } catch (error) {
+            console.log('获取unionId失败，可能未开通权限:', error.message);
+        }
+
         const userInfoResponse = await fetch(
             `https://graph.qq.com/user/get_user_info?access_token=${accessToken}&oauth_consumer_key=${qqAppId}&openid=${openid}`
         );
         const userInfo = await userInfoResponse.json();
 
-        const qqOpenid = 'qq_' + openid;
-        let user = await UserModel.findByOpenid(qqOpenid);
+        // 优先使用 unionId 作为用户标识，如果没有则使用 openId
+        const userIdentifier = unionid ? `qq_union_${unionid}` : `qq_${openid}`;
+        let user = await UserModel.findByOpenid(userIdentifier);
+        
+        // 如果通过 unionId 找不到，尝试通过 openId 查找（兼容旧数据）
+        if (!user && !unionid) {
+            user = await UserModel.findByOpenid(`qq_${openid}`);
+        }
         
         if (!user) {
             user = await UserModel.create({
-                openid: qqOpenid,
+                openid: userIdentifier,
                 nickname: userInfo.nickname || 'QQ用户',
                 avatar: userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || userInfo.figureurl_2 || '',
                 gender: userInfo.gender === '男' ? 1 : (userInfo.gender === '女' ? 2 : 0)

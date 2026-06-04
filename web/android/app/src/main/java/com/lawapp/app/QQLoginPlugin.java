@@ -1,0 +1,232 @@
+package com.lawapp.app;
+
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Bundle;
+import android.util.Log;
+
+import com.getcapacitor.JSObject;
+import com.getcapacitor.Plugin;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.PluginMethod;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.tencent.tauth.IUiListener;
+import com.tencent.tauth.Tencent;
+import com.tencent.tauth.UiError;
+
+import org.json.JSONObject;
+
+@CapacitorPlugin(name = "QQLogin")
+public class QQLoginPlugin extends Plugin {
+    private static final String TAG = "QQLoginPlugin";
+    private Tencent mTencent;
+    private String appId;
+    private PluginCall savedCall;
+
+    private final IUiListener loginListener = new IUiListener() {
+        @Override
+        public void onComplete(Object response) {
+            Log.d(TAG, "QQ login onComplete: " + response.toString());
+            try {
+                JSONObject jsonResponse = (JSONObject) response;
+                String openId = jsonResponse.optString("openid");
+                String accessToken = jsonResponse.optString("access_token");
+                long expiresIn = jsonResponse.optLong("expires_in");
+
+                if (openId == null || openId.isEmpty() || accessToken == null || accessToken.isEmpty()) {
+                    Log.e(TAG, "Invalid login response: openId or accessToken is empty");
+                    handleError("登录失败：获取用户信息不完整");
+                    return;
+                }
+
+                // 保存token
+                mTencent.setOpenId(openId);
+                mTencent.setAccessToken(accessToken, String.valueOf(expiresIn));
+
+                JSObject result = new JSObject();
+                result.put("success", true);
+                result.put("openId", openId);
+                result.put("accessToken", accessToken);
+                result.put("expiresIn", expiresIn);
+
+                if (savedCall != null) {
+                    savedCall.resolve(result);
+                    savedCall = null;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Parse login response error: " + e.getMessage());
+                handleError("解析登录结果失败: " + e.getMessage());
+            }
+        }
+
+        @Override
+        public void onError(UiError error) {
+            Log.e(TAG, "QQ login onError: " + error.errorCode + " - " + error.errorMessage);
+            String errorMessage = getErrorMessage(error.errorCode, error.errorMessage);
+            handleError(errorMessage);
+        }
+
+        @Override
+        public void onCancel() {
+            Log.d(TAG, "QQ login onCancel");
+            handleError("用户取消登录");
+        }
+
+        @Override
+        public void onWarning(int code) {
+            Log.w(TAG, "QQ login onWarning: " + code);
+            // 警告通常不需要特殊处理，但记录日志
+        }
+    };
+
+    @Override
+    public void load() {
+        super.load();
+        appId = getConfig().getString("appId", "");
+        if (!appId.isEmpty()) {
+            mTencent = Tencent.createInstance(appId, getContext());
+            Log.d(TAG, "QQ SDK initialized with appId: " + appId);
+        } else {
+            Log.w(TAG, "QQ appId not configured");
+        }
+    }
+
+    @PluginMethod
+    public void login(PluginCall call) {
+        // 检查网络连接
+        if (!isNetworkAvailable()) {
+            call.reject("网络不可用，请检查网络连接");
+            return;
+        }
+
+        if (mTencent == null) {
+            call.reject("QQ SDK未初始化，请检查appId配置");
+            return;
+        }
+
+        savedCall = call;
+
+        getBridge().getActivity().runOnUiThread(() -> {
+            try {
+                Log.d(TAG, "Starting QQ login...");
+                mTencent.login(getBridge().getActivity(), "get_user_info", loginListener);
+            } catch (Exception e) {
+                Log.e(TAG, "Login error: " + e.getMessage(), e);
+                call.reject("启动QQ登录失败: " + e.getMessage());
+                savedCall = null;
+            }
+        });
+    }
+
+    @PluginMethod
+    public void logout(PluginCall call) {
+        if (mTencent != null) {
+            mTencent.logout(getContext());
+        }
+        JSObject result = new JSObject();
+        result.put("success", true);
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void isLoggedIn(PluginCall call) {
+        JSObject result = new JSObject();
+        boolean loggedIn = mTencent != null && mTencent.isSessionValid();
+        result.put("isLoggedIn", loggedIn);
+        if (loggedIn) {
+            result.put("openId", mTencent.getOpenId());
+            result.put("accessToken", mTencent.getAccessToken());
+        }
+        call.resolve(result);
+    }
+
+    @PluginMethod
+    public void getUserInfo(PluginCall call) {
+        if (mTencent == null || !mTencent.isSessionValid()) {
+            call.reject("未登录");
+            return;
+        }
+
+        savedCall = call;
+
+        getBridge().getActivity().runOnUiThread(() -> {
+            try {
+                JSObject result = new JSObject();
+                result.put("success", true);
+                result.put("openId", mTencent.getOpenId());
+                result.put("accessToken", mTencent.getAccessToken());
+                call.resolve(result);
+            } catch (Exception e) {
+                Log.e(TAG, "Get user info error: " + e.getMessage());
+                call.reject("获取用户信息失败: " + e.getMessage());
+            }
+        });
+    }
+
+    @PluginMethod
+    public void checkSupport(PluginCall call) {
+        JSObject result = new JSObject();
+        result.put("isSupported", mTencent != null);
+        result.put("appId", appId != null ? appId : "");
+        result.put("hasNetwork", isNetworkAvailable());
+        call.resolve(result);
+    }
+
+    private void handleError(String message) {
+        if (savedCall != null) {
+            JSObject result = new JSObject();
+            result.put("success", false);
+            result.put("error", message);
+            savedCall.resolve(result);
+            savedCall = null;
+        }
+    }
+
+    private String getErrorMessage(int errorCode, String defaultMessage) {
+        switch (errorCode) {
+            case 1:
+                return "QQ客户端未安装或版本过低";
+            case 2:
+                return "网络连接失败，请检查网络";
+            case 3:
+                return "应用配置错误，请检查APP ID";
+            case 4:
+                return "用户取消登录";
+            case 5:
+                return "登录超时，请重试";
+            case 6:
+                return "QQ授权失败";
+            case 7:
+                return "应用签名不匹配，请检查签名配置";
+            default:
+                return defaultMessage != null && !defaultMessage.isEmpty() 
+                    ? defaultMessage 
+                    : "登录失败，错误码: " + errorCode;
+        }
+    }
+
+    private boolean isNetworkAvailable() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) getContext()
+                .getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm != null) {
+                NetworkInfo networkInfo = cm.getActiveNetworkInfo();
+                return networkInfo != null && networkInfo.isConnected();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Check network error: " + e.getMessage());
+        }
+        return false;
+    }
+
+    @Override
+    public void handleOnActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(TAG, "handleOnActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
+        if (mTencent != null) {
+            Tencent.onActivityResultData(requestCode, resultCode, data, loginListener);
+        }
+        super.handleOnActivityResult(requestCode, resultCode, data);
+    }
+}

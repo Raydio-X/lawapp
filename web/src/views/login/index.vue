@@ -133,6 +133,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { authAPI, activationAPI } from '@/utils/api'
 import { useUserStore } from '@/stores/user'
+import { nativeQQLogin } from '@/utils/nativeQQLogin'
+import { Capacitor } from '@capacitor/core'
 
 declare global {
   interface Window {
@@ -154,7 +156,10 @@ const qqLoginLoading = ref(false)
 const testAccount = ref('')
 const testPassword = ref('')
 
-const QQ_APP_ID = import.meta.env.VITE_QQ_APP_ID || ''
+// 根据平台选择不同的QQ APP ID
+const QQ_WEB_APP_ID = import.meta.env.VITE_QQ_WEB_APP_ID || ''
+const QQ_MOBILE_APP_ID = import.meta.env.VITE_QQ_MOBILE_APP_ID || ''
+const QQ_APP_ID = Capacitor.isNativePlatform() ? QQ_MOBILE_APP_ID : QQ_WEB_APP_ID
 const QQ_REDIRECT_URI = 'https://www.lawapp.top/login'
 
 const USER_AGREEMENT = `欢迎您使用律卡（以下简称“本应用”）。本协议是您与律卡开发运营方之间就您注册、登录及使用本应用所订立的协议。请您在使用本应用前认真阅读并充分理解本协议的全部内容，特别是有关免责、责任限制以及用户义务等条款。 当您点击“同意”或实际开始使用本应用，即视为您已充分阅读并接受本协议的全部内容。
@@ -254,6 +259,12 @@ const toggleLoginMode = () => {
 }
 
 const initQQSDK = () => {
+  // 原生平台不需要加载Web QQ SDK
+  if (Capacitor.isNativePlatform()) {
+    console.log('Native platform, skip loading Web QQ SDK')
+    return
+  }
+
   if (!QQ_APP_ID) {
     return
   }
@@ -277,7 +288,7 @@ const initQQSDK = () => {
   document.head.appendChild(script)
 }
 
-const onQQLogin = () => {
+const onQQLogin = async () => {
   if (!hasAgreed.value) {
     MessagePlugin.warning('请先同意用户协议和隐私政策')
     return
@@ -288,90 +299,126 @@ const onQQLogin = () => {
     return
   }
 
-  if (!window.QC) {
-    MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
-    return
-  }
-
   qqLoginLoading.value = true
 
+  // 检查是否为原生平台
+  if (Capacitor.isNativePlatform()) {
+    // 使用原生QQ登录
+    try {
+      const result = await nativeQQLogin.login()
+      
+      if (result.success && result.openId && result.accessToken) {
+        // 调用后端接口完成登录
+        await handleQQLoginSuccess(result.accessToken, result.openId)
+      } else {
+        MessagePlugin.error(result.error || 'QQ登录失败')
+        qqLoginLoading.value = false
+      }
+    } catch (error: any) {
+      console.error('原生QQ登录错误:', error)
+      MessagePlugin.error(error.message || 'QQ登录失败')
+      qqLoginLoading.value = false
+    }
+  } else {
+    // 使用Web QQ登录
+    if (!window.QC) {
+      MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
+      qqLoginLoading.value = false
+      return
+    }
+
+    try {
+      window.QC.Login.showPopup({
+        appId: QQ_APP_ID,
+        redirectURI: QQ_REDIRECT_URI
+      })
+    } catch (error) {
+      console.error('QQ登录弹出窗口失败:', error)
+      MessagePlugin.error('QQ登录失败，请稍后重试')
+      qqLoginLoading.value = false
+    }
+  }
+}
+
+// 处理QQ登录成功后的逻辑
+const handleQQLoginSuccess = async (accessToken: string, openId: string) => {
   try {
-    window.QC.Login.showPopup({
-      appId: QQ_APP_ID,
-      redirectURI: QQ_REDIRECT_URI
-    })
-  } catch (error) {
-    console.error('QQ登录弹出窗口失败:', error)
-    MessagePlugin.error('QQ登录失败，请稍后重试')
+    // 根据平台传递不同的platform参数
+    const platform = Capacitor.isNativePlatform() ? 'mobile' : 'web'
+    const res = await authAPI.qqLogin(accessToken, openId, platform)
+    
+    if (res.success && res.data) {
+      userStore.setToken(res.data.token)
+      userStore.setUserInfo({
+        id: res.data.userInfo.id,
+        userId: res.data.userInfo.userId,
+        nickName: res.data.userInfo.nickname,
+        avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
+        bio: res.data.userInfo.bio,
+        role: res.data.userInfo.role
+      })
+      
+      try {
+        const vipRes = await activationAPI.getStatus()
+        if (vipRes.success && vipRes.data) {
+          userStore.setVipStatus({
+            isVip: vipRes.data.is_vip || vipRes.data.isVip || false,
+            vipExpireAt: vipRes.data.vip_expires_at || vipRes.data.vipExpireAt || null
+          })
+        }
+      } catch (error) {
+        console.error('获取VIP状态失败:', error)
+      }
+      
+      MessagePlugin.success('登录成功')
+      
+      await nextTick()
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      userStore.loadUserInfo()
+      
+      await nextTick()
+      
+      const redirect = route.query.redirect as string
+      const isAdmin = userStore.userInfo && userStore.userInfo.role === 'admin'
+      
+      if (redirect) {
+        if (isAdmin) {
+          if (redirect === '/' || redirect === '/home' || redirect === '/study' || redirect === '/create' || redirect === '/profile') {
+            router.replace('/admin')
+          } else {
+            router.replace(redirect)
+          }
+        } else {
+          router.replace(redirect)
+        }
+      } else if (isAdmin) {
+        router.replace('/admin')
+      } else {
+        router.replace('/')
+      }
+    } else {
+      MessagePlugin.error(res.message || '登录失败')
+    }
+  } catch (error: any) {
+    MessagePlugin.error(error.message || 'QQ登录失败')
+  } finally {
     qqLoginLoading.value = false
   }
 }
 
 const checkQQLoginStatus = () => {
+  // 原生平台不检查Web QQ登录状态
+  if (Capacitor.isNativePlatform()) {
+    return
+  }
+
   if (!window.QC || !QQ_APP_ID) return
 
   try {
     if (window.QC.Login.check()) {
       window.QC.Login.getMe(async (openId: string, accessToken: string) => {
-        try {
-          const res = await authAPI.qqLogin(accessToken, openId)
-          
-          if (res.success && res.data) {
-            userStore.setToken(res.data.token)
-            userStore.setUserInfo({
-              id: res.data.userInfo.id,
-              userId: res.data.userInfo.userId,
-              nickName: res.data.userInfo.nickname,
-              avatarUrl: res.data.userInfo.avatar || '/assets/images/default-avatar.svg',
-              bio: res.data.userInfo.bio,
-              role: res.data.userInfo.role
-            })
-            
-            try {
-              const vipRes = await activationAPI.getStatus()
-              if (vipRes.success && vipRes.data) {
-                userStore.setVipStatus({
-                  isVip: vipRes.data.is_vip || vipRes.data.isVip || false,
-                  vipExpireAt: vipRes.data.vip_expires_at || vipRes.data.vipExpireAt || null
-                })
-              }
-            } catch (error) {
-              console.error('获取VIP状态失败:', error)
-            }
-            
-            MessagePlugin.success('登录成功')
-            
-            await nextTick()
-            await new Promise(resolve => setTimeout(resolve, 200))
-            
-            userStore.loadUserInfo()
-            
-            await nextTick()
-            
-            const redirect = route.query.redirect as string
-            const isAdmin = userStore.userInfo && userStore.userInfo.role === 'admin'
-            
-            if (redirect) {
-              if (isAdmin) {
-                if (redirect === '/' || redirect === '/home' || redirect === '/study' || redirect === '/create' || redirect === '/profile') {
-                  router.replace('/admin')
-                } else {
-                  router.replace(redirect)
-                }
-              } else {
-                router.replace(redirect)
-              }
-            } else if (isAdmin) {
-              router.replace('/admin')
-            } else {
-              router.replace('/')
-            }
-          }
-        } catch (error: any) {
-          MessagePlugin.error(error.message || 'QQ登录失败')
-        } finally {
-          qqLoginLoading.value = false
-        }
+        await handleQQLoginSuccess(accessToken, openId)
       })
     }
   } catch (error) {
