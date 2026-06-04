@@ -5,6 +5,7 @@ export interface QQLoginResult {
   openId?: string
   accessToken?: string
   expiresIn?: number
+  unionId?: string
   error?: string
 }
 
@@ -80,8 +81,14 @@ export class NativeQQLogin {
     console.log('  isNativePlatform:', this.isNativePlatform())
     console.log('  appId:', this.appId)
     
-    // 直接尝试调用原生插件，不检查平台
-    // 如果在非原生平台，会抛出异常
+    // 先检查平台
+    if (!this.isNativePlatform()) {
+      return {
+        success: false,
+        error: '非原生平台，请使用Web QQ登录'
+      }
+    }
+    
     try {
       console.log('  Calling QQLogin.login()...')
       const result = await QQLogin.login()
@@ -89,15 +96,6 @@ export class NativeQQLogin {
       return result
     } catch (error: any) {
       console.error('QQ login error:', error)
-      
-      // 如果是插件未找到的错误，说明不是原生平台
-      if (error.message && error.message.includes('not available')) {
-        return {
-          success: false,
-          error: '非原生平台，请使用Web QQ登录'
-        }
-      }
-      
       return {
         success: false,
         error: error.message || 'QQ登录失败'

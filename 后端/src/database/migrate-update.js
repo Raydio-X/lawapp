@@ -394,6 +394,102 @@ async function migrateDatabase() {
             console.error('更新知识库审核状态失败:', error.message);
         }
 
+        console.log('\n=== 检查并添加 users 表的 UnionID 字段 ===');
+        
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM users LIKE "unionid"');
+            if (columns.length === 0) {
+                console.log('添加 unionid 字段...');
+                await connection.query(`
+                    ALTER TABLE users 
+                    ADD COLUMN unionid VARCHAR(100) DEFAULT NULL COMMENT 'QQ UnionID，用于跨平台识别同一用户'
+                `);
+                console.log('✓ unionid 字段已添加');
+            } else {
+                console.log('✓ unionid 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 unionid 字段失败:', error.message);
+        }
+
+        // 添加 unionid 索引
+        try {
+            const [indexes] = await connection.query('SHOW INDEX FROM users WHERE Key_name = "idx_unionid"');
+            if (indexes.length === 0) {
+                console.log('添加 idx_unionid 索引...');
+                await connection.query('CREATE INDEX idx_unionid ON users(unionid)');
+                console.log('✓ idx_unionid 索引已添加');
+            } else {
+                console.log('✓ idx_unionid 索引已存在');
+            }
+        } catch (error) {
+            console.error('添加 idx_unionid 索引失败:', error.message);
+        }
+
+        // 添加 unionid 唯一约束
+        try {
+            const [indexes] = await connection.query('SHOW INDEX FROM users WHERE Key_name = "uk_unionid"');
+            if (indexes.length === 0) {
+                console.log('添加 uk_unionid 唯一约束...');
+                await connection.query('ALTER TABLE users ADD UNIQUE INDEX uk_unionid (unionid)');
+                console.log('✓ uk_unionid 唯一约束已添加');
+            } else {
+                console.log('✓ uk_unionid 唯一约束已存在');
+            }
+        } catch (error) {
+            console.error('添加 uk_unionid 唯一约束失败:', error.message);
+        }
+
+        // 添加 nickname_updated_at 字段（如果不存在）
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM users LIKE "nickname_updated_at"');
+            if (columns.length === 0) {
+                console.log('添加 nickname_updated_at 字段...');
+                await connection.query(`
+                    ALTER TABLE users 
+                    ADD COLUMN nickname_updated_at TIMESTAMP NULL COMMENT '昵称最后更新时间'
+                `);
+                console.log('✓ nickname_updated_at 字段已添加');
+            } else {
+                console.log('✓ nickname_updated_at 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 nickname_updated_at 字段失败:', error.message);
+        }
+
+        console.log('\n=== 检查现有QQ登录用户的UnionID迁移状态 ===');
+        
+        try {
+            const [qqUsers] = await connection.query(
+                'SELECT id, user_id, openid, nickname, unionid FROM users WHERE openid LIKE "qq_%"'
+            );
+            
+            console.log(`找到 ${qqUsers.length} 个QQ登录用户`);
+            
+            let migratedCount = 0;
+            let pendingCount = 0;
+            
+            for (const user of qqUsers) {
+                if (user.openid.startsWith('qq_union_')) {
+                    migratedCount++;
+                } else {
+                    pendingCount++;
+                }
+            }
+            
+            console.log(`已迁移到UnionID: ${migratedCount} 个用户`);
+            console.log(`待迁移(使用OpenID): ${pendingCount} 个用户`);
+            
+            if (pendingCount > 0) {
+                console.log('\n说明：');
+                console.log('- 待迁移的用户将在下次登录时自动迁移到UnionID');
+                console.log('- 无需手动干预，系统会自动处理');
+                console.log('- 建议通知用户重新登录以完成迁移');
+            }
+        } catch (error) {
+            console.error('检查QQ用户迁移状态失败:', error.message);
+        }
+
         console.log('\n=== 检查管理员用户 ===');
         
         try {

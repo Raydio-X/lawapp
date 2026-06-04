@@ -50,16 +50,8 @@ public class QQLoginPlugin extends Plugin {
                 mTencent.setOpenId(openId);
                 mTencent.setAccessToken(accessToken, String.valueOf(expiresIn));
 
-                JSObject result = new JSObject();
-                result.put("success", true);
-                result.put("openId", openId);
-                result.put("accessToken", accessToken);
-                result.put("expiresIn", expiresIn);
-
-                if (savedCall != null) {
-                    savedCall.resolve(result);
-                    savedCall = null;
-                }
+                // 获取UnionID（用于跨平台识别同一用户）
+                fetchUnionId(accessToken, openId, expiresIn);
             } catch (Exception e) {
                 Log.e(TAG, "Parse login response error: " + e.getMessage());
                 handleError("解析登录结果失败: " + e.getMessage());
@@ -215,6 +207,80 @@ public class QQLoginPlugin extends Plugin {
         result.put("appId", appId != null ? appId : "");
         result.put("hasNetwork", isNetworkAvailable());
         call.resolve(result);
+    }
+
+    /**
+     * 获取UnionID（用于跨平台识别同一用户）
+     */
+    private void fetchUnionId(String accessToken, String openId, long expiresIn) {
+        new Thread(() -> {
+            try {
+                // 调用QQ API获取UnionID
+                String unionIdUrl = "https://graph.qq.com/user/get_unionid?access_token=" + accessToken;
+                java.net.URL url = new java.net.URL(unionIdUrl);
+                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
+                connection.setReadTimeout(5000);
+
+                int responseCode = connection.getResponseCode();
+                Log.d(TAG, "UnionID API response code: " + responseCode);
+
+                String unionId = null;
+                if (responseCode == 200) {
+                    java.io.BufferedReader reader = new java.io.BufferedReader(
+                        new java.io.InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+                    Log.d(TAG, "UnionID API response: " + response.toString());
+                    
+                    // 解析JSON响应
+                    JSONObject unionIdResponse = new JSONObject(response.toString());
+                    unionId = unionIdResponse.optString("unionid");
+                    Log.d(TAG, "UnionID: " + unionId);
+                }
+
+                connection.disconnect();
+
+                // 返回结果给前端
+                getBridge().getActivity().runOnUiThread(() -> {
+                    JSObject result = new JSObject();
+                    result.put("success", true);
+                    result.put("openId", openId);
+                    result.put("accessToken", accessToken);
+                    result.put("expiresIn", expiresIn);
+                    if (unionId != null && !unionId.isEmpty()) {
+                        result.put("unionId", unionId);
+                    }
+
+                    if (savedCall != null) {
+                        savedCall.resolve(result);
+                        savedCall = null;
+                    }
+                });
+
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to fetch UnionID: " + e.getMessage());
+                // 即使获取UnionID失败，也返回基本登录信息
+                getBridge().getActivity().runOnUiThread(() -> {
+                    JSObject result = new JSObject();
+                    result.put("success", true);
+                    result.put("openId", openId);
+                    result.put("accessToken", accessToken);
+                    result.put("expiresIn", expiresIn);
+
+                    if (savedCall != null) {
+                        savedCall.resolve(result);
+                        savedCall = null;
+                    }
+                });
+            }
+        }).start();
     }
 
     private void handleError(String message) {

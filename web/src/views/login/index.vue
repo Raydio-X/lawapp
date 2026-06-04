@@ -312,54 +312,56 @@ const onQQLogin = async () => {
 
   qqLoginLoading.value = true
 
-  // 直接尝试原生登录，如果失败则尝试 Web 登录
-  try {
-    console.log('Calling nativeQQLogin.login()...')
-    const result = await nativeQQLogin.login()
-    console.log('nativeQQLogin.login() result:', result)
-    
-    if (result.success && result.openId && result.accessToken) {
-      // 调用后端接口完成登录
-      await handleQQLoginSuccess(result.accessToken, result.openId)
-    } else {
-      // 原生登录失败，检查是否需要尝试 Web 登录
-      if (result.error && result.error.includes('非原生平台')) {
-        // 尝试 Web QQ 登录
-        if (!window.QC) {
-          MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
-          qqLoginLoading.value = false
-          return
-        }
-        
-        try {
-          const effectiveAppId = QQ_APP_ID || '1903972654'
-          window.QC.Login.showPopup({
-            appId: effectiveAppId,
-            redirectURI: QQ_REDIRECT_URI
-          })
-        } catch (error) {
-          console.error('QQ登录弹出窗口失败:', error)
-          MessagePlugin.error('QQ登录失败，请稍后重试')
-          qqLoginLoading.value = false
-        }
+  // 根据平台选择不同的登录方式
+  if (Capacitor.isNativePlatform()) {
+    // 原生平台：使用原生 QQ 登录
+    try {
+      console.log('Calling nativeQQLogin.login()...')
+      const result = await nativeQQLogin.login()
+      console.log('nativeQQLogin.login() result:', result)
+      
+      if (result.success && result.openId && result.accessToken) {
+        // 调用后端接口完成登录，传递unionId（如果有）
+        await handleQQLoginSuccess(result.accessToken, result.openId, result.unionId)
       } else {
         MessagePlugin.error(result.error || 'QQ登录失败')
         qqLoginLoading.value = false
       }
+    } catch (error: any) {
+      console.error('原生QQ登录错误:', error)
+      MessagePlugin.error(error.message || 'QQ登录失败')
+      qqLoginLoading.value = false
     }
-  } catch (error: any) {
-    console.error('QQ登录错误:', error)
-    MessagePlugin.error(error.message || 'QQ登录失败')
-    qqLoginLoading.value = false
+  } else {
+    // Web 平台：使用 QQ JS SDK
+    if (!window.QC) {
+      MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
+      qqLoginLoading.value = false
+      return
+    }
+    
+    try {
+      const effectiveAppId = QQ_APP_ID || '1903972654'
+      console.log('Using Web QQ login with appId:', effectiveAppId)
+      window.QC.Login.showPopup({
+        appId: effectiveAppId,
+        redirectURI: QQ_REDIRECT_URI
+      })
+      qqLoginLoading.value = false
+    } catch (error) {
+      console.error('QQ登录弹出窗口失败:', error)
+      MessagePlugin.error('QQ登录失败，请稍后重试')
+      qqLoginLoading.value = false
+    }
   }
 }
 
 // 处理QQ登录成功后的逻辑
-const handleQQLoginSuccess = async (accessToken: string, openId: string) => {
+const handleQQLoginSuccess = async (accessToken: string, openId: string, unionId?: string) => {
   try {
     // 根据平台传递不同的platform参数
     const platform = Capacitor.isNativePlatform() ? 'mobile' : 'web'
-    const res = await authAPI.qqLogin(accessToken, openId, platform)
+    const res = await authAPI.qqLogin(accessToken, openId, platform, unionId)
     
     if (res.success && res.data) {
       userStore.setToken(res.data.token)

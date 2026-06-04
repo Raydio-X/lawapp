@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post('/qq-login', async (req, res) => {
     try {
-        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId, platform } = req.body;
+        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId, platform, unionId: clientUnionId } = req.body;
 
         // 根据平台选择不同的APP配置
         const isMobile = platform === 'mobile';
@@ -76,18 +76,23 @@ router.post('/qq-login', async (req, res) => {
             }
         }
 
-        // 尝试获取 unionId（用于跨应用识别同一用户）
-        let unionid = null;
-        try {
-            const unionidResponse = await fetch(
-                `https://graph.qq.com/user/get_unionid?access_token=${accessToken}`
-            );
-            const unionidData = await unionidResponse.json();
-            unionid = unionidData.unionid;
-            console.log('QQ unionId:', unionid);
-            console.log('QQ unionId response:', JSON.stringify(unionidData));
-        } catch (error) {
-            console.log('获取unionId失败，可能未开通权限:', error.message);
+        // 优先使用前端传递的 unionId，如果没有则尝试从QQ API获取
+        let unionid = clientUnionId || null;
+        
+        if (!unionid && accessToken) {
+            try {
+                const unionidResponse = await fetch(
+                    `https://graph.qq.com/user/get_unionid?access_token=${accessToken}`
+                );
+                const unionidData = await unionidResponse.json();
+                unionid = unionidData.unionid;
+                console.log('QQ unionId from API:', unionid);
+                console.log('QQ unionId response:', JSON.stringify(unionidData));
+            } catch (error) {
+                console.log('获取unionId失败，可能未开通权限:', error.message);
+            }
+        } else if (clientUnionId) {
+            console.log('QQ unionId from client:', clientUnionId);
         }
 
         const userInfoResponse = await fetch(
