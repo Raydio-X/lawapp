@@ -29,7 +29,16 @@ export class NativeQQLogin {
   private appId: string
 
   private constructor() {
-    this.appId = import.meta.env.VITE_QQ_APP_ID || ''
+    // 根据平台选择不同的 APP ID
+    const webAppId = import.meta.env.VITE_QQ_WEB_APP_ID || ''
+    const mobileAppId = import.meta.env.VITE_QQ_MOBILE_APP_ID || ''
+    this.appId = Capacitor.isNativePlatform() ? mobileAppId : webAppId
+    
+    console.log('NativeQQLogin constructor:')
+    console.log('  isNativePlatform:', Capacitor.isNativePlatform())
+    console.log('  webAppId:', webAppId)
+    console.log('  mobileAppId:', mobileAppId)
+    console.log('  this.appId:', this.appId)
   }
 
   static getInstance(): NativeQQLogin {
@@ -67,25 +76,28 @@ export class NativeQQLogin {
    * 发起QQ登录
    */
   async login(): Promise<QQLoginResult> {
-    if (!this.isNativePlatform()) {
-      return {
-        success: false,
-        error: '非原生平台，请使用Web QQ登录'
-      }
-    }
-
-    if (!this.appId) {
-      return {
-        success: false,
-        error: 'QQ AppId未配置'
-      }
-    }
-
+    console.log('NativeQQLogin.login() called')
+    console.log('  isNativePlatform:', this.isNativePlatform())
+    console.log('  appId:', this.appId)
+    
+    // 直接尝试调用原生插件，不检查平台
+    // 如果在非原生平台，会抛出异常
     try {
+      console.log('  Calling QQLogin.login()...')
       const result = await QQLogin.login()
+      console.log('  QQLogin.login() result:', result)
       return result
     } catch (error: any) {
       console.error('QQ login error:', error)
+      
+      // 如果是插件未找到的错误，说明不是原生平台
+      if (error.message && error.message.includes('not available')) {
+        return {
+          success: false,
+          error: '非原生平台，请使用Web QQ登录'
+        }
+      }
+      
       return {
         success: false,
         error: error.message || 'QQ登录失败'

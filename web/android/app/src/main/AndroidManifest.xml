@@ -15,7 +15,7 @@
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:exported="true">
 
             <intent-filter>
@@ -28,7 +28,7 @@
         <!-- QQ登录SDK配置 -->
         <activity
             android:name="com.tencent.tauth.AuthActivity"
-            android:launchMode="singleTask"
+            android:launchMode="singleTop"
             android:noHistory="true"
             android:exported="true">
             <intent-filter>

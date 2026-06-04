@@ -162,6 +162,16 @@ const QQ_MOBILE_APP_ID = import.meta.env.VITE_QQ_MOBILE_APP_ID || ''
 const QQ_APP_ID = Capacitor.isNativePlatform() ? QQ_MOBILE_APP_ID : QQ_WEB_APP_ID
 const QQ_REDIRECT_URI = 'https://www.lawapp.top/login'
 
+// 调试日志
+console.log('=== QQ Login Config ===')
+console.log('isNativePlatform:', Capacitor.isNativePlatform())
+console.log('VITE_QQ_WEB_APP_ID:', import.meta.env.VITE_QQ_WEB_APP_ID)
+console.log('VITE_QQ_MOBILE_APP_ID:', import.meta.env.VITE_QQ_MOBILE_APP_ID)
+console.log('QQ_WEB_APP_ID:', QQ_WEB_APP_ID)
+console.log('QQ_MOBILE_APP_ID:', QQ_MOBILE_APP_ID)
+console.log('QQ_APP_ID:', QQ_APP_ID)
+console.log('======================')
+
 const USER_AGREEMENT = `欢迎您使用律卡（以下简称“本应用”）。本协议是您与律卡开发运营方之间就您注册、登录及使用本应用所订立的协议。请您在使用本应用前认真阅读并充分理解本协议的全部内容，特别是有关免责、责任限制以及用户义务等条款。 当您点击“同意”或实际开始使用本应用，即视为您已充分阅读并接受本协议的全部内容。
 一、服务内容
 律卡是一款面向法律硕士考试学习场景的辅助工具，主要为用户提供知识卡片管理、背诵学习、学习记录统计、学习数据同步、评论互动等服务。为了持续优化用户体验，本应用可能根据实际运营情况对服务内容进行调整，包括功能新增、升级、暂停或终止部分服务。
@@ -294,49 +304,53 @@ const onQQLogin = async () => {
     return
   }
 
-  if (!QQ_APP_ID) {
-    MessagePlugin.error('QQ登录未配置，请联系管理员')
-    return
-  }
+  // 调试信息
+  console.log('=== onQQLogin ===')
+  console.log('QQ_APP_ID:', QQ_APP_ID)
+  console.log('isNativePlatform:', Capacitor.isNativePlatform())
+  console.log('=================')
 
   qqLoginLoading.value = true
 
-  // 检查是否为原生平台
-  if (Capacitor.isNativePlatform()) {
-    // 使用原生QQ登录
-    try {
-      const result = await nativeQQLogin.login()
-      
-      if (result.success && result.openId && result.accessToken) {
-        // 调用后端接口完成登录
-        await handleQQLoginSuccess(result.accessToken, result.openId)
+  // 直接尝试原生登录，如果失败则尝试 Web 登录
+  try {
+    console.log('Calling nativeQQLogin.login()...')
+    const result = await nativeQQLogin.login()
+    console.log('nativeQQLogin.login() result:', result)
+    
+    if (result.success && result.openId && result.accessToken) {
+      // 调用后端接口完成登录
+      await handleQQLoginSuccess(result.accessToken, result.openId)
+    } else {
+      // 原生登录失败，检查是否需要尝试 Web 登录
+      if (result.error && result.error.includes('非原生平台')) {
+        // 尝试 Web QQ 登录
+        if (!window.QC) {
+          MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
+          qqLoginLoading.value = false
+          return
+        }
+        
+        try {
+          const effectiveAppId = QQ_APP_ID || '1903972654'
+          window.QC.Login.showPopup({
+            appId: effectiveAppId,
+            redirectURI: QQ_REDIRECT_URI
+          })
+        } catch (error) {
+          console.error('QQ登录弹出窗口失败:', error)
+          MessagePlugin.error('QQ登录失败，请稍后重试')
+          qqLoginLoading.value = false
+        }
       } else {
         MessagePlugin.error(result.error || 'QQ登录失败')
         qqLoginLoading.value = false
       }
-    } catch (error: any) {
-      console.error('原生QQ登录错误:', error)
-      MessagePlugin.error(error.message || 'QQ登录失败')
-      qqLoginLoading.value = false
     }
-  } else {
-    // 使用Web QQ登录
-    if (!window.QC) {
-      MessagePlugin.error('QQ SDK加载失败，请刷新页面重试')
-      qqLoginLoading.value = false
-      return
-    }
-
-    try {
-      window.QC.Login.showPopup({
-        appId: QQ_APP_ID,
-        redirectURI: QQ_REDIRECT_URI
-      })
-    } catch (error) {
-      console.error('QQ登录弹出窗口失败:', error)
-      MessagePlugin.error('QQ登录失败，请稍后重试')
-      qqLoginLoading.value = false
-    }
+  } catch (error: any) {
+    console.error('QQ登录错误:', error)
+    MessagePlugin.error(error.message || 'QQ登录失败')
+    qqLoginLoading.value = false
   }
 }
 

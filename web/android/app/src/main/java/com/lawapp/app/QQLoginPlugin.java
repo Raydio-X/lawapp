@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -24,6 +25,10 @@ public class QQLoginPlugin extends Plugin {
     private Tencent mTencent;
     private String appId;
     private PluginCall savedCall;
+    
+    // 静态实例，用于在 MainActivity 中访问
+    private static QQLoginPlugin instance;
+    private static IUiListener staticLoginListener;
 
     private final IUiListener loginListener = new IUiListener() {
         @Override
@@ -80,16 +85,54 @@ public class QQLoginPlugin extends Plugin {
             // 警告通常不需要特殊处理，但记录日志
         }
     };
+    
+    // 静态方法：处理 onActivityResult
+    public static void handleQQActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d(TAG, "handleQQActivityResult: requestCode=" + requestCode + ", resultCode=" + resultCode);
+        if (staticLoginListener != null) {
+            Tencent.onActivityResultData(requestCode, resultCode, data, staticLoginListener);
+        } else {
+            Log.w(TAG, "staticLoginListener is null");
+        }
+    }
 
     @Override
     public void load() {
         super.load();
-        appId = getConfig().getString("appId", "");
+        
+        // 设置静态实例和 listener
+        instance = this;
+        staticLoginListener = loginListener;
+        
+        // 添加调试日志
+        Log.d(TAG, "=== QQLoginPlugin load() ===");
+        
+        // 尝试获取配置
+        try {
+            appId = getConfig().getString("appId", "");
+            String appKey = getConfig().getString("appKey", "");
+            Log.d(TAG, "appId from config: " + appId);
+            Log.d(TAG, "appKey from config: " + appKey);
+        } catch (Exception e) {
+            Log.e(TAG, "Error reading config: " + e.getMessage());
+        }
+        
+        // 如果配置中没有appId，使用默认值
+        if (appId == null || appId.isEmpty()) {
+            appId = "1904114043"; // 移动端APP ID
+            Log.w(TAG, "Using default appId: " + appId);
+        }
+        
         if (!appId.isEmpty()) {
             mTencent = Tencent.createInstance(appId, getContext());
+            
+            // 设置用户已授权使用设备信息（解决错误码 -6）
+            Tencent.setIsPermissionGranted(true, Build.MODEL);
+            Log.d(TAG, "Permission granted for device info");
+            
             Log.d(TAG, "QQ SDK initialized with appId: " + appId);
         } else {
-            Log.w(TAG, "QQ appId not configured");
+            Log.e(TAG, "QQ appId not configured!");
         }
     }
 

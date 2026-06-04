@@ -85,6 +85,7 @@ router.post('/qq-login', async (req, res) => {
             const unionidData = await unionidResponse.json();
             unionid = unionidData.unionid;
             console.log('QQ unionId:', unionid);
+            console.log('QQ unionId response:', JSON.stringify(unionidData));
         } catch (error) {
             console.log('获取unionId失败，可能未开通权限:', error.message);
         }
@@ -93,9 +94,12 @@ router.post('/qq-login', async (req, res) => {
             `https://graph.qq.com/user/get_user_info?access_token=${accessToken}&oauth_consumer_key=${qqAppId}&openid=${openid}`
         );
         const userInfo = await userInfoResponse.json();
+        console.log('QQ userInfo:', JSON.stringify(userInfo));
 
         // 优先使用 unionId 作为用户标识，如果没有则使用 openId
         const userIdentifier = unionid ? `qq_union_${unionid}` : `qq_${openid}`;
+        console.log('User identifier:', userIdentifier);
+        
         let user = await UserModel.findByOpenid(userIdentifier);
         
         // 如果通过 unionId 找不到，尝试通过 openId 查找（兼容旧数据）
@@ -103,7 +107,20 @@ router.post('/qq-login', async (req, res) => {
             user = await UserModel.findByOpenid(`qq_${openid}`);
         }
         
+        // 如果用户存在，尝试通过旧的 openid 迁移到 unionid
+        if (!user && unionid) {
+            // 尝试通过 openid 查找旧用户
+            const oldUser = await UserModel.findByOpenid(`qq_${openid}`);
+            if (oldUser) {
+                console.log('Migrating user from openid to unionid:', oldUser.id);
+                // 更新 openid 为 unionid
+                await db.execute('UPDATE users SET openid = ? WHERE id = ?', [userIdentifier, oldUser.id]);
+                user = await UserModel.findById(oldUser.id);
+            }
+        }
+        
         if (!user) {
+            console.log('Creating new user with identifier:', userIdentifier);
             user = await UserModel.create({
                 openid: userIdentifier,
                 nickname: userInfo.nickname || 'QQ用户',
@@ -111,10 +128,15 @@ router.post('/qq-login', async (req, res) => {
                 gender: userInfo.gender === '男' ? 1 : (userInfo.gender === '女' ? 2 : 0)
             });
         } else {
-            if (userInfo.nickname && user.nickname === 'QQ用户') {
+            // 每次登录都更新用户信息（昵称和头像）
+            const newNickname = userInfo.nickname || user.nickname;
+            const newAvatar = userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || userInfo.figureurl_2 || user.avatar;
+            
+            if (newNickname !== user.nickname || newAvatar !== user.avatar) {
+                console.log('Updating user info:', { id: user.id, nickname: newNickname, avatar: newAvatar });
                 await UserModel.update(user.id, {
-                    nickname: userInfo.nickname,
-                    avatar: userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || user.avatar
+                    nickname: newNickname,
+                    avatar: newAvatar
                 });
                 user = await UserModel.findById(user.id);
             }
