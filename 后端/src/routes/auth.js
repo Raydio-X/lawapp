@@ -31,6 +31,7 @@ router.post('/qq-login', async (req, res) => {
 
         let accessToken = clientAccessToken;
         let openid = clientOpenId;
+        let unionidFromToken = null;
 
         if (!accessToken || !openid) {
             if (!code) {
@@ -57,14 +58,35 @@ router.post('/qq-login', async (req, res) => {
                 });
             }
 
+            // 获取openid的同时获取unionid（加 unionid=1 参数）
             const openidResponse = await fetch(
-                `https://graph.qq.com/oauth2.0/me?access_token=${accessToken}`
+                `https://graph.qq.com/oauth2.0/me?access_token=${accessToken}&unionid=1&fmt=json`
             );
             const openidText = await openidResponse.text();
             
-            const openidMatch = openidText.match(/"openid":"([^"]+)"/);
-            if (openidMatch) {
-                openid = openidMatch[1];
+            let openidData;
+            try {
+                openidData = JSON.parse(openidText);
+            } catch (e) {
+                // JSONP格式，尝试提取
+                const openidMatch = openidText.match(/"openid":"([^"]+)"/);
+                if (openidMatch) {
+                    openidData = { openid: openidMatch[1] };
+                }
+                const unionidMatch = openidText.match(/"unionid":"([^"]+)"/);
+                if (unionidMatch) {
+                    openidData = openidData || {};
+                    openidData.unionid = unionidMatch[1];
+                }
+            }
+            
+            if (openidData) {
+                openid = openidData.openid;
+                unionidFromToken = openidData.unionid || null;
+                
+                if (openidData.error) {
+                    console.error('获取openid/unionid错误:', openidData.error, openidData.error_description);
+                }
             }
 
             if (!openid) {
@@ -76,34 +98,46 @@ router.post('/qq-login', async (req, res) => {
             }
         }
 
-        // 优先使用前端传递的 unionId，如果没有则尝试从QQ API获取
-        let unionid = clientUnionId || null;
+        // 优先使用前端传递的 unionId，其次使用获取openid时返回的 unionid，最后尝试单独获取
+        let unionid = clientUnionId || unionidFromToken || null;
         
         if (!unionid && accessToken) {
             try {
-                const unionidResponse = await fetch(
-                    `https://graph.qq.com/user/get_unionid?access_token=${accessToken}`
-                );
-                const unionidData = await unionidResponse.json();
-                unionid = unionidData.unionid;
-                console.log('QQ unionId from API:', unionid);
-                console.log('QQ unionId response:', JSON.stringify(unionidData));
+                // 单独请求获取UnionID
+                const unionidUrl = `https://graph.qq.com/oauth2.0/me?access_token=${accessToken}&unionid=1&fmt=json`;
+                const unionidResponse = await fetch(unionidUrl);
+                const unionidText = await unionidResponse.text();
+                
+                let unionidData;
+                try {
+                    unionidData = JSON.parse(unionidText);
+                } catch (e) {
+                    // JSONP格式提取
+                    const unionidMatch = unionidText.match(/"unionid":"([^"]+)"/);
+                    if (unionidMatch) {
+                        unionidData = { unionid: unionidMatch[1] };
+                    } else {
+                        throw new Error('无法解析UnionID响应');
+                    }
+                }
+                
+                if (unionidData.error) {
+                    console.error('UnionID API返回错误:', unionidData.error, unionidData.error_description);
+                } else {
+                    unionid = unionidData.unionid;
+                }
             } catch (error) {
-                console.log('获取unionId失败，可能未开通权限:', error.message);
+                console.error('获取unionId失败:', error.message);
             }
-        } else if (clientUnionId) {
-            console.log('QQ unionId from client:', clientUnionId);
         }
 
         const userInfoResponse = await fetch(
             `https://graph.qq.com/user/get_user_info?access_token=${accessToken}&oauth_consumer_key=${qqAppId}&openid=${openid}`
         );
         const userInfo = await userInfoResponse.json();
-        console.log('QQ userInfo:', JSON.stringify(userInfo));
 
         // 优先使用 unionId 作为用户标识，如果没有则使用 openId
         const userIdentifier = unionid ? `qq_union_${unionid}` : `qq_${openid}`;
-        console.log('User identifier:', userIdentifier);
         
         let user = await UserModel.findByOpenid(userIdentifier);
         
@@ -114,36 +148,59 @@ router.post('/qq-login', async (req, res) => {
         
         // 如果用户存在，尝试通过旧的 openid 迁移到 unionid
         if (!user && unionid) {
-            // 尝试通过 openid 查找旧用户
             const oldUser = await UserModel.findByOpenid(`qq_${openid}`);
             if (oldUser) {
-                console.log('Migrating user from openid to unionid:', oldUser.id);
-                // 更新 openid 为 unionid
-                await db.execute('UPDATE users SET openid = ? WHERE id = ?', [userIdentifier, oldUser.id]);
+                await db.execute('UPDATE users SET openid = ?, unionid = ? WHERE id = ?', [userIdentifier, unionid, oldUser.id]);
                 user = await UserModel.findById(oldUser.id);
             }
         }
         
         if (!user) {
-            console.log('Creating new user with identifier:', userIdentifier);
             user = await UserModel.create({
                 openid: userIdentifier,
+                unionid: unionid,
                 nickname: userInfo.nickname || 'QQ用户',
                 avatar: userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || userInfo.figureurl_2 || '',
                 gender: userInfo.gender === '男' ? 1 : (userInfo.gender === '女' ? 2 : 0)
             });
         } else {
-            // 每次登录都更新用户信息（昵称和头像）
+            // 每次登录都更新用户信息（昵称、头像和unionid）
             const newNickname = userInfo.nickname || user.nickname;
             const newAvatar = userInfo.figureurl_qq_2 || userInfo.figureurl_qq_1 || userInfo.figureurl_2 || user.avatar;
             
-            if (newNickname !== user.nickname || newAvatar !== user.avatar) {
-                console.log('Updating user info:', { id: user.id, nickname: newNickname, avatar: newAvatar });
-                await UserModel.update(user.id, {
-                    nickname: newNickname,
-                    avatar: newAvatar
-                });
+            const updateData = {};
+            if (newNickname !== user.nickname) {
+                updateData.nickname = newNickname;
+            }
+            if (newAvatar !== user.avatar) {
+                updateData.avatar = newAvatar;
+            }
+            if (unionid && unionid !== user.unionid) {
+                updateData.unionid = unionid;
+            }
+            
+            if (Object.keys(updateData).length > 0) {
+                await UserModel.update(user.id, updateData);
                 user = await UserModel.findById(user.id);
+            }
+        }
+
+        // 最终确认：如果获取到了unionid但数据库中仍为空，强制更新
+        if (unionid && user && !user.unionid) {
+            try {
+                await db.execute('UPDATE users SET unionid = ? WHERE id = ?', [unionid, user.id]);
+                user = await UserModel.findById(user.id);
+            } catch (dbError) {
+                console.error('强制更新unionid失败:', dbError.message);
+                // 可能是UNIQUE约束冲突，尝试查找并合并重复用户
+                if (dbError.code === 'ER_DUP_ENTRY') {
+                    const [duplicateUsers] = await db.execute('SELECT id FROM users WHERE unionid = ? AND id != ?', [unionid, user.id]);
+                    if (duplicateUsers.length > 0) {
+                        await db.execute('UPDATE users SET unionid = NULL WHERE id = ?', [duplicateUsers[0].id]);
+                        await db.execute('UPDATE users SET unionid = ? WHERE id = ?', [unionid, user.id]);
+                        user = await UserModel.findById(user.id);
+                    }
+                }
             }
         }
 
@@ -290,10 +347,8 @@ router.post('/test-login', async (req, res) => {
             });
         } else if (account === 'admin' && password === 'admin666') {
             let user = await UserModel.findByOpenid('admin_account');
-            console.log('Admin login - found user:', user ? { id: user.id, openid: user.openid, role: user.role } : null);
             
             if (!user) {
-                console.log('Admin user not found, creating new one...');
                 user = await UserModel.create({
                     openid: 'admin_account',
                     nickname: '管理员',
@@ -301,14 +356,11 @@ router.post('/test-login', async (req, res) => {
                     bio: '系统管理员',
                     role: 'admin'
                 });
-                console.log('Created admin user:', { id: user.id, openid: user.openid, role: user.role });
             }
 
             if (user.role !== 'admin') {
-                console.log('User role is not admin, updating...');
                 await db.execute('UPDATE users SET role = ? WHERE id = ?', ['admin', user.id]);
                 user = await UserModel.findById(user.id);
-                console.log('Updated user role:', user.role);
             }
 
             const token = jwt.sign(
@@ -317,7 +369,6 @@ router.post('/test-login', async (req, res) => {
                 { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
             );
 
-            console.log('Admin login successful, returning role: admin');
             res.json({
                 success: true,
                 data: {

@@ -515,6 +515,45 @@ async function migrateDatabase() {
             console.error('检查管理员用户失败:', error.message);
         }
 
+        console.log('\n=== 创建应用版本管理表 ===');
+        
+        try {
+            const [tables] = await connection.query("SHOW TABLES LIKE 'app_versions'");
+            if (tables.length === 0) {
+                console.log('创建 app_versions 表...');
+                await connection.query(`
+                    CREATE TABLE app_versions (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        version_code INT NOT NULL COMMENT '版本号（数字）',
+                        version_name VARCHAR(20) NOT NULL COMMENT '版本名（如 1.0.0）',
+                        platform VARCHAR(20) DEFAULT 'android' COMMENT '平台：android, ios',
+                        download_url VARCHAR(500) NOT NULL COMMENT '下载地址',
+                        force_update TINYINT(1) DEFAULT 0 COMMENT '是否强制更新',
+                        force_update_versions JSON COMMENT '强制更新的版本列表',
+                        update_log TEXT COMMENT '更新日志',
+                        is_active TINYINT(1) DEFAULT 1 COMMENT '是否启用',
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_platform (platform),
+                        INDEX idx_version_code (version_code),
+                        INDEX idx_is_active (is_active)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='应用版本管理表'
+                `);
+                console.log('✓ app_versions 表创建成功');
+                
+                // 插入初始版本记录
+                await connection.query(`
+                    INSERT INTO app_versions (version_code, version_name, platform, download_url, force_update, update_log)
+                    VALUES (1, '1.0.0', 'android', 'https://www.lawapp.top/download/lawapp-1.0.0.apk', 0, '初始版本')
+                `);
+                console.log('✓ 初始版本记录已创建');
+            } else {
+                console.log('✓ app_versions 表已存在');
+            }
+        } catch (error) {
+            console.error('创建版本管理表失败:', error.message);
+        }
+
         console.log('\n=== 验证数据库结构 ===');
         
         try {

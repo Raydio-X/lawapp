@@ -271,7 +271,6 @@ const toggleLoginMode = () => {
 const initQQSDK = () => {
   // 原生平台不需要加载Web QQ SDK
   if (Capacitor.isNativePlatform()) {
-    console.log('Native platform, skip loading Web QQ SDK')
     return
   }
 
@@ -289,12 +288,6 @@ const initQQSDK = () => {
   script.setAttribute('data-redirecturi', QQ_REDIRECT_URI)
   script.setAttribute('id', 'qq-jssdk')
   script.async = true
-  script.onload = () => {
-    console.log('QQ SDK loaded successfully')
-  }
-  script.onerror = () => {
-    console.error('QQ SDK load failed')
-  }
   document.head.appendChild(script)
 }
 
@@ -304,21 +297,13 @@ const onQQLogin = async () => {
     return
   }
 
-  // 调试信息
-  console.log('=== onQQLogin ===')
-  console.log('QQ_APP_ID:', QQ_APP_ID)
-  console.log('isNativePlatform:', Capacitor.isNativePlatform())
-  console.log('=================')
-
   qqLoginLoading.value = true
 
   // 根据平台选择不同的登录方式
   if (Capacitor.isNativePlatform()) {
     // 原生平台：使用原生 QQ 登录
     try {
-      console.log('Calling nativeQQLogin.login()...')
       const result = await nativeQQLogin.login()
-      console.log('nativeQQLogin.login() result:', result)
       
       if (result.success && result.openId && result.accessToken) {
         // 调用后端接口完成登录，传递unionId（如果有）
@@ -342,7 +327,6 @@ const onQQLogin = async () => {
     
     try {
       const effectiveAppId = QQ_APP_ID || '1903972654'
-      console.log('Using Web QQ login with appId:', effectiveAppId)
       window.QC.Login.showPopup({
         appId: effectiveAppId,
         redirectURI: QQ_REDIRECT_URI

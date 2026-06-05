@@ -34,12 +34,6 @@ export class NativeQQLogin {
     const webAppId = import.meta.env.VITE_QQ_WEB_APP_ID || ''
     const mobileAppId = import.meta.env.VITE_QQ_MOBILE_APP_ID || ''
     this.appId = Capacitor.isNativePlatform() ? mobileAppId : webAppId
-    
-    console.log('NativeQQLogin constructor:')
-    console.log('  isNativePlatform:', Capacitor.isNativePlatform())
-    console.log('  webAppId:', webAppId)
-    console.log('  mobileAppId:', mobileAppId)
-    console.log('  this.appId:', this.appId)
   }
 
   static getInstance(): NativeQQLogin {
@@ -77,10 +71,6 @@ export class NativeQQLogin {
    * 发起QQ登录
    */
   async login(): Promise<QQLoginResult> {
-    console.log('NativeQQLogin.login() called')
-    console.log('  isNativePlatform:', this.isNativePlatform())
-    console.log('  appId:', this.appId)
-    
     // 先检查平台
     if (!this.isNativePlatform()) {
       return {
@@ -90,9 +80,7 @@ export class NativeQQLogin {
     }
     
     try {
-      console.log('  Calling QQLogin.login()...')
       const result = await QQLogin.login()
-      console.log('  QQLogin.login() result:', result)
       return result
     } catch (error: any) {
       console.error('QQ login error:', error)

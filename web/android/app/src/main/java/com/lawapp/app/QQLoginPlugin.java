@@ -214,9 +214,10 @@ public class QQLoginPlugin extends Plugin {
      */
     private void fetchUnionId(String accessToken, String openId, long expiresIn) {
         new Thread(() -> {
+            String unionId = null;
             try {
-                // 调用QQ API获取UnionID
-                String unionIdUrl = "https://graph.qq.com/user/get_unionid?access_token=" + accessToken;
+                // 使用正确的QQ API获取UnionID
+                String unionIdUrl = "https://graph.qq.com/oauth2.0/me?access_token=" + accessToken + "&unionid=1&fmt=json";
                 java.net.URL url = new java.net.URL(unionIdUrl);
                 java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
                 connection.setRequestMethod("GET");
@@ -226,7 +227,6 @@ public class QQLoginPlugin extends Plugin {
                 int responseCode = connection.getResponseCode();
                 Log.d(TAG, "UnionID API response code: " + responseCode);
 
-                String unionId = null;
                 if (responseCode == 200) {
                     java.io.BufferedReader reader = new java.io.BufferedReader(
                         new java.io.InputStreamReader(connection.getInputStream()));
@@ -237,49 +237,57 @@ public class QQLoginPlugin extends Plugin {
                     }
                     reader.close();
 
-                    Log.d(TAG, "UnionID API response: " + response.toString());
+                    String responseStr = response.toString();
+                    Log.d(TAG, "UnionID API response: " + responseStr);
                     
-                    // 解析JSON响应
-                    JSONObject unionIdResponse = new JSONObject(response.toString());
-                    unionId = unionIdResponse.optString("unionid");
-                    Log.d(TAG, "UnionID: " + unionId);
+                    // 尝试解析JSON响应
+                    try {
+                        JSONObject unionIdResponse = new JSONObject(responseStr);
+                        unionId = unionIdResponse.optString("unionid");
+                        Log.d(TAG, "UnionID: " + unionId);
+                    } catch (Exception e) {
+                        // 如果不是JSON，可能是JSONP格式，尝试提取
+                        Log.w(TAG, "Response is not JSON, trying to extract unionid");
+                        if (responseStr.contains("\"unionid\"")) {
+                            int start = responseStr.indexOf("\"unionid\":\"") + 11;
+                            int end = responseStr.indexOf("\"", start);
+                            if (start > 10 && end > start) {
+                                unionId = responseStr.substring(start, end);
+                                Log.d(TAG, "UnionID (extracted): " + unionId);
+                            }
+                        }
+                    }
                 }
 
                 connection.disconnect();
 
-                // 返回结果给前端
-                getBridge().getActivity().runOnUiThread(() -> {
-                    JSObject result = new JSObject();
-                    result.put("success", true);
-                    result.put("openId", openId);
-                    result.put("accessToken", accessToken);
-                    result.put("expiresIn", expiresIn);
-                    if (unionId != null && !unionId.isEmpty()) {
-                        result.put("unionId", unionId);
-                    }
-
-                    if (savedCall != null) {
-                        savedCall.resolve(result);
-                        savedCall = null;
-                    }
-                });
-
             } catch (Exception e) {
                 Log.e(TAG, "Failed to fetch UnionID: " + e.getMessage());
-                // 即使获取UnionID失败，也返回基本登录信息
-                getBridge().getActivity().runOnUiThread(() -> {
-                    JSObject result = new JSObject();
-                    result.put("success", true);
-                    result.put("openId", openId);
-                    result.put("accessToken", accessToken);
-                    result.put("expiresIn", expiresIn);
-
-                    if (savedCall != null) {
-                        savedCall.resolve(result);
-                        savedCall = null;
-                    }
-                });
+                Log.w(TAG, "提示：确保应用已在QQ互联平台申请UnionID权限");
             }
+
+            // 使用final变量传递unionId
+            final String finalUnionId = unionId;
+            
+            // 返回结果给前端
+            getBridge().getActivity().runOnUiThread(() -> {
+                JSObject result = new JSObject();
+                result.put("success", true);
+                result.put("openId", openId);
+                result.put("accessToken", accessToken);
+                result.put("expiresIn", expiresIn);
+                if (finalUnionId != null && !finalUnionId.isEmpty()) {
+                    result.put("unionId", finalUnionId);
+                    Log.d(TAG, "Returning unionId: " + finalUnionId);
+                } else {
+                    Log.w(TAG, "UnionID is null or empty, check QQ connect platform configuration");
+                }
+
+                if (savedCall != null) {
+                    savedCall.resolve(result);
+                    savedCall = null;
+                }
+            });
         }).start();
     }
 

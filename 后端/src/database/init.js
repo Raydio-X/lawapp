@@ -27,6 +27,7 @@ async function initDatabase() {
                 id INT PRIMARY KEY AUTO_INCREMENT,
                 user_id VARCHAR(20) UNIQUE,
                 openid VARCHAR(100) UNIQUE,
+                unionid VARCHAR(100) DEFAULT NULL COMMENT 'QQ UnionID，用于跨平台识别同一用户',
                 nickname VARCHAR(50) NOT NULL DEFAULT '微信用户',
                 avatar VARCHAR(500) DEFAULT '',
                 bio VARCHAR(200) DEFAULT '',
@@ -36,12 +37,15 @@ async function initDatabase() {
                 daily_goal INT DEFAULT 50,
                 is_vip TINYINT DEFAULT 0,
                 vip_expires_at TIMESTAMP NULL,
+                nickname_updated_at TIMESTAMP NULL COMMENT '昵称最后更新时间',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 INDEX idx_openid (openid),
                 INDEX idx_user_id (user_id),
+                INDEX idx_unionid (unionid),
                 INDEX idx_is_vip (is_vip),
-                INDEX idx_role (role)
+                INDEX idx_role (role),
+                UNIQUE INDEX uk_unionid (unionid)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         `);
         console.log('Created users table');

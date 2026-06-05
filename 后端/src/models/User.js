@@ -38,8 +38,8 @@ class UserModel {
     static async create(data) {
         const userId = await UserIdGenerator.generateUniqueId();
         const [result] = await db.execute(
-            'INSERT INTO users (user_id, openid, nickname, avatar, bio, phone, gender, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, data.openid, data.nickname || '微信用户', data.avatar || '', data.bio || '', data.phone || '', data.gender || 0, data.role || 'user']
+            'INSERT INTO users (user_id, openid, unionid, nickname, avatar, bio, phone, gender, role) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            [userId, data.openid, data.unionid || null, data.nickname || '微信用户', data.avatar || '', data.bio || '', data.phone || '', data.gender || 0, data.role || 'user']
         );
         return this.findById(result.insertId);
     }
@@ -72,6 +72,10 @@ class UserModel {
         if (data.daily_goal !== undefined) {
             fields.push('daily_goal = ?');
             values.push(data.daily_goal);
+        }
+        if (data.unionid !== undefined) {
+            fields.push('unionid = ?');
+            values.push(data.unionid);
         }
 
         if (fields.length === 0) return this.findById(id);

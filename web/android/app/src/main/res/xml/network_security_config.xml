@@ -1,12 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- 允许所有明文流量 -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
     </base-config>
+    
+    <!-- 后端API域名 -->
     <domain-config>
         <domain includeSubdomains="true">lawapp.top</domain>
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </domain-config>
+    
+    <!-- QQ头像域名（允许HTTP和HTTPS） -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">q.qlogo.cn</domain>
+        <domain includeSubdomains="true">thirdqq.qlogo.cn</domain>
+        <domain includeSubdomains="true">q1.qlogo.cn</domain>
+        <domain includeSubdomains="true">q2.qlogo.cn</domain>
+        <domain includeSubdomains="true">q3.qlogo.cn</domain>
+        <domain includeSubdomains="true">q4.qlogo.cn</domain>
+        <domain includeSubdomains="true">qq.com</domain>
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>
