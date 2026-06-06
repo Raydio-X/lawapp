@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
+const path = require('path');
+const fs = require('fs');
+
+// download目录路径
+const downloadDir = path.join(__dirname, '../../download');
 
 /**
  * 版本号比较函数
@@ -298,6 +303,48 @@ router.get('/list', async (req, res) => {
             success: false,
             code: 500,
             message: '获取版本列表失败'
+        });
+    }
+});
+
+/**
+ * 获取已放置的APK文件列表
+ * GET /api/version/apk-files
+ */
+router.get('/apk-files', (req, res) => {
+    try {
+        // 检查目录是否存在
+        if (!fs.existsSync(downloadDir)) {
+            return res.json({
+                success: true,
+                data: []
+            });
+        }
+
+        const files = fs.readdirSync(downloadDir)
+            .filter(file => path.extname(file).toLowerCase() === '.apk')
+            .map(file => {
+                const filePath = path.join(downloadDir, file);
+                const stats = fs.statSync(filePath);
+                return {
+                    filename: file,
+                    size: stats.size,
+                    uploadTime: stats.mtime,
+                    downloadUrl: `https://www.lawapp.top/download/${file}`
+                };
+            })
+            .sort((a, b) => b.uploadTime - a.uploadTime);
+
+        res.json({
+            success: true,
+            data: files
+        });
+    } catch (error) {
+        console.error('获取APK文件列表失败:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取APK文件列表失败'
         });
     }
 });

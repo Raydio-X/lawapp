@@ -55,14 +55,12 @@ onMounted(async () => {
  */
 async function checkAppUpdate() {
   try {
-    const result = await checkUpdate()
+    const result = await checkUpdate(true)
     
     if (result && result.needUpdate && result.latestVersion) {
       latestVersion.value = result.latestVersion
       forceUpdate.value = result.latestVersion.forceUpdate
       showUpdateDialog.value = true
-      
-      console.log('[App] 发现新版本:', result.latestVersion.versionName, '强制更新:', forceUpdate.value)
     }
   } catch (error) {
     console.error('[App] 检查更新失败:', error)

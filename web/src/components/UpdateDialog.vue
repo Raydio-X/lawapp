@@ -37,9 +37,8 @@
           </button>
         </template>
 
-        <!-- 可选更新：显示更新、跳过、忽略按钮 -->
+        <!-- 可选更新：显示更新、忽略按钮 -->
         <template v-else>
-          <button class="btn-skip" @click="handleSkip">以后提醒</button>
           <button class="btn-ignore" @click="handleIgnore">忽略此版本</button>
           <button class="btn-update primary" @click="handleUpdate" :disabled="updating">
             <t-icon v-if="updating" name="loading" size="18px" class="spin" />
@@ -119,10 +118,6 @@ const handleUpdate = async () => {
   }
 }
 
-const handleSkip = () => {
-  emit('close')
-}
-
 const handleIgnore = () => {
   if (props.latestVersion) {
     setIgnoredVersion(props.latestVersion.versionName)
@@ -157,7 +152,7 @@ const handleIgnore = () => {
 }
 
 .dialog-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #0052d9 100%);
   padding: 24px 20px;
   text-align: center;
   color: #fff;
@@ -236,7 +231,6 @@ const handleIgnore = () => {
 }
 
 .btn-update,
-.btn-skip,
 .btn-ignore {
   width: 100%;
   padding: 12px 20px;
@@ -252,29 +246,19 @@ const handleIgnore = () => {
 }
 
 .btn-update.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #0052d9 100%);
   color: #fff;
   border: none;
 }
 
 .btn-update.primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
 }
 
 .btn-update.primary:disabled {
   opacity: 0.7;
   cursor: not-allowed;
-}
-
-.btn-skip {
-  background: #f0f0f0;
-  color: #666;
-  border: none;
-}
-
-.btn-skip:hover {
-  background: #e0e0e0;
 }
 
 .btn-ignore {
@@ -301,7 +285,7 @@ const handleIgnore = () => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #1890ff 0%, #0052d9 100%);
   transition: width 0.3s;
 }
 
@@ -323,18 +307,5 @@ const handleIgnore = () => {
   to {
     transform: rotate(360deg);
   }
-}
-
-/* 强制更新样式 */
-.force-update .dialog-header {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-}
-
-.force-update .btn-update.primary {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
-}
-
-.force-update .btn-update.primary:hover:not(:disabled) {
-  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.4);
 }
 </style>

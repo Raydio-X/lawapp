@@ -154,13 +154,13 @@ web/android/app/release/app-release.apk
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Step 3: 上传 APK 到服务器                                   │
-│  例如：https://www.lawapp.top/download/lawapp-1.1.0.apk      │
+│  Step 3: 手动放置 APK 到服务器                                │
+│  复制到 lawapp/后端/download/ 目录                            │
 └─────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  Step 4: 调用后端 API 创建版本记录                           │
+│  Step 4: 创建版本记录                                        │
 │  POST /api/version/create                                   │
 └─────────────────────────────────────────────────────────────┘
                               │
@@ -187,20 +187,24 @@ versionName "1.1.0"
 
 ### Step 3: 上传 APK
 
-将 APK 上传到服务器，建议命名格式：
-
+将打包好的 APK 文件手动复制到服务器目录：
 ```
-lawapp-{versionName}.apk
+lawapp/后端/download/lawapp-1.1.0.apk
 ```
 
-例如：
+APK 文件命名建议格式：`lawapp-{版本号}.apk`
 - `lawapp-1.0.0.apk`
 - `lawapp-1.1.0.apk`
 - `lawapp-2.0.0.apk`
 
+下载 URL 格式：
+```
+https://www.lawapp.top/download/lawapp-1.1.0.apk
+```
+
 ### Step 4: 创建版本记录
 
-调用后端 API：
+调用后端 API 创建版本记录：
 
 ```bash
 curl -X POST https://lawapp.top/api/version/create \
@@ -211,7 +215,7 @@ curl -X POST https://lawapp.top/api/version/create \
     "platform": "android",
     "downloadUrl": "https://www.lawapp.top/download/lawapp-1.1.0.apk",
     "forceUpdate": false,
-    "updateLog": "1. 新增版本更新功能\n2. 修复QQ头像显示问题\n3. 优化用户体验",
+    "updateLog": "1. 新增版本更新功能\n2. 修复QQ头像显示问题",
     "forceUpdateVersions": []
   }'
 ```
@@ -353,6 +357,27 @@ curl -X POST https://lawapp.top/api/version/create \
 ### 6. 删除版本（管理员）
 
 **接口**：`DELETE /api/version/:id`
+
+### 7. 获取已放置的 APK 文件列表
+
+**接口**：`GET /api/version/apk-files`
+
+用于查看 `后端/download/` 目录中的 APK 文件。
+
+**响应**：
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "filename": "lawapp-1.1.0.apk",
+      "size": 15728640,
+      "uploadTime": "2024-01-15T10:00:00.000Z",
+      "downloadUrl": "https://www.lawapp.top/download/lawapp-1.1.0.apk"
+    }
+  ]
+}
+```
 
 ---
 

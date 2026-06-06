@@ -164,26 +164,27 @@ export function clearIgnoredVersion(): void {
  * @param force 是否强制检查（忽略频率设置）
  */
 export async function checkUpdate(force: boolean = false): Promise<CheckResult | null> {
-  console.log('[VersionService] 开始检查版本更新')
-
   // 非原生平台不检查
   if (!Capacitor.isNativePlatform()) {
-    console.log('[VersionService] 非原生平台，跳过版本检查')
+    return null
+  }
+
+  // 检查平台
+  const platform = Capacitor.getPlatform()
+  if (platform !== 'android') {
     return null
   }
 
   // 检查频率
   if (!force && !shouldCheckVersion()) {
-    console.log('[VersionService] 未到检查时间，跳过')
     return null
   }
 
   try {
     const currentVersion = await getCurrentVersion()
-    console.log('[VersionService] 当前版本:', currentVersion)
 
     // 调用后端接口检查版本
-    const response = await api.post<CheckResult>('/version/check', {
+    const response = await api.post('/version/check', {
       currentVersion,
       platform: 'android'
     })
@@ -192,14 +193,12 @@ export async function checkUpdate(force: boolean = false): Promise<CheckResult |
     setLastCheckTime(Date.now())
 
     if (response.success && response.data) {
-      const result = response.data
-      console.log('[VersionService] 检查结果:', result)
+      const result = response.data as CheckResult
 
       // 如果是可选更新，检查是否被忽略
       if (result.needUpdate && result.latestVersion && !result.latestVersion.forceUpdate) {
         const ignoredVersion = getIgnoredVersion()
         if (ignoredVersion === result.latestVersion.versionName) {
-          console.log('[VersionService] 用户已忽略此版本')
           return { ...result, needUpdate: false }
         }
       }

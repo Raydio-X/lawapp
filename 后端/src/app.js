@@ -74,6 +74,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use('/icons', express.static(path.join(__dirname, '../icons')));
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use('/download', express.static(path.join(__dirname, '../download')));
 
 app.get('/', (req, res) => {
     res.json({
