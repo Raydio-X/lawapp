@@ -1,16 +1,16 @@
 <template>
   <div class="container">
     <div class="custom-nav">
-      <div class="nav-back" @click="router.back()">
+      <div class="nav-back" @click="onBack">
         <t-icon name="chevron-left" size="24px" color="#333" />
       </div>
       <div class="nav-content">
-        <span class="nav-title">知识包列表</span>
+        <span class="nav-title">{{ currentFolderName }}</span>
       </div>
       <div class="nav-right"></div>
     </div>
 
-    <div class="search-section">
+    <div class="search-section" v-if="showPackList">
       <div class="search-bar">
         <t-icon name="search" size="18px" color="#94A3B8" />
         <input 
@@ -26,48 +26,73 @@
     </div>
 
     <div class="content">
-      <div class="pack-list">
-        <div 
-          class="pack-card" 
-          v-for="pack in packs" 
-          :key="pack.id"
-          @click="onPackTap(pack)"
-        >
-          <div class="pack-icon">
-            <t-icon name="file-pdf" size="32px" color="#3B82F6" />
-          </div>
-          <div class="pack-content">
-            <div class="pack-title">{{ pack.title }}</div>
-            <div class="pack-desc">{{ pack.description || '暂无简介' }}</div>
-            <div class="pack-meta">
-              <span class="meta-item">
-                <t-icon name="calendar" size="12px" color="#94A3B8" />
-                {{ formatDate(pack.created_at) }}
-              </span>
-              <span class="meta-item">
-                <t-icon name="download" size="12px" color="#94A3B8" />
-                {{ pack.file_size_formatted }}
-              </span>
-              <span class="meta-item">
-                <t-icon name="chart-bar" size="12px" color="#94A3B8" />
-                {{ pack.download_count }}次下载
-              </span>
+      <!-- 文件夹列表 -->
+      <div class="folder-section" v-if="!showPackList && folders.length > 0">
+        <div class="folder-list">
+          <!-- 自定义文件夹 -->
+          <div 
+            v-for="folder in folders" 
+            :key="folder.id"
+            class="folder-card" 
+            @click="onSelectFolder(String(folder.id))"
+          >
+            <div class="folder-icon">
+              <t-icon name="folder" size="32px" color="#fff" />
             </div>
-          </div>
-          <div class="pack-arrow">
-            <t-icon name="chevron-right" size="20px" color="#CBD5E1" />
+            <div class="folder-info">
+              <div class="folder-name">{{ folder.name }}</div>
+              <div class="folder-count">{{ folder.pack_count || 0 }}个知识包</div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="load-more" v-if="hasMore" @click="loadMore">
-        <t-loading v-if="loadingMore" size="small" />
-        <span v-else>加载更多</span>
+      <!-- 知识包列表 -->
+      <div class="pack-section" v-if="showPackList && packs.length > 0">
+        <div class="pack-list">
+          <div 
+            class="pack-card" 
+            v-for="pack in packs" 
+            :key="pack.id"
+            @click="onPackTap(pack)"
+          >
+            <div class="pack-icon">
+              <t-icon name="file-pdf" size="28px" color="#3B82F6" />
+            </div>
+            <div class="pack-content">
+              <div class="pack-title">{{ pack.title }}</div>
+              <div class="pack-desc">{{ pack.description || '暂无简介' }}</div>
+              <div class="pack-meta">
+                <span class="meta-item">
+                  <t-icon name="calendar" size="12px" color="#94A3B8" />
+                  {{ formatDate(pack.created_at) }}
+                </span>
+                <span class="meta-item">
+                  <t-icon name="download" size="12px" color="#94A3B8" />
+                  {{ pack.download_count }}次下载
+                </span>
+              </div>
+            </div>
+            <div class="pack-arrow">
+              <t-icon name="chevron-right" size="20px" color="#CBD5E1" />
+            </div>
+          </div>
+        </div>
+
+        <div class="load-more" v-if="hasMore" @click="loadMore">
+          <t-loading v-if="loadingMore" size="small" />
+          <span v-else>加载更多</span>
+        </div>
       </div>
 
-      <div class="empty-state" v-if="packs.length === 0 && !loading">
+      <div class="empty-state" v-if="showPackList && packs.length === 0 && !loading">
         <t-icon name="folder-open" size="48px" color="#CBD5E1" />
-        <span class="empty-text">{{ keyword ? '未找到相关知识包' : '暂无知识包' }}</span>
+        <span class="empty-text">{{ keyword ? '未找到相关知识包' : '该文件夹暂无知识包' }}</span>
+      </div>
+
+      <div class="empty-state" v-if="!showPackList && folders.length === 0 && !loading">
+        <t-icon name="folder-open" size="48px" color="#CBD5E1" />
+        <span class="empty-text">暂无文件夹</span>
       </div>
     </div>
 
@@ -78,9 +103,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { knowledgePackAPI } from '@/utils/api'
+import { knowledgePackAPI, knowledgePackFolderAPI } from '@/utils/api'
 
 interface KnowledgePack {
   id: number
@@ -91,20 +116,53 @@ interface KnowledgePack {
   download_count: number
 }
 
+interface Folder {
+  id: number
+  name: string
+  description: string
+  pack_count: number
+}
+
 const router = useRouter()
 const packs = ref<KnowledgePack[]>([])
+const folders = ref<Folder[]>([])
 const loading = ref(false)
 const loadingMore = ref(false)
 const hasMore = ref(false)
 const keyword = ref('')
 const currentPage = ref(1)
 const pageSize = 10
+const currentFolderId = ref<string | null>(null)
 
-onMounted(() => {
-  loadPacks()
+const currentFolderName = computed(() => {
+  if (keyword.value) return '搜索结果'
+  if (!showPackList.value) return '知识包列表'
+  const folder = folders.value.find(f => String(f.id) === currentFolderId.value)
+  return folder ? folder.name : '知识包列表'
 })
 
+const showPackList = computed(() => {
+  return currentFolderId.value !== null
+})
+
+onMounted(() => {
+  loadFolders()
+})
+
+const loadFolders = async () => {
+  try {
+    const res = await knowledgePackFolderAPI.getList()
+    if (res.success && res.data) {
+      folders.value = res.data.flat || []
+    }
+  } catch (error) {
+    console.error('加载文件夹列表失败:', error)
+  }
+}
+
 const loadPacks = async (isLoadMore = false) => {
+  if (!currentFolderId.value) return
+  
   if (isLoadMore) {
     loadingMore.value = true
   } else {
@@ -115,7 +173,8 @@ const loadPacks = async (isLoadMore = false) => {
   try {
     const params: any = {
       page: currentPage.value,
-      pageSize
+      pageSize,
+      folderId: currentFolderId.value
     }
     
     if (keyword.value.trim()) {
@@ -139,6 +198,21 @@ const loadPacks = async (isLoadMore = false) => {
   } finally {
     loading.value = false
     loadingMore.value = false
+  }
+}
+
+const onSelectFolder = (folderId: string) => {
+  currentFolderId.value = folderId
+  loadPacks()
+}
+
+const onBack = () => {
+  if (showPackList.value) {
+    currentFolderId.value = null
+    keyword.value = ''
+    packs.value = []
+  } else {
+    router.back()
   }
 }
 
@@ -261,19 +335,87 @@ const onPackTap = (pack: KnowledgePack) => {
   padding: 16px;
 }
 
+.folder-section {
+  margin-bottom: 16px;
+}
+
+.folder-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.folder-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &.active {
+    background: #EFF6FF;
+    border: 1px solid #BFDBFE;
+  }
+  
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+.folder-icon {
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+.folder-info {
+  text-align: center;
+  width: 100%;
+}
+
+.folder-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-count {
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.pack-section {
+  margin-top: 8px;
+}
+
 .pack-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .pack-card {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   background: #fff;
   border-radius: 12px;
-  padding: 16px;
+  padding: 14px 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -284,10 +426,10 @@ const onPackTap = (pack: KnowledgePack) => {
 }
 
 .pack-icon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   background: rgba(59, 130, 246, 0.1);
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -301,9 +443,9 @@ const onPackTap = (pack: KnowledgePack) => {
 
 .pack-title {
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 500;
   color: #1E293B;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -312,7 +454,7 @@ const onPackTap = (pack: KnowledgePack) => {
 .pack-desc {
   font-size: 13px;
   color: #64748B;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
@@ -324,7 +466,7 @@ const onPackTap = (pack: KnowledgePack) => {
 .pack-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
 }
 
 .meta-item {

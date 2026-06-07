@@ -324,6 +324,15 @@ export const knowledgePackAPI = {
   getAdminList: (params?: any) => api.get('/knowledge-packs/admin/list', params)
 }
 
+export const knowledgePackFolderAPI = {
+  getList: () => api.get('/knowledge-pack-folders'),
+  getPacks: (folderId: number | 'root') => api.get(`/knowledge-pack-folders/${folderId}/packs`),
+  create: (data: { name: string; description?: string; sort_order?: number }) => api.post('/knowledge-pack-folders', data),
+  update: (id: number, data: { name?: string; description?: string; sort_order?: number }) => api.put(`/knowledge-pack-folders/${id}`, data),
+  delete: (id: number) => api.delete(`/knowledge-pack-folders/${id}`),
+  move: (packIds: number[], folderId: number | null) => api.post('/knowledge-pack-folders/move', { packIds, folderId })
+}
+
 export const cardChangeReviewAPI = {
   getLibrariesWithChanges: (params?: any) => api.get('/card-change-reviews/libraries', params),
   getPendingByLibrary: (libraryId: number, params?: any) => api.get(`/card-change-reviews/library/${libraryId}`, params),

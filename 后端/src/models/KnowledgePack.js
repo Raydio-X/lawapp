@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 
 class KnowledgePackModel {
     static async getList(params = {}) {
-        const { page = 1, pageSize = 10, category, isFeatured, keyword, userId } = params;
+        const { page = 1, pageSize = 10, category, isFeatured, keyword, userId, folderId } = params;
         const offset = (page - 1) * pageSize;
 
         let sql = `SELECT kp.*, u.nickname as creator_name,
@@ -30,6 +30,15 @@ class KnowledgePackModel {
             values.push(`%${keyword}%`, `%${keyword}%`);
         }
 
+        if (folderId !== undefined) {
+            if (folderId === 'unclassified') {
+                sql += ' AND kp.folder_id IS NULL';
+            } else if (folderId !== 'root') {
+                sql += ' AND kp.folder_id = ?';
+                values.push(folderId);
+            }
+        }
+
         sql += ` ORDER BY kp.is_featured DESC, kp.created_at DESC LIMIT ${parseInt(pageSize)} OFFSET ${offset}`;
 
         const [rows] = await db.execute(sql, values);
@@ -47,6 +56,14 @@ class KnowledgePackModel {
         if (keyword) {
             countSql += ' AND (title LIKE ? OR description LIKE ?)';
             countValues.push(`%${keyword}%`, `%${keyword}%`);
+        }
+        if (folderId !== undefined) {
+            if (folderId === null || folderId === 'root') {
+                countSql += ' AND folder_id IS NULL';
+            } else {
+                countSql += ' AND folder_id = ?';
+                countValues.push(folderId);
+            }
         }
         const [countRows] = await db.execute(countSql, countValues);
 
@@ -108,11 +125,11 @@ class KnowledgePackModel {
     }
 
     static async create(data) {
-        const { title, description, file_path, file_name, file_size, file_type, cover_image, category, tags, is_public, is_featured, created_by } = data;
+        const { title, description, file_path, file_name, file_size, file_type, cover_image, category, tags, is_public, is_featured, created_by, folder_id } = data;
         
         const [result] = await db.execute(
-            `INSERT INTO knowledge_packs (title, description, file_path, file_name, file_size, file_type, cover_image, category, tags, is_public, is_featured, created_by)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO knowledge_packs (title, description, file_path, file_name, file_size, file_type, cover_image, category, tags, is_public, is_featured, created_by, folder_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 title, 
                 description || null, 
@@ -125,7 +142,8 @@ class KnowledgePackModel {
                 JSON.stringify(tags || []), 
                 is_public ?? 1, 
                 is_featured ?? 0, 
-                created_by
+                created_by,
+                folder_id || null
             ]
         );
 
@@ -136,7 +154,7 @@ class KnowledgePackModel {
         const fields = [];
         const values = [];
 
-        const allowedFields = ['title', 'description', 'cover_image', 'category', 'tags', 'is_public', 'is_featured'];
+        const allowedFields = ['title', 'description', 'cover_image', 'category', 'tags', 'is_public', 'is_featured', 'folder_id'];
         
         for (const field of allowedFields) {
             if (data[field] !== undefined) {
@@ -211,7 +229,7 @@ class KnowledgePackModel {
     }
 
     static async getAdminList(params = {}) {
-        const { page = 1, pageSize = 10, keyword, is_public } = params;
+        const { page = 1, pageSize = 10, keyword, is_public, folderId } = params;
         const offset = (page - 1) * pageSize;
 
         let sql = `SELECT kp.*, u.nickname as creator_name
@@ -230,6 +248,13 @@ class KnowledgePackModel {
             values.push(parseInt(is_public));
         }
 
+        if (folderId === 'unclassified') {
+            sql += ' AND kp.folder_id IS NULL';
+        } else if (folderId && folderId !== 'root') {
+            sql += ' AND kp.folder_id = ?';
+            values.push(parseInt(folderId));
+        }
+
         let countSql = 'SELECT COUNT(*) as total FROM knowledge_packs WHERE 1=1';
         const countValues = [];
         if (keyword) {
@@ -239,6 +264,12 @@ class KnowledgePackModel {
         if (is_public !== undefined && is_public !== '') {
             countSql += ' AND is_public = ?';
             countValues.push(parseInt(is_public));
+        }
+        if (folderId === 'unclassified') {
+            countSql += ' AND folder_id IS NULL';
+        } else if (folderId && folderId !== 'root') {
+            countSql += ' AND folder_id = ?';
+            countValues.push(parseInt(folderId));
         }
 
         const [countRows] = await db.execute(countSql, countValues);

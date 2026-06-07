@@ -554,6 +554,72 @@ async function migrateDatabase() {
             console.error('创建版本管理表失败:', error.message);
         }
 
+        console.log('\n=== 创建知识包文件夹表 ===');
+        
+        try {
+            const [tables] = await connection.query('SHOW TABLES LIKE "knowledge_pack_folders"');
+            if (tables.length === 0) {
+                console.log('创建 knowledge_pack_folders 表...');
+                await connection.query(`
+                    CREATE TABLE knowledge_pack_folders (
+                        id INT PRIMARY KEY AUTO_INCREMENT,
+                        name VARCHAR(100) NOT NULL COMMENT '文件夹名称',
+                        description VARCHAR(500) DEFAULT NULL COMMENT '文件夹描述',
+                        sort_order INT DEFAULT 0 COMMENT '排序顺序',
+                        created_by INT NOT NULL COMMENT '创建者ID',
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                        INDEX idx_sort_order (sort_order),
+                        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='知识包文件夹'
+                `);
+                console.log('✓ knowledge_pack_folders 表已创建');
+            } else {
+                console.log('✓ knowledge_pack_folders 表已存在');
+                
+                // 如果存在 parent_id 字段，删除它（不支持嵌套）
+                try {
+                    const [columns] = await connection.query('SHOW COLUMNS FROM knowledge_pack_folders LIKE "parent_id"');
+                    if (columns.length > 0) {
+                        console.log('删除 parent_id 字段（不支持嵌套文件夹）...');
+                        await connection.query('ALTER TABLE knowledge_pack_folders DROP FOREIGN KEY IF EXISTS knowledge_pack_folders_ibfk_1');
+                        await connection.query('ALTER TABLE knowledge_pack_folders DROP INDEX IF EXISTS idx_parent_id');
+                        await connection.query('ALTER TABLE knowledge_pack_folders DROP COLUMN parent_id');
+                        console.log('✓ parent_id 字段已删除');
+                    }
+                } catch (e) {
+                    console.log('删除 parent_id 字段失败，跳过:', e.message);
+                }
+            }
+        } catch (error) {
+            console.error('创建知识包文件夹表失败:', error.message);
+        }
+
+        console.log('\n=== 给 knowledge_packs 表添加 folder_id 字段 ===');
+        
+        try {
+            const [columns] = await connection.query('SHOW COLUMNS FROM knowledge_packs LIKE "folder_id"');
+            if (columns.length === 0) {
+                console.log('添加 folder_id 字段...');
+                await connection.query('ALTER TABLE knowledge_packs ADD COLUMN folder_id INT DEFAULT NULL COMMENT \'所属文件夹ID\'');
+                try {
+                    await connection.query('CREATE INDEX idx_folder_id ON knowledge_packs(folder_id)');
+                } catch (e) {
+                    console.log('索引已存在，跳过');
+                }
+                try {
+                    await connection.query('ALTER TABLE knowledge_packs ADD CONSTRAINT fk_folder_id FOREIGN KEY (folder_id) REFERENCES knowledge_pack_folders(id) ON DELETE SET NULL');
+                } catch (e) {
+                    console.log('外键约束添加失败，跳过:', e.message);
+                }
+                console.log('✓ folder_id 字段已添加');
+            } else {
+                console.log('✓ folder_id 字段已存在');
+            }
+        } catch (error) {
+            console.error('添加 folder_id 字段失败:', error.message);
+        }
+
         console.log('\n=== 验证数据库结构 ===');
         
         try {

@@ -46,7 +46,7 @@ const upload = multer({
 
 router.get('/', async (req, res) => {
     try {
-        const { page, pageSize, category, isFeatured, keyword } = req.query;
+        const { page, pageSize, category, isFeatured, keyword, folderId } = req.query;
         const userId = req.user?.id;
         
         const result = await KnowledgePackModel.getList({
@@ -55,6 +55,7 @@ router.get('/', async (req, res) => {
             category,
             isFeatured: isFeatured === 'true' ? true : (isFeatured === 'false' ? false : undefined),
             keyword,
+            folderId,
             userId
         });
 
@@ -205,7 +206,7 @@ router.post('/upload', adminAuth, upload.single('file'), async (req, res) => {
             return res.status(400).json({ success: false, code: 400, message: '请选择要上传的PDF文件' });
         }
 
-        const { title, description, category, tags } = req.body;
+        const { title, description, category, tags, folder_id } = req.body;
 
         if (!title || title.trim() === '') {
             fs.unlinkSync(req.file.path);
@@ -242,7 +243,8 @@ router.post('/upload', adminAuth, upload.single('file'), async (req, res) => {
             tags: parsedTags,
             is_public: 1,
             is_featured: 1,
-            created_by: req.user.id
+            created_by: req.user.id,
+            folder_id: folder_id || null
         });
 
         res.json({
@@ -322,13 +324,14 @@ router.delete('/:id', adminAuth, async (req, res) => {
 
 router.get('/admin/list', adminAuth, async (req, res) => {
     try {
-        const { page, pageSize, keyword, is_public } = req.query;
+        const { page, pageSize, keyword, is_public, folderId } = req.query;
         
         const result = await KnowledgePackModel.getAdminList({
             page: parseInt(page) || 1,
             pageSize: parseInt(pageSize) || 10,
             keyword,
-            is_public
+            is_public,
+            folderId
         });
 
         res.json({

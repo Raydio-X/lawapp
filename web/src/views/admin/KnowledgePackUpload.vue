@@ -34,6 +34,14 @@
         </div>
 
         <div class="form-item">
+          <label class="form-label">所属文件夹</label>
+          <select class="form-select" v-model="form.folder_id">
+            <option :value="null">根目录（未分类）</option>
+            <option v-for="folder in folders" :key="folder.id" :value="folder.id">{{ folder.name }}</option>
+          </select>
+        </div>
+
+        <div class="form-item">
           <label class="form-label required">PDF文件</label>
           <div class="file-upload-area" @click="triggerFileSelect">
             <input 
@@ -91,16 +99,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
-import { knowledgePackAPI } from '@/utils/api'
+import { knowledgePackAPI, knowledgePackFolderAPI } from '@/utils/api'
 
 const router = useRouter()
 
 const form = ref({
   title: '',
-  description: ''
+  description: '',
+  folder_id: null as number | null
+})
+
+const folders = ref<any[]>([])
+
+onMounted(async () => {
+  try {
+    const res = await knowledgePackFolderAPI.getList()
+    if (res.success && res.data) {
+      folders.value = res.data.flat || []
+    }
+  } catch (error) {
+    console.error('加载文件夹列表失败:', error)
+  }
 })
 
 const selectedFile = ref<File | null>(null)
@@ -169,7 +191,8 @@ const onSubmit = async () => {
 
     const res = await knowledgePackAPI.upload(selectedFile.value!, {
       title: form.value.title.trim(),
-      description: form.value.description.trim()
+      description: form.value.description.trim(),
+      folder_id: form.value.folder_id
     })
 
     uploadProgress.value = 100
@@ -309,6 +332,22 @@ const onSubmit = async () => {
   
   &::placeholder {
     color: #94A3B8;
+  }
+}
+
+.form-select {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1E293B;
+  background: #F8FAFC;
+  transition: all 0.2s ease;
+  
+  &:focus {
+    outline: none;
+    border-color: #3B82F6;
   }
 }
 

@@ -18,6 +18,7 @@ const activationRoutes = require('./routes/activation');
 const knowledgePackRoutes = require('./routes/knowledgePacks');
 const cardChangeReviewRoutes = require('./routes/cardChangeReviews');
 const versionRoutes = require('./routes/version');
+const knowledgePackFolderRoutes = require('./routes/knowledgePackFolders');
 
 const app = express();
 
@@ -127,6 +128,7 @@ app.use('/api/activation', activationRoutes);
 app.use('/api/knowledge-packs', knowledgePackRoutes);
 app.use('/api/card-change-reviews', cardChangeReviewRoutes);
 app.use('/api/version', versionRoutes);
+app.use('/api/knowledge-pack-folders', knowledgePackFolderRoutes);
 
 app.use((err, req, res, next) => {
     console.error('Error:', err);
