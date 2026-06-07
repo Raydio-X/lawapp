@@ -136,6 +136,9 @@
                   <button class="toolbar-btn" title="下划线" @click="formatUnderline">
                     <t-icon name="textformat-underline" size="16px" />
                   </button>
+                  <button class="toolbar-btn" title="高亮" @click="formatHighlight">
+                    <span class="highlight-icon">H</span>
+                  </button>
                 </div>
               </div>
               <div class="editor-content" ref="editorRef"></div>
@@ -681,6 +684,30 @@ const formatItalic = () => {
 const formatUnderline = () => {
   if (!quillInstance.value) return
   quillInstance.value.format('underline', !quillInstance.value.getFormat().underline)
+}
+
+const formatHighlight = () => {
+  if (!quillInstance.value) return
+  
+  const selection = quillInstance.value.getSelection()
+  if (!selection || selection.length === 0) {
+    MessagePlugin.warning('请先选中要高亮的文本')
+    return
+  }
+  
+  // 获取选中文本的格式
+  const currentFormat = quillInstance.value.getFormat(selection.index, selection.length)
+  
+  // 检查当前是否有高亮
+  const hasHighlight = currentFormat.background === '#ffeb3b'
+  
+  if (hasHighlight) {
+    // 取消高亮
+    quillInstance.value.removeFormat(selection.index, selection.length)
+  } else {
+    // 应用黄色高亮
+    quillInstance.value.format('background', '#ffeb3b')
+  }
 }
 
 const insertTable = () => {
@@ -1361,6 +1388,11 @@ const onSubmit = async () => {
   font-weight: bold;
 }
 
+.highlight-icon {
+  font-size: 14px;
+  color: #2c3e50;
+}
+
 .toolbar-divider {
   width: 1px;
   height: 20px;
@@ -1587,6 +1619,12 @@ const onSubmit = async () => {
           box-shadow: inset 0 0 0 3px #3b82f6;
         }
       }
+    }
+    
+    // 高亮文本样式
+    span[style*="background-color"] {
+      padding: 2px 4px;
+      border-radius: 3px;
     }
   }
 }

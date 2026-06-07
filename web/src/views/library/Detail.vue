@@ -9,7 +9,7 @@
         </div>
         <div class="nav-title">{{ libraryName }}</div>
         <div class="nav-right">
-          <div class="manage-btn" @click="onToggleManageMode" v-if="!loading">
+          <div class="manage-btn" @click="onToggleManageMode" v-if="!loading && isCreator">
             {{ isManageMode ? '取消' : '管理' }}
           </div>
         </div>
@@ -288,6 +288,7 @@ import { ref, onMounted, computed, nextTick, onActivated, onDeactivated } from '
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { libraryAPI, cardAPI, chapterAPI, isLoggedIn } from '@/utils/api'
+import { useUserStore } from '@/stores/user'
 
 defineOptions({
   name: 'LibraryDetail'
@@ -295,6 +296,7 @@ defineOptions({
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', 
                     '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
@@ -338,6 +340,7 @@ const libraryId = ref(0)
 const libraryName = ref('')
 const librarySubject = ref('未分类')
 const creatorName = ref('未知')
+const createdBy = ref<number | null>(null)
 const isFavorited = ref(false)
 const favoriteCount = ref(0)
 const loading = ref(true)
@@ -355,6 +358,11 @@ const getRandomColor = () => {
 }
 
 const coverColor = ref(getRandomColor())
+
+// 判断当前用户是否是知识库创建者
+const isCreator = computed(() => {
+  return createdBy.value && userStore.userInfo?.id && createdBy.value === userStore.userInfo.id
+})
 
 const selectedChapterIndex = ref(-1)
 const selectedChildIndex = ref(-1)
@@ -528,6 +536,7 @@ const loadLibraryData = async (restoreState: boolean = false) => {
       libraryName.value = lib.name || libraryName.value
       librarySubject.value = lib.subject || '未分类'
       creatorName.value = lib.creator_name || '未知'
+      createdBy.value = lib.created_by || null
       isFavorited.value = Boolean(lib.is_favorited)
       favoriteCount.value = lib.favorite_count || 0
       coverColor.value = lib.cover_color || getRandomColor()
