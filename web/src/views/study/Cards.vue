@@ -1407,6 +1407,7 @@ const loadLearnedStatesFromStorage = () => {
       font-size: 14px;
       color: #fff;
       font-weight: 500;
+      white-space: nowrap; // 防止文本换行
     }
     
     &.prev {
@@ -1416,6 +1417,7 @@ const loadLearnedStatesFromStorage = () => {
       
       .btn-text {
         color: #3B82F6;
+        white-space: nowrap;
       }
       
       &.disabled .btn-text {
@@ -1430,6 +1432,7 @@ const loadLearnedStatesFromStorage = () => {
       
       .btn-text {
         color: #3B82F6;
+        white-space: nowrap;
       }
       
       &.disabled .btn-text {
@@ -1441,7 +1444,8 @@ const loadLearnedStatesFromStorage = () => {
       background: linear-gradient(135deg, #00B578 0%, #00C853 100%);
       box-shadow: 0 3px 12px rgba(0, 181, 120, 0.35);
       flex: 1;
-      max-width: 160px;
+      max-width: 180px; // 增加宽度以适应"标记已学习"文本
+      min-width: 100px; // 设置最小宽度
       
       &.active {
         background: linear-gradient(135deg, #2BA47A 0%, #00995B 100%);
@@ -1450,6 +1454,14 @@ const loadLearnedStatesFromStorage = () => {
       
       &.disabled {
         opacity: 0.5;
+      }
+      
+      // 移动端适配
+      @media (max-width: 375px) {
+        max-width: 160px;
+        .btn-text {
+          font-size: 13px; // 小屏幕减小字体
+        }
       }
     }
     
@@ -1494,6 +1506,23 @@ const loadLearnedStatesFromStorage = () => {
   font-size: 15px;
   color: #fff;
   font-weight: 600;
+  white-space: nowrap; // 防止文本换行
+}
+
+// 移动端全局适配
+@media (max-width: 375px) {
+  .study-nav-bar {
+    padding: 8px 12px;
+    
+    .nav-btn {
+      padding: 0 12px;
+      height: 40px;
+      
+      .btn-text {
+        font-size: 13px;
+      }
+    }
+  }
 }
 
 .loading-container {

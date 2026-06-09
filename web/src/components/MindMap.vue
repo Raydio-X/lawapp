@@ -27,6 +27,10 @@
       @mouseup="onCanvasMouseUp"
       @mouseleave="onCanvasMouseUp"
       @wheel="onWheel"
+      @touchstart="onTouchStart"
+      @touchmove="onTouchMove"
+      @touchend="onTouchEnd"
+      @touchcancel="onTouchCancel"
     >
       <div 
         class="mindmap-content"
@@ -543,6 +547,143 @@ const onNodeMouseDown = (e: MouseEvent, node: MindMapNode) => {
   dragStartY.value = e.clientY
 }
 
+// ============ 触摸事件处理 ============
+// 触摸状态
+const touchStartPanX = ref(0)
+const touchStartPanY = ref(0)
+const touchStartZoom = ref(1)
+const initialPinchDistance = ref(0)
+const initialPinchCenterX = ref(0)
+const initialPinchCenterY = ref(0)
+const lastTouchTime = ref(0)
+const isTouchDragging = ref(false)
+
+// 计算两指距离
+const getPinchDistance = (touches: TouchList): number => {
+  if (touches.length < 2) return 0
+  const dx = touches[0].clientX - touches[1].clientX
+  const dy = touches[0].clientY - touches[1].clientY
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+// 计算两指中心点
+const getPinchCenter = (touches: TouchList): { x: number; y: number } => {
+  if (touches.length < 2) {
+    return { x: touches[0].clientX, y: touches[0].clientY }
+  }
+  return {
+    x: (touches[0].clientX + touches[1].clientX) / 2,
+    y: (touches[0].clientY + touches[1].clientY) / 2
+  }
+}
+
+// 触摸开始
+const onTouchStart = (e: TouchEvent) => {
+  const now = Date.now()
+  
+  // 防止快速连续触发
+  if (now - lastTouchTime.value < 16) return
+  lastTouchTime.value = now
+  
+  const touches = e.touches
+  
+  // 检查是否触摸在节点上
+  const target = e.target as HTMLElement
+  const isNodeTouch = target.closest('.mindmap-node') !== null
+  
+  if (touches.length === 1) {
+    // 如果触摸在节点上，不启动拖动（让节点点击事件处理）
+    if (isNodeTouch) {
+      isTouchDragging.value = false
+      return
+    }
+    
+    // 单指拖动
+    isTouchDragging.value = true
+    touchStartPanX.value = panX.value
+    touchStartPanY.value = panY.value
+    dragStartX.value = touches[0].clientX
+    dragStartY.value = touches[0].clientY
+  } else if (touches.length === 2) {
+    // 双指缩放
+    isTouchDragging.value = false
+    initialPinchDistance.value = getPinchDistance(touches)
+    touchStartZoom.value = zoom.value
+    
+    const center = getPinchCenter(touches)
+    initialPinchCenterX.value = center.x
+    initialPinchCenterY.value = center.y
+    touchStartPanX.value = panX.value
+    touchStartPanY.value = panY.value
+  }
+}
+
+// 触摸移动
+const onTouchMove = (e: TouchEvent) => {
+  e.preventDefault() // 阻止页面滚动
+  
+  const touches = e.touches
+  
+  if (touches.length === 1 && isTouchDragging.value) {
+    // 单指拖动 - 平移画布
+    const deltaX = touches[0].clientX - dragStartX.value
+    const deltaY = touches[0].clientY - dragStartY.value
+    
+    // 直接更新位置，确保响应及时
+    panX.value = touchStartPanX.value + deltaX
+    panY.value = touchStartPanY.value + deltaY
+  } else if (touches.length === 2) {
+    // 双指缩放
+    const currentDistance = getPinchDistance(touches)
+    
+    if (initialPinchDistance.value > 0) {
+      // 计算新的缩放比例
+      const scale = currentDistance / initialPinchDistance.value
+      const newZoom = Math.max(0.3, Math.min(2, touchStartZoom.value * scale))
+      
+      // 计算缩放中心点
+      const center = getPinchCenter(touches)
+      
+      // 以两指中心为缩放中心调整位置
+      // 缩放前的点在画布中的位置
+      const beforeX = (center.x - touchStartPanX.value) / zoom.value
+      const beforeY = (center.y - touchStartPanY.value) / zoom.value
+      
+      // 更新缩放
+      zoom.value = newZoom
+      
+      // 调整平移以保持缩放中心不变
+      panX.value = center.x - beforeX * newZoom
+      panY.value = center.y - beforeY * newZoom
+    }
+  }
+}
+
+// 触摸结束
+const onTouchEnd = (e: TouchEvent) => {
+  const touches = e.touches
+  
+  if (touches.length === 0) {
+    // 所有手指离开
+    isTouchDragging.value = false
+    initialPinchDistance.value = 0
+  } else if (touches.length === 1) {
+    // 从双指变为单指，切换到拖动模式
+    isTouchDragging.value = true
+    touchStartPanX.value = panX.value
+    touchStartPanY.value = panY.value
+    dragStartX.value = touches[0].clientX
+    dragStartY.value = touches[0].clientY
+    initialPinchDistance.value = 0
+  }
+}
+
+// 触摸取消
+const onTouchCancel = (e: TouchEvent) => {
+  isTouchDragging.value = false
+  initialPinchDistance.value = 0
+}
+
 // 节点点击 - 跳转到卡片详情页面
 const onNodeClick = (node: MindMapNode) => {
   selectedNodeId.value = node.id
@@ -663,6 +804,10 @@ defineExpose({
   margin-top: 44px;
   overflow: hidden;
   cursor: grab;
+  // 触摸优化
+  touch-action: none; // 禁用浏览器默认触摸行为
+  -webkit-touch-callout: none; // 禁用长按菜单
+  user-select: none; // 禁用文本选择
 
   &:active {
     cursor: grabbing;
@@ -703,10 +848,16 @@ defineExpose({
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  // 触摸优化
+  touch-action: manipulation; // 允许点击但禁用双击缩放
 
   &:hover {
     border-color: #3B82F6;
     box-shadow: 0 4px 8px rgba(59, 130, 246, 0.15);
+  }
+
+  &:active {
+    transform: scale(0.98); // 触摸反馈
   }
 
   &.root {
