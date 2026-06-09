@@ -495,11 +495,13 @@ const setupAndroidKeyboard = () => {
   }
   
   // 监听 selection-change 事件来检测聚焦
-  quillInstance.value.on('selection-change', (range) => {
-    if (range) {
-      handleFocus()
-    }
-  })
+  if (quillInstance.value) {
+    quillInstance.value.on('selection-change', (range) => {
+      if (range) {
+        handleFocus()
+      }
+    })
+  }
   
   window.addEventListener('resize', handleResize)
   

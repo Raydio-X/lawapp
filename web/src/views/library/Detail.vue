@@ -318,7 +318,7 @@ interface Card {
   answer: string
   tags: string[]
   learned: boolean
-  chapterId: number
+  chapterId: number | null
 }
 
 interface Chapter {
