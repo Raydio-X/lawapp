@@ -15,12 +15,7 @@
       </div>
 
       <div class="form-item row">
-        <div class="form-label-with-icon">
-          <span class="form-label">公开知识库</span>
-          <div class="info-icon" @click="showPublicTip = true">
-            <t-icon name="info-circle" size="16px" color="#94A3B8" />
-          </div>
-        </div>
+        <span class="form-label">公开知识库</span>
         <div class="custom-switch" :class="{ active: isPublic }" @click="onTogglePublic">
           <div class="custom-switch-dot"></div>
         </div>
@@ -118,7 +113,9 @@
   <t-dialog
     v-model:visible="showPublicTip"
     header="公开知识库说明"
-    :footer="false"
+    confirm-btn="确定公开"
+    cancel-btn="取消"
+    @confirm="onConfirmPublic"
   >
     <div class="public-tip-content">
       <div class="tip-icon">
@@ -152,7 +149,7 @@ const { canCreateLibrary, isVip, limits } = usePermission()
 const libraryId = ref<number | null>(null)
 const isEdit = ref(false)
 const libraryName = ref('')
-const isPublic = ref(true)
+const isPublic = ref(false)
 const outline = ref<OutlineItem[]>([])
 const showCancelDialog = ref(false)
 const showPublicTip = ref(false)
@@ -234,7 +231,18 @@ const loadLibraryDetail = async (id: number) => {
 }
 
 const onTogglePublic = () => {
-  isPublic.value = !isPublic.value
+  // 如果当前是不公开状态，用户要切换为公开，显示提示弹窗
+  if (!isPublic.value) {
+    showPublicTip.value = true
+  } else {
+    // 从公开切换为不公开，直接切换
+    isPublic.value = false
+  }
+}
+
+const onConfirmPublic = () => {
+  isPublic.value = true
+  showPublicTip.value = false
 }
 
 const onAddOutline = () => {
@@ -433,12 +441,6 @@ const onSubmit = async () => {
   }
 
   if (!isEdit.value) {
-    const newName = libraryName.value.trim().toLowerCase()
-    if (existingLibraryNames.value.includes(newName)) {
-      MessagePlugin.warning('知识库名称已存在')
-      return
-    }
-    
     const currentLibraryCount = existingLibraryNames.value.length
     const canCreate = await canCreateLibrary(currentLibraryCount)
     if (!canCreate) return
@@ -568,28 +570,6 @@ const onSubmit = async () => {
   color: #666;
   margin-bottom: 8px;
   display: block;
-}
-
-.form-label-with-icon {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  
-  .form-label {
-    margin-bottom: 0;
-  }
-}
-
-.info-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  padding: 2px;
-  
-  &:active {
-    opacity: 0.6;
-  }
 }
 
 .required {

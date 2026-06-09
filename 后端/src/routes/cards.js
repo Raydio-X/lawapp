@@ -86,7 +86,7 @@ router.get('/hot', optionalAuth, async (req, res) => {
     }
 });
 
-router.get('/search', async (req, res) => {
+router.get('/search', optionalAuth, async (req, res) => {
     try {
         const { keyword, page, pageSize } = req.query;
         
@@ -100,7 +100,8 @@ router.get('/search', async (req, res) => {
 
         const result = await CardModel.search(keyword, {
             page: parseInt(page) || 1,
-            pageSize: parseInt(pageSize) || 10
+            pageSize: parseInt(pageSize) || 10,
+            userId: req.user?.id // 传入用户ID，允许搜索自己的私有卡片
         });
 
         res.json({
@@ -632,6 +633,25 @@ router.post('/search/rebuild', auth, async (req, res) => {
             success: false,
             code: 500,
             message: '重建搜索索引失败'
+        });
+    }
+});
+
+// 获取用户所有卡片关联数据（用于脑图展示）- 必须在 /:id 路由之前
+router.get('/all-linked', auth, async (req, res) => {
+    try {
+        const links = await CardLinkModel.getAllLinkedCardsForMindMap(req.user.id);
+
+        res.json({
+            success: true,
+            data: links
+        });
+    } catch (error) {
+        console.error('Get all linked cards error:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '获取卡片关联数据失败'
         });
     }
 });

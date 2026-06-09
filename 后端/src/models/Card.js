@@ -202,29 +202,62 @@ class CardModel {
     }
 
     static async search(keyword, params = {}) {
-        const { page = 1, pageSize = 10 } = params;
+        const { page = 1, pageSize = 10, userId = null } = params;
         const offset = (page - 1) * pageSize;
 
-        const [rows] = await db.execute(
-            `SELECT c.*, l.name as library_name, l.subject
-             FROM cards c 
-             LEFT JOIN libraries l ON c.library_id = l.id 
-             WHERE c.is_public = 1 AND (c.question LIKE ? OR c.answer LIKE ?)
-             ORDER BY c.study_count DESC
-             LIMIT ${parseInt(pageSize)} OFFSET ${offset}`,
-            [`%${keyword}%`, `%${keyword}%`]
-        );
+        let sql, countSql, queryParams, countParams;
 
-        const [countRows] = await db.execute(
-            `SELECT COUNT(*) as total FROM cards WHERE is_public = 1 AND (question LIKE ? OR answer LIKE ?)`,
-            [`%${keyword}%`, `%${keyword}%`]
-        );
+        if (userId) {
+            // 已登录用户：搜索公开知识库中的卡片 + 自己个人知识库中的卡片
+            // 优化排序：标题匹配优先，内容匹配次之
+            sql = `SELECT c.*, l.name as library_name, l.subject,
+                   CASE 
+                     WHEN c.question LIKE ? THEN 1 
+                     ELSE 2 
+                   END as match_priority
+                   FROM cards c 
+                   LEFT JOIN libraries l ON c.library_id = l.id 
+                   WHERE (l.is_public = 1 OR l.created_by = ?) AND (c.question LIKE ? OR c.answer LIKE ?)
+                   ORDER BY match_priority ASC, c.study_count DESC
+                   LIMIT ${parseInt(pageSize)} OFFSET ${offset}`;
+            countSql = `SELECT COUNT(*) as total 
+                        FROM cards c
+                        LEFT JOIN libraries l ON c.library_id = l.id 
+                        WHERE (l.is_public = 1 OR l.created_by = ?) AND (c.question LIKE ? OR c.answer LIKE ?)`;
+            queryParams = [`%${keyword}%`, userId, `%${keyword}%`, `%${keyword}%`];
+            countParams = [userId, `%${keyword}%`, `%${keyword}%`];
+        } else {
+            // 未登录用户：只搜索公开知识库中的卡片
+            // 优化排序：标题匹配优先，内容匹配次之
+            sql = `SELECT c.*, l.name as library_name, l.subject,
+                   CASE 
+                     WHEN c.question LIKE ? THEN 1 
+                     ELSE 2 
+                   END as match_priority
+                   FROM cards c 
+                   LEFT JOIN libraries l ON c.library_id = l.id 
+                   WHERE l.is_public = 1 AND (c.question LIKE ? OR c.answer LIKE ?)
+                   ORDER BY match_priority ASC, c.study_count DESC
+                   LIMIT ${parseInt(pageSize)} OFFSET ${offset}`;
+            countSql = `SELECT COUNT(*) as total 
+                        FROM cards c
+                        LEFT JOIN libraries l ON c.library_id = l.id 
+                        WHERE l.is_public = 1 AND (c.question LIKE ? OR c.answer LIKE ?)`;
+            queryParams = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+            countParams = [`%${keyword}%`, `%${keyword}%`];
+        }
+
+        const [rows] = await db.execute(sql, queryParams);
+        const [countRows] = await db.execute(countSql, countParams);
 
         return {
-            list: rows.map(row => ({
-                ...row,
-                tags: typeof row.tags === 'string' ? JSON.parse(row.tags) : (row.tags || [])
-            })),
+            list: rows.map(row => {
+                const { match_priority, ...rest } = row;
+                return {
+                    ...rest,
+                    tags: typeof rest.tags === 'string' ? JSON.parse(rest.tags) : (rest.tags || [])
+                };
+            }),
             pagination: {
                 page: parseInt(page),
                 pageSize: parseInt(pageSize),
@@ -360,24 +393,64 @@ class CardModel {
         try {
             bm25Results = await bm25Engine.search(searchText, [cardId], null, limit * 3);
         } catch (error) {
-            // BM25 search error
+            console.error('BM25 search error:', error.message);
         }
 
         try {
             embeddingResults = await sentenceEmbedding.search(searchText, currentTags, [cardId], null, limit * 3);
         } catch (error) {
-            // Sentence embedding search error
+            console.error('Sentence embedding search error:', error.message);
         }
 
         if (currentTags && currentTags.length > 0) {
             try {
-                tagResults = await this._searchByTags(currentTags, [cardId], null, limit * 2);
+                tagResults = await this._searchByTags(currentTags, [cardId], userId, limit * 2);
             } catch (error) {
-                // Tag search error
+                console.error('Tag search error:', error.message);
             }
         }
 
-        const fusedResults = resultFusion.fuse(bm25Results, embeddingResults, tagResults);
+        let fusedResults = resultFusion.fuse(bm25Results, embeddingResults, tagResults);
+
+        // 如果所有智能搜索都没有结果，使用简单的 LIKE 搜索作为 fallback
+        if (fusedResults.length === 0) {
+            try {
+                const keywords = searchText.split(/\s+/).filter(w => w.length > 1).slice(0, 5);
+                if (keywords.length > 0) {
+                    const likeConditions = keywords.map(() => '(c.question LIKE ? OR c.answer LIKE ?)').join(' OR ');
+                    const likeParams = keywords.flatMap(k => [`%${k}%`, `%${k}%`]);
+                    
+                    let fallbackSql;
+                    let fallbackParams;
+                    
+                    if (userId) {
+                        // 已登录用户：搜索公开知识库 + 自己的知识库
+                        fallbackSql = `SELECT c.id FROM cards c
+                                       LEFT JOIN libraries l ON c.library_id = l.id
+                                       WHERE c.id != ? AND (l.is_public = 1 OR l.created_by = ?)
+                                       AND (${likeConditions})
+                                       ORDER BY c.study_count DESC 
+                                       LIMIT ?`;
+                        fallbackParams = [cardId, userId, ...likeParams, limit * 2];
+                    } else {
+                        // 未登录用户：只搜索公开知识库
+                        fallbackSql = `SELECT c.id FROM cards c
+                                       LEFT JOIN libraries l ON c.library_id = l.id
+                                       WHERE c.id != ? AND l.is_public = 1
+                                       AND (${likeConditions})
+                                       ORDER BY c.study_count DESC 
+                                       LIMIT ?`;
+                        fallbackParams = [cardId, ...likeParams, limit * 2];
+                    }
+                    
+                    const [likeRows] = await db.execute(fallbackSql, fallbackParams);
+                    fusedResults = likeRows.map(row => ({ id: row.id, score: 0.5 }));
+                }
+            } catch (error) {
+                console.error('Fallback LIKE search error:', error.message);
+            }
+        }
+
         const topIds = fusedResults.slice(0, limit).map(r => r.id);
         const scoreMap = new Map(fusedResults.map(r => [r.id, r]));
 
@@ -403,7 +476,7 @@ class CardModel {
         return orderedCards;
     }
 
-    static async _searchByTags(tags, excludeIds = [], excludeUserId = null, limit = 10) {
+    static async _searchByTags(tags, excludeIds = [], userId = null, limit = 10) {
         const tagConditions = [];
         const tagValues = [];
         for (const t of tags) {
@@ -412,21 +485,32 @@ class CardModel {
         }
 
         const excludeIdList = excludeIds.filter(id => id !== undefined && id !== null);
-        let sql = `SELECT c.id, COUNT(*) as match_count
-                 FROM cards c
-                 WHERE c.is_public = 1`;
+        let sql;
+        let params;
+        
+        if (userId) {
+            // 已登录用户：搜索公开知识库 + 自己的知识库
+            sql = `SELECT c.id, COUNT(*) as match_count
+                   FROM cards c
+                   LEFT JOIN libraries l ON c.library_id = l.id
+                   WHERE (l.is_public = 1 OR l.created_by = ?)`;
+            params = [userId, ...tagValues];
+        } else {
+            // 未登录用户：只搜索公开知识库
+            sql = `SELECT c.id, COUNT(*) as match_count
+                   FROM cards c
+                   LEFT JOIN libraries l ON c.library_id = l.id
+                   WHERE l.is_public = 1`;
+            params = [...tagValues];
+        }
         
         if (excludeIdList.length > 0) {
             sql += ` AND c.id NOT IN (${excludeIdList.join(',')})`;
         }
-        if (excludeUserId) {
-            sql += ` AND (c.created_by IS NULL OR c.created_by != ?)`;
-            tagValues.push(excludeUserId);
-        }
         sql += ` AND (${tagConditions.join(' OR ')})`;
         sql += ` GROUP BY c.id ORDER BY match_count DESC, c.study_count DESC LIMIT ?`;
 
-        const params = [...tagValues, limit];
+        params.push(limit);
         const [rows] = await db.query(sql, params);
 
         const maxMatch = Math.max(...rows.map(r => r.match_count), 1);

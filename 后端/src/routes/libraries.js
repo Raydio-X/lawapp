@@ -1,4 +1,5 @@
 const express = require('express');
+const db = require('../config/database');
 const LibraryModel = require('../models/Library');
 const ChapterModel = require('../models/Chapter');
 const CardModel = require('../models/Card');
@@ -533,6 +534,130 @@ router.get('/admin/:id/review-history', adminAuth, async (req, res) => {
     } catch (error) {
         console.error('获取审核历史失败:', error);
         res.status(500).json({ success: false, code: 500, message: '获取审核历史失败' });
+    }
+});
+
+// 复制整个知识库（VIP功能）
+router.post('/:id/copy', auth, async (req, res) => {
+    try {
+        const sourceLibrary = await LibraryModel.findById(req.params.id);
+        
+        if (!sourceLibrary) {
+            return res.status(404).json({
+                success: false,
+                code: 404,
+                message: '知识库不存在'
+            });
+        }
+
+        // 检查VIP权限
+        const [userRows] = await db.execute(
+            'SELECT is_vip FROM users WHERE id = ?',
+            [req.user.id]
+        );
+        
+        if (userRows.length === 0 || !userRows[0].is_vip) {
+            return res.status(403).json({
+                success: false,
+                code: 403,
+                message: '该功能仅限VIP用户使用'
+            });
+        }
+
+        // 获取数据库连接
+        const connection = await db.getConnection();
+        
+        try {
+            await connection.beginTransaction();
+            
+            // 1. 创建新知识库（默认私有）
+            const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981'];
+            const randomColor = COVER_COLORS[Math.floor(Math.random() * COVER_COLORS.length)];
+            
+            const [libraryResult] = await connection.execute(
+                'INSERT INTO libraries (name, subject, description, cover_image, cover_color, created_by, is_public, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+                [
+                    `${sourceLibrary.name}（副本）`,
+                    sourceLibrary.subject,
+                    sourceLibrary.description || '',
+                    sourceLibrary.cover_image || '',
+                    randomColor,
+                    req.user.id,
+                    0, // 默认私有
+                    'approved'
+                ]
+            );
+            
+            const newLibraryId = libraryResult.insertId;
+            
+            // 2. 复制所有章节（按层级顺序复制，确保父章节先于子章节）
+            const [chapters] = await connection.execute(
+                'SELECT * FROM chapters WHERE library_id = ? ORDER BY level ASC, sort_order ASC, id ASC',
+                [req.params.id]
+            );
+            
+            const chapterIdMap = {};
+            
+            for (const chapter of chapters) {
+                // 获取映射后的父章节ID
+                const parentId = chapter.parent_id ? (chapterIdMap[chapter.parent_id] || null) : null;
+                const [chapterResult] = await connection.execute(
+                    'INSERT INTO chapters (library_id, name, sort_order, parent_id, level) VALUES (?, ?, ?, ?, ?)',
+                    [newLibraryId, chapter.name, chapter.sort_order || 0, parentId, chapter.level || 1]
+                );
+                chapterIdMap[chapter.id] = chapterResult.insertId;
+            }
+            
+            // 3. 复制所有卡片（保持原有顺序）
+            const [cards] = await connection.execute(
+                'SELECT * FROM cards WHERE library_id = ? ORDER BY id ASC',
+                [req.params.id]
+            );
+            
+            let copiedCardsCount = 0;
+            
+            for (const card of cards) {
+                const newChapterId = card.chapter_id ? (chapterIdMap[card.chapter_id] || null) : null;
+                
+                await connection.execute(
+                    'INSERT INTO cards (library_id, chapter_id, question, answer, tags, created_by, is_public) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [
+                        newLibraryId,
+                        newChapterId,
+                        card.question,
+                        card.answer,
+                        card.tags,
+                        req.user.id,
+                        0 // 默认私有
+                    ]
+                );
+                copiedCardsCount++;
+            }
+            
+            await connection.commit();
+            
+            res.json({
+                success: true,
+                data: {
+                    libraryId: newLibraryId,
+                    cardsCount: copiedCardsCount,
+                    chaptersCount: chapters.length
+                },
+                message: `成功复制知识库，包含 ${chapters.length} 个章节和 ${copiedCardsCount} 张卡片`
+            });
+        } catch (error) {
+            await connection.rollback();
+            throw error;
+        } finally {
+            connection.release();
+        }
+    } catch (error) {
+        console.error('复制知识库失败:', error);
+        res.status(500).json({
+            success: false,
+            code: 500,
+            message: '复制知识库失败'
+        });
     }
 });
 

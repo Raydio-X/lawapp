@@ -235,21 +235,6 @@
           </div>
         </div>
         <div class="filter-row">
-          <div 
-            class="filter-chip" 
-            :class="{ active: cardFilterPublic === '' }"
-            @click="cardFilterPublic = ''"
-          >全部</div>
-          <div 
-            class="filter-chip" 
-            :class="{ active: cardFilterPublic === '1' }"
-            @click="cardFilterPublic = '1'"
-          >公开</div>
-          <div 
-            class="filter-chip" 
-            :class="{ active: cardFilterPublic === '0' }"
-            @click="cardFilterPublic = '0'"
-          >私有</div>
         </div>
 
         <div class="batch-toolbar" v-if="cards.length > 0 || isBatchSelectMode">
@@ -311,11 +296,6 @@
                   <span class="meta-divider">·</span>
                   <span class="meta-text">{{ card.study_count || 0 }}次学习</span>
                 </div>
-                <div class="card-tags">
-                  <t-tag :theme="card.is_public ? 'success' : 'warning'" variant="light" size="small">
-                    {{ card.is_public ? '公开' : '私有' }}
-                  </t-tag>
-                </div>
               </div>
             </div>
             <div class="item-actions" v-if="!isBatchSelectMode">
@@ -362,11 +342,6 @@
                 <span class="meta-text hot-stat">{{ card.like_count || 0 }}赞</span>
                 <span class="meta-divider">·</span>
                 <span class="meta-text hot-stat">{{ card.study_count || 0 }}次学习</span>
-              </div>
-              <div class="card-tags">
-                <t-tag :theme="card.is_public ? 'success' : 'warning'" variant="light" size="small">
-                  {{ card.is_public ? '公开' : '私有' }}
-                </t-tag>
               </div>
             </div>
             <div class="item-actions">
@@ -744,7 +719,6 @@ const libraryPage = ref(1)
 const cards = ref<any[]>([])
 const allCards = ref<any[]>([])
 const cardKeyword = ref('')
-const cardFilterPublic = ref('')
 const cardHasMore = ref(false)
 const cardPage = ref(1)
 const isBatchSelectMode = ref(false)
@@ -838,9 +812,6 @@ const loadCards = async () => {
     }
     if (cardKeyword.value) {
       params.keyword = cardKeyword.value
-    }
-    if (cardFilterPublic.value) {
-      params.is_public = cardFilterPublic.value
     }
     const res = await api.get('/admin/cards', params)
     if (res.success && res.data) {
@@ -1342,12 +1313,6 @@ const onDownloadTemplate = async () => {
     MessagePlugin.error('模板下载失败，请重试')
   }
 }
-
-watch(cardFilterPublic, () => {
-  cardPage.value = 1
-  allCards.value = []
-  loadCards()
-})
 
 watch(activeTab, (newTab) => {
   localStorage.setItem('adminActiveTab', newTab)

@@ -90,7 +90,7 @@
               </div>
               <div class="tree-expand-placeholder" v-else></div>
               <div class="tree-content">
-                <span class="tree-title">第{{ getChapterNum(chapterIndex) }}章 {{ chapter.title }}</span>
+                <span class="tree-title">{{ chapter.id < 0 ? chapter.title : `第${getChapterNum(chapterIndex)}章 ${chapter.title}` }}</span>
                 <span class="tree-card-count">{{ getTotalCardsCount(chapter) }}张</span>
               </div>
             </div>
@@ -190,7 +190,8 @@
 
       <div class="empty-tip" v-if="!selectedChapter">
         <t-icon name="tips" size="40px" color="#ddd" />
-        <span class="empty-text">请点击上方章节查看卡片</span>
+        <span class="empty-text" v-if="chapters.length === 0">暂无内容，请先创建章节或卡片</span>
+        <span class="empty-text" v-else>请点击上方章节查看卡片</span>
       </div>
 
       <div class="bottom-placeholder"></div>
@@ -350,6 +351,11 @@ const totalCards = ref(0)
 const learnedCards = ref(0)
 const progress = ref(0)
 
+// 标记是否已初始化，防止 onMounted 和 onActivated 重复加载
+const isInitialized = ref(false)
+// 标记是否正在加载，防止并发调用
+const isLoading = ref(false)
+
 const COVER_COLORS = ['#3B82F6', '#EF4444', '#8B5CF6', '#10B981']
 
 const getRandomColor = () => {
@@ -397,11 +403,14 @@ const flatChapters = computed<FlatChapter[]>(() => {
   const result: FlatChapter[] = []
   const flatten = (chapterList: Chapter[]) => {
     chapterList.forEach(ch => {
-      result.push({
-        id: ch.id,
-        name: ch.title,
-        level: ch.level
-      })
+      // 排除虚拟章节（id < 0）
+      if (ch.id > 0) {
+        result.push({
+          id: ch.id,
+          name: ch.title,
+          level: ch.level
+        })
+      }
       if (ch.children && ch.children.length > 0) {
         flatten(ch.children)
       }
@@ -493,6 +502,12 @@ onMounted(() => {
 })
 
 onActivated(() => {
+  // 如果还没初始化过，说明 onMounted 还没执行完，跳过
+  if (!isInitialized.value) {
+    return
+  }
+  
+  // 检查是否有数据更新标记
   const needReload = localStorage.getItem('libraryCardsData') === null
   
   if (needReload) {
@@ -507,23 +522,18 @@ onDeactivated(() => {
 })
 
 const loadLibraryData = async (restoreState: boolean = false) => {
+  // 防止并发调用
+  if (isLoading.value) {
+    console.log('loadLibraryData: 已有加载任务进行中，跳过')
+    return
+  }
+  
+  isLoading.value = true
   loading.value = true
   
+  // 完全清空数据，防止重复
   allCards.value = []
-  chapters.value.forEach(chapter => {
-    chapter.cards = []
-    chapter.learnedCount = 0
-    const clearChildren = (ch: Chapter) => {
-      if (ch.children && ch.children.length > 0) {
-        ch.children.forEach(child => {
-          child.cards = []
-          child.learnedCount = 0
-          clearChildren(child)
-        })
-      }
-    }
-    clearChildren(chapter)
-  })
+  chapters.value = []
   
   try {
     const [libRes, cardsRes] = await Promise.all([
@@ -558,11 +568,15 @@ const loadLibraryData = async (restoreState: boolean = false) => {
     } else if (chapters.value.length > 0) {
       expandAndSelectChapter(0)
     }
+    
+    // 标记初始化完成
+    isInitialized.value = true
   } catch (error) {
     console.error('加载知识库失败:', error)
     MessagePlugin.error('加载知识库失败')
   } finally {
     loading.value = false
+    isLoading.value = false
   }
 }
 
@@ -589,6 +603,9 @@ const processChapters = (chapterList: any[]) => {
 }
 
 const processCards = (cards: any[]) => {
+  // 收集无章节的卡片
+  const unassignedCards: Card[] = []
+  
   cards.forEach(card => {
     const chapterId = card.chapter_id
     const cardItem: Card = {
@@ -601,6 +618,20 @@ const processCards = (cards: any[]) => {
       chapterId: chapterId
     }
     allCards.value.push(cardItem)
+
+    // 如果卡片没有章节关联
+    if (!chapterId) {
+      unassignedCards.push({
+        id: card.id,
+        title: card.question,
+        tags: card.tags || [],
+        learned: card.is_learned || false,
+        question: card.question,
+        answer: card.answer,
+        chapterId: null
+      })
+      return
+    }
 
     const findChapter = (chapterList: Chapter[]): Chapter | null => {
       for (const chapter of chapterList) {
@@ -629,8 +660,33 @@ const processCards = (cards: any[]) => {
       if (card.is_learned) {
         chapter.learnedCount++
       }
+    } else {
+      // 章节不存在，也放入未分类
+      unassignedCards.push({
+        id: card.id,
+        title: card.question,
+        tags: card.tags || [],
+        learned: card.is_learned || false,
+        question: card.question,
+        answer: card.answer,
+        chapterId: chapterId
+      })
     }
   })
+  
+  // 如果有未分配章节的卡片，创建一个虚拟的"未分类"章节
+  if (unassignedCards.length > 0) {
+    const unassignedChapter: Chapter = {
+      id: -1, // 使用负数ID标识虚拟章节
+      title: '未分类',
+      level: 1,
+      expanded: false,
+      learnedCount: unassignedCards.filter(c => c.learned).length,
+      cards: unassignedCards,
+      children: []
+    }
+    chapters.value.push(unassignedChapter)
+  }
 }
 
 const calculateProgress = () => {

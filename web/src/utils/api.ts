@@ -160,7 +160,8 @@ export const libraryAPI = {
   getPendingList: (page?: number, pageSize?: number) => api.get('/libraries/admin/pending', { page, pageSize }),
   approveLibrary: (id: number, note?: string) => api.post(`/libraries/admin/${id}/approve`, { note }),
   rejectLibrary: (id: number, note?: string) => api.post(`/libraries/admin/${id}/reject`, { note }),
-  getReviewHistory: (id: number) => api.get(`/libraries/admin/${id}/review-history`)
+  getReviewHistory: (id: number) => api.get(`/libraries/admin/${id}/review-history`),
+  copyLibrary: (id: number) => api.post(`/libraries/${id}/copy`)
 }
 
 export const cardAPI = {
@@ -201,7 +202,8 @@ export const cardAPI = {
   rateDifficulty: (id: number, rating: number) => api.post(`/cards/${id}/difficulty`, { rating }),
   linkCards: (cardId: number, linkedCardIds: number[]) => api.post(`/cards/${cardId}/link`, { linkedCardIds }),
   unlinkCard: (cardId: number, linkedCardId: number) => api.delete(`/cards/${cardId}/link/${linkedCardId}`),
-  getLinkedCards: (cardId: number) => api.get(`/cards/${cardId}/linked`)
+  getLinkedCards: (cardId: number) => api.get(`/cards/${cardId}/linked`),
+  getAllLinkedCards: () => api.get('/cards/all-linked')
 }
 
 export const chapterAPI = {

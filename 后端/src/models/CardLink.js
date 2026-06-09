@@ -90,6 +90,36 @@ class CardLinkModel {
         const [rows] = await db.execute(sql, [userId]);
         return rows;
     }
+
+    // 获取用户所有卡片关联数据（用于脑图展示）
+    static async getAllLinkedCardsForMindMap(userId) {
+        const sql = `
+            SELECT 
+                cl.card_id,
+                cl.linked_card_id,
+                c1.question as card_question,
+                c1.answer as card_answer,
+                c1.tags as card_tags,
+                l1.name as card_library_name,
+                c2.question as linked_card_question,
+                c2.answer as linked_card_answer,
+                c2.tags as linked_card_tags,
+                l2.name as linked_library_name
+            FROM card_links cl
+            JOIN cards c1 ON cl.card_id = c1.id
+            JOIN cards c2 ON cl.linked_card_id = c2.id
+            LEFT JOIN libraries l1 ON c1.library_id = l1.id
+            LEFT JOIN libraries l2 ON c2.library_id = l2.id
+            WHERE cl.user_id = ?
+            ORDER BY cl.created_at DESC
+        `;
+        const [rows] = await db.execute(sql, [userId]);
+        return rows.map(row => ({
+            ...row,
+            card_tags: typeof row.card_tags === 'string' ? JSON.parse(row.card_tags) : (row.card_tags || []),
+            linked_card_tags: typeof row.linked_card_tags === 'string' ? JSON.parse(row.linked_card_tags) : (row.linked_card_tags || [])
+        }));
+    }
 }
 
 module.exports = CardLinkModel;

@@ -52,6 +52,17 @@
     </div>
 
     <div class="module-section">
+      <div class="module-card" @click="onMindMap">
+        <div class="module-icon mindmap-icon">
+          <t-icon name="link-1" size="22px" color="#8B5CF6" />
+        </div>
+        <div class="module-info">
+          <span class="module-title">我的脑图</span>
+          <span class="module-desc">可视化关联卡片</span>
+        </div>
+        <t-icon name="chevron-right" size="18px" color="#ccc" />
+      </div>
+
       <div class="module-card" @click="onFavorites">
         <div class="module-icon fav-icon">
           <t-icon name="star" size="22px" color="#FFB800" />
@@ -81,6 +92,20 @@
         <span class="tips-text">太棒了！所有卡片都已掌握</span>
       </div>
     </div>
+
+    <!-- 脑图弹窗 -->
+    <t-dialog
+      v-model:visible="showMindMapDialog"
+      header="我的脑图"
+      :footer="false"
+      width="90%"
+      top="5vh"
+      class="mindmap-dialog"
+    >
+      <div class="mindmap-dialog-content">
+        <MindMap ref="mindMapRef" />
+      </div>
+    </t-dialog>
   </div>
 </template>
 
@@ -89,6 +114,7 @@ import { ref, computed, onMounted, onActivated } from 'vue'
 import { useRouter } from 'vue-router'
 import { MessagePlugin } from 'tdesign-vue-next'
 import { studyAPI, cardAPI, favoriteAPI } from '@/utils/api'
+import MindMap from '@/components/MindMap.vue'
 
 defineOptions({
   name: 'Study'
@@ -112,6 +138,8 @@ const unlearnedCount = ref(0)
 const reviewCount = ref(0)
 const favoriteCount = ref(0)
 const lastStudyProgress = ref<LastStudyProgress | null>(null)
+const showMindMapDialog = ref(false)
+const mindMapRef = ref<InstanceType<typeof MindMap> | null>(null)
 
 const greeting = computed(() => {
   const hour = new Date().getHours()
@@ -248,6 +276,10 @@ const onFavorites = () => {
 
 const onDifficulty = () => {
   router.push('/study/difficulty')
+}
+
+const onMindMap = () => {
+  showMindMapDialog.value = true
 }
 </script>
 
@@ -454,6 +486,10 @@ const onDifficulty = () => {
   background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
 }
 
+.mindmap-icon {
+  background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+}
+
 .module-info {
   flex: 1;
   min-width: 0;
@@ -490,5 +526,10 @@ const onDifficulty = () => {
   font-size: 13px;
   color: #00B578;
   font-weight: 500;
+}
+
+.mindmap-dialog-content {
+  height: 70vh;
+  min-height: 400px;
 }
 </style>

@@ -485,13 +485,29 @@ const onLibraryTap = (library: Library) => {
   -webkit-line-clamp: 2;
   overflow: hidden;
   
-  :deep(ol), :deep(ul) {
+  :deep(ol) {
     padding-left: 1.5em;
     margin: 4px 0;
+    list-style: decimal;
+  }
+  
+  :deep(ul) {
+    padding-left: 1.5em;
+    margin: 4px 0;
+    list-style: disc;
   }
   
   :deep(li) {
     margin-bottom: 2px;
+    list-style: inherit;
+  }
+  
+  :deep(li[data-list="ordered"]) {
+    list-style-type: decimal;
+  }
+  
+  :deep(li[data-list="bullet"]) {
+    list-style-type: disc;
   }
   
   :deep(table) {

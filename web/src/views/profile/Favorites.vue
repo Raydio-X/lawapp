@@ -53,6 +53,9 @@
           </div>
         </div>
         <div class="item-actions">
+          <div class="action-btn copy-library-btn" v-if="item.type === 'library'" @click.stop="onCopyLibrary(item)">
+            <t-icon name="folder-add" size="18px" color="#10B981" />
+          </div>
           <div class="action-btn copy-btn" v-if="item.type === 'library'" @click.stop="onBatchCopy(item)">
             <t-icon name="file-copy" size="18px" color="#3B82F6" />
           </div>
@@ -333,6 +336,41 @@ const onBatchCopy = async (item: Favorite) => {
   }
 }
 
+// 复制整个知识库（VIP功能）
+const copyLibraryLoading = ref(false)
+const onCopyLibrary = async (item: Favorite) => {
+  if (!isVip.value) {
+    showVipRequiredDialog('复制知识库')
+    return
+  }
+  
+  const confirmDialog = DialogPlugin.confirm({
+    header: '复制知识库',
+    body: `确定要将「${item.name}」完整复制到您的个人空间吗？`,
+    onConfirm: async () => {
+      copyLibraryLoading.value = true
+      try {
+        const res = await libraryAPI.copyLibrary(item.id)
+        if (res.success) {
+          MessagePlugin.success(res.message || '复制成功')
+          // 刷新我的知识库列表
+          loadMyLibraries()
+        }
+      } catch (error: any) {
+        console.error('复制知识库失败:', error)
+        if (error.code === 403) {
+          MessagePlugin.warning('该功能仅限VIP用户使用')
+        } else {
+          MessagePlugin.error(error.message || '复制失败')
+        }
+      } finally {
+        copyLibraryLoading.value = false
+      }
+      confirmDialog.hide()
+    }
+  })
+}
+
 const onLibraryChange = async (value: number) => {
   targetChapterId.value = null
   chapterOptions.value = []
@@ -564,6 +602,13 @@ const onConfirmCopy = async () => {
   }
 }
 
+.copy-library-btn {
+  &:hover {
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 50%;
+  }
+}
+
 .empty {
   display: flex;
   flex-direction: column;
@@ -748,9 +793,28 @@ const onConfirmCopy = async () => {
   -webkit-line-clamp: 2;
   overflow: hidden;
   
-  :deep(ol), :deep(ul) {
+  :deep(ol) {
     padding-left: 16px;
     margin: 0;
+    list-style: decimal;
+  }
+  
+  :deep(ul) {
+    padding-left: 16px;
+    margin: 0;
+    list-style: disc;
+  }
+  
+  :deep(li) {
+    list-style: inherit;
+  }
+  
+  :deep(li[data-list="ordered"]) {
+    list-style-type: decimal;
+  }
+  
+  :deep(li[data-list="bullet"]) {
+    list-style-type: disc;
   }
   
   :deep(table) {

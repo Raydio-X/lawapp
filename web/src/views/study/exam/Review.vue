@@ -154,13 +154,30 @@ const onBack = () => {
   color: #333;
   flex: 1;
   
-  :deep(ol), :deep(ul) {
+  // Quill 列表样式
+  :deep(ol) {
     padding-left: 1.5em;
     margin: 8px 0;
+    list-style: decimal;
+  }
+  
+  :deep(ul) {
+    padding-left: 1.5em;
+    margin: 8px 0;
+    list-style: disc;
   }
   
   :deep(li) {
     margin-bottom: 4px;
+    list-style: inherit;
+  }
+  
+  :deep(li[data-list="ordered"]) {
+    list-style-type: decimal;
+  }
+  
+  :deep(li[data-list="bullet"]) {
+    list-style-type: disc;
   }
   
   :deep(table) {

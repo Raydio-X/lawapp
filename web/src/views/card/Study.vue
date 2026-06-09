@@ -1214,13 +1214,33 @@ const saveStudyProgress = () => {
   white-space: pre-wrap;
   word-break: break-word;
   
-  :deep(ol), :deep(ul) {
+  // Quill 列表样式 - 使用 data-list 属性区分有序和无序列表
+  :deep(ol) {
     padding-left: 1.5em;
     margin: 8px 0;
+    list-style: decimal;
   }
   
+  :deep(ul) {
+    padding-left: 1.5em;
+    margin: 8px 0;
+    list-style: disc;
+  }
+  
+  // Quill 使用 li[data-list] 来标记列表类型
   :deep(li) {
     margin-bottom: 4px;
+    list-style: inherit;
+  }
+  
+  // 有序列表项
+  :deep(li[data-list="ordered"]) {
+    list-style-type: decimal;
+  }
+  
+  // 无序列表项
+  :deep(li[data-list="bullet"]) {
+    list-style-type: disc;
   }
   
   :deep(table) {

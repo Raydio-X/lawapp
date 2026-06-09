@@ -318,13 +318,29 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   overflow: hidden;
   
-  :deep(ol), :deep(ul) {
+  :deep(ol) {
     padding-left: 16px;
     margin: 4px 0;
-    
-    li {
-      margin: 2px 0;
-    }
+    list-style: decimal;
+  }
+  
+  :deep(ul) {
+    padding-left: 16px;
+    margin: 4px 0;
+    list-style: disc;
+  }
+  
+  :deep(li) {
+    margin: 2px 0;
+    list-style: inherit;
+  }
+  
+  :deep(li[data-list="ordered"]) {
+    list-style-type: decimal;
+  }
+  
+  :deep(li[data-list="bullet"]) {
+    list-style-type: disc;
   }
   
   :deep(table) {

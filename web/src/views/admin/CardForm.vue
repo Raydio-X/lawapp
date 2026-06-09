@@ -97,43 +97,79 @@
             <div class="editor-card" :class="{ focused: answerFocused }">
               <div class="editor-toolbar" ref="toolbarRef">
                 <div class="toolbar-group">
-                  <button class="toolbar-btn" title="有序列表" @click="formatOrderedList">
+                  <button 
+                    class="toolbar-btn" 
+                    title="有序列表" 
+                    @click="formatOrderedList"
+                  >
                     <t-icon name="order-list" size="16px" />
                   </button>
-                  <button class="toolbar-btn" title="无序列表" @click="formatBulletList">
+                  <button 
+                    class="toolbar-btn" 
+                    title="无序列表" 
+                    @click="formatBulletList"
+                  >
                     <t-icon name="bulletpoint" size="16px" />
                   </button>
                 </div>
-                <div class="toolbar-divider"></div>
                 <div class="toolbar-group">
-                  <button class="toolbar-btn" title="增加缩进" @click="formatIndent">
+                  <button 
+                    class="toolbar-btn" 
+                    title="增加缩进" 
+                    @click="formatIndent"
+                  >
                     <t-icon name="indent-right" size="16px" />
                   </button>
-                  <button class="toolbar-btn" title="减少缩进" @click="formatOutdent">
+                  <button 
+                    class="toolbar-btn" 
+                    title="减少缩进" 
+                    @click="formatOutdent"
+                  >
                     <t-icon name="indent-left" size="16px" />
                   </button>
                 </div>
-                <div class="toolbar-divider"></div>
                 <div class="toolbar-group">
-                  <button class="toolbar-btn" title="首行缩进" @click="formatTextIndent">
+                  <button 
+                    class="toolbar-btn" 
+                    title="首行缩进" 
+                    @click="formatTextIndent"
+                  >
                     <span class="indent-icon">⇥</span>
                   </button>
                 </div>
-                <div class="toolbar-divider"></div>
                 <div class="toolbar-group">
-                  <button class="toolbar-btn" ref="tableBtnRef" title="插入表格" @click="onShowTableSelector">
+                  <button 
+                    class="toolbar-btn" 
+                    ref="tableBtnRef" 
+                    title="插入表格" 
+                    @click="onShowTableSelector"
+                  >
                     <t-icon name="table" size="16px" />
                   </button>
                 </div>
-                <div class="toolbar-divider"></div>
                 <div class="toolbar-group">
-                  <button class="toolbar-btn" title="加粗" @click="formatBold">
+                  <button 
+                    class="toolbar-btn" 
+                    :class="{ active: activeFormats.includes('bold') }" 
+                    title="加粗" 
+                    @click="formatBold"
+                  >
                     <t-icon name="textformat-bold" size="16px" />
                   </button>
-                  <button class="toolbar-btn" title="斜体" @click="formatItalic">
+                  <button 
+                    class="toolbar-btn" 
+                    :class="{ active: activeFormats.includes('italic') }" 
+                    title="斜体" 
+                    @click="formatItalic"
+                  >
                     <t-icon name="textformat-italic" size="16px" />
                   </button>
-                  <button class="toolbar-btn" title="下划线" @click="formatUnderline">
+                  <button 
+                    class="toolbar-btn" 
+                    :class="{ active: activeFormats.includes('underline') }" 
+                    title="下划线" 
+                    @click="formatUnderline"
+                  >
                     <t-icon name="textformat-underline" size="16px" />
                   </button>
                 </div>
@@ -204,6 +240,7 @@
 import { ref, computed, onMounted, nextTick, onBeforeUnmount, shallowRef } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
+import { Capacitor } from '@capacitor/core'
 import { cardAPI, libraryAPI, chapterAPI, adminAPI } from '@/utils/api'
 import Picker from '@/components/Picker.vue'
 import Quill from 'quill'
@@ -238,6 +275,8 @@ const question = ref('')
 const answer = ref('')
 const questionFocused = ref(false)
 const answerFocused = ref(false)
+const activeFormats = ref<string[]>([])
+const isFormatting = ref(false) // 防止 selection-change 事件干扰
 
 const selectedLibrary = ref<Library | null>(null)
 const selectedChapter = ref<Chapter | null>(null)
@@ -377,6 +416,9 @@ const initQuill = () => {
       table: false
     }
   })
+  
+  // 修复列表删除问题：当第一行是列表时，Backspace 无法删除
+  setupListDeleteFix()
 
   if (answer.value) {
     quillInstance.value.root.innerHTML = answer.value
@@ -392,10 +434,131 @@ const initQuill = () => {
 
   quillInstance.value.on('selection-change', (range) => {
     answerFocused.value = !!range
+    
+    // 如果正在手动控制格式，跳过自动更新
+    if (isFormatting.value) return
+    
+    // 实时更新格式按钮状态
+    if (range && quillInstance.value) {
+      const format = quillInstance.value.getFormat(range.index, range.length)
+      
+      // 更新各格式按钮的激活状态（不包括列表）
+      const newActiveFormats: string[] = []
+      
+      if (format.bold) newActiveFormats.push('bold')
+      if (format.italic) newActiveFormats.push('italic')
+      if (format.underline) newActiveFormats.push('underline')
+      
+      activeFormats.value = newActiveFormats
+    }
   })
   
   setupMobileTableMenu()
   setupTableResize()
+  setupAndroidKeyboard()
+}
+
+// Android 软键盘处理
+const setupAndroidKeyboard = () => {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== 'android') return
+  if (!editorRef.value) return
+  
+  // 监听窗口 resize 事件（软键盘弹出会触发）
+  const handleResize = () => {
+    if (!editorRef.value || !quillInstance.value) return
+    
+    const selection = quillInstance.value.getSelection()
+    if (!selection) return
+    
+    // 延迟执行，等待键盘完全弹出
+    setTimeout(() => {
+      if (!editorRef.value) return
+      
+      // 获取编辑器的位置
+      const rect = editorRef.value.getBoundingClientRect()
+      
+      // 如果编辑器底部被遮挡（键盘高度大约占屏幕一半）
+      if (rect.bottom > window.innerHeight * 0.6) {
+        // 滚动到编辑器可见
+        editorRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+    }, 100)
+  }
+  
+  // 监听编辑器聚焦事件
+  const handleFocus = () => {
+    // 延迟滚动，等待键盘弹出
+    setTimeout(() => {
+      if (!editorRef.value) return
+      editorRef.value.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 300)
+  }
+  
+  // 监听 selection-change 事件来检测聚焦
+  quillInstance.value.on('selection-change', (range) => {
+    if (range) {
+      handleFocus()
+    }
+  })
+  
+  window.addEventListener('resize', handleResize)
+  
+  // 清理函数
+  onBeforeUnmount(() => {
+    window.removeEventListener('resize', handleResize)
+  })
+}
+
+// 修复列表删除问题：当第一行是列表时，Backspace 无法删除
+const setupListDeleteFix = () => {
+  if (!quillInstance.value) return
+  
+  const quill = quillInstance.value
+  
+  // 监听键盘事件
+  quill.root.addEventListener('keydown', (e: KeyboardEvent) => {
+    if (e.key !== 'Backspace') return
+    
+    const selection = quill.getSelection()
+    if (!selection) return
+    
+    // 只处理没有选中文本的情况
+    if (selection.length > 0) return
+    
+    // 获取当前行的格式
+    const [line, offset] = quill.getLine(selection.index)
+    if (!line) return
+    
+    // 检查是否在行首（offset 为 0 表示光标在该行的起始位置）
+    if (offset !== 0) return
+    
+    // 计算行的起始位置
+    const lineStart = selection.index - offset
+    const lineLength = line.length()
+    
+    // 获取当前行的格式
+    const lineFormat = quill.getFormat(lineStart, 1)
+    
+    // 如果当前行是列表
+    if (lineFormat.list) {
+      e.preventDefault()
+      e.stopPropagation()
+      
+      // 获取行内容（不包括末尾的换行符）
+      const lineText = quill.getText(lineStart, Math.max(0, lineLength - 1))
+      
+      // 如果行内容为空（只有换行符），移除列表格式
+      if (lineText.trim() === '') {
+        // 删除整个空列表行
+        quill.deleteText(lineStart, lineLength)
+      } else {
+        // 否则只移除列表格式，保留内容
+        quill.formatText(lineStart, lineLength, 'list', false)
+      }
+      
+      return false
+    }
+  }, true)
 }
 
 const setupMobileTableMenu = () => {
@@ -672,17 +835,96 @@ const formatTextIndent = () => {
 
 const formatBold = () => {
   if (!quillInstance.value) return
-  quillInstance.value.format('bold', !quillInstance.value.getFormat().bold)
+  
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  // 防止 selection-change 事件干扰
+  isFormatting.value = true
+  
+  // 基于按钮当前激活状态判断
+  const isButtonActive = activeFormats.value.includes('bold')
+  
+  // 切换：如果激活则取消，否则应用
+  const shouldApply = !isButtonActive
+  
+  // 应用或取消格式
+  quillInstance.value.format('bold', shouldApply)
+  
+  // 立即更新按钮状态
+  if (shouldApply) {
+    if (!activeFormats.value.includes('bold')) {
+      activeFormats.value.push('bold')
+    }
+  } else {
+    activeFormats.value = activeFormats.value.filter(f => f !== 'bold')
+  }
+  
+  // 下一个 tick 恢复 selection-change 事件处理
+  setTimeout(() => {
+    isFormatting.value = false
+  }, 0)
 }
 
 const formatItalic = () => {
   if (!quillInstance.value) return
-  quillInstance.value.format('italic', !quillInstance.value.getFormat().italic)
+  
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  isFormatting.value = true
+  
+  const isButtonActive = activeFormats.value.includes('italic')
+  const shouldApply = !isButtonActive
+  
+  quillInstance.value.format('italic', shouldApply)
+  
+  if (shouldApply) {
+    if (!activeFormats.value.includes('italic')) {
+      activeFormats.value.push('italic')
+    }
+  } else {
+    activeFormats.value = activeFormats.value.filter(f => f !== 'italic')
+  }
+  
+  setTimeout(() => {
+    isFormatting.value = false
+  }, 0)
 }
 
 const formatUnderline = () => {
   if (!quillInstance.value) return
-  quillInstance.value.format('underline', !quillInstance.value.getFormat().underline)
+  
+  const selection = quillInstance.value.getSelection()
+  if (!selection) return
+  
+  isFormatting.value = true
+  
+  const isButtonActive = activeFormats.value.includes('underline')
+  const shouldApply = !isButtonActive
+  
+  quillInstance.value.format('underline', shouldApply)
+  
+  if (shouldApply) {
+    if (!activeFormats.value.includes('underline')) {
+      activeFormats.value.push('underline')
+    }
+  } else {
+    activeFormats.value = activeFormats.value.filter(f => f !== 'underline')
+  }
+  
+  setTimeout(() => {
+    isFormatting.value = false
+  }, 0)
+}
+
+const toggleFormat = (format: string) => {
+  const index = activeFormats.value.indexOf(format)
+  if (index > -1) {
+    activeFormats.value.splice(index, 1)
+  } else {
+    activeFormats.value.push(format)
+  }
 }
 
 const insertTable = () => {
@@ -1270,16 +1512,20 @@ const onSubmit = async () => {
 .editor-toolbar {
   display: flex;
   align-items: center;
-  padding: 8px 12px;
-  background: #fff;
-  border-bottom: 1px solid #E2E8F0;
-  gap: 4px;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  gap: 6px;
 }
 
 .toolbar-group {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
+  padding: 3px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
 }
 
 .toolbar-btn {
@@ -1292,16 +1538,17 @@ const onSubmit = async () => {
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: #64748B;
+  transition: all 0.15s ease;
+  color: #64748b;
   
   &:hover {
     background: #f1f5f9;
-    color: #3B82F6;
   }
   
-  &:active {
-    background: #E2E8F0;
+  &:active,
+  &.active {
+    background: #3b82f6;
+    color: #fff;
   }
 }
 
@@ -1310,11 +1557,10 @@ const onSubmit = async () => {
   font-weight: bold;
 }
 
-.toolbar-divider {
-  width: 1px;
-  height: 20px;
-  background: #E2E8F0;
-  margin: 0 4px;
+.highlight-icon {
+  font-size: 14px;
+  font-weight: 600;
+  color: #64748b;
 }
 
 .editor-content {
@@ -1346,8 +1592,26 @@ const onSubmit = async () => {
       font-style: normal;
     }
     
-    ol, ul {
+    ol {
       padding-left: 20px;
+      list-style: decimal;
+    }
+    
+    ul {
+      padding-left: 20px;
+      list-style: disc;
+    }
+    
+    li {
+      list-style: inherit;
+    }
+    
+    li[data-list="ordered"] {
+      list-style-type: decimal;
+    }
+    
+    li[data-list="bullet"] {
+      list-style-type: disc;
     }
     
     table {
@@ -1485,6 +1749,20 @@ const onSubmit = async () => {
   }
   
   @media (max-width: 768px) {
+    // 移动端工具栏按钮增大触摸区域
+    .toolbar-btn {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .editor-toolbar {
+      padding: 8px 10px;
+    }
+    
+    .toolbar-group {
+      gap: 2px;
+    }
+    
     :deep(.ql-better-table-tooltip) {
       .ql-better-table-tooltip-main {
         flex-direction: column;
