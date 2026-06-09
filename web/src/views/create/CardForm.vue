@@ -323,10 +323,31 @@ const gridDisplayText = computed(() => {
 const onShowTableSelector = () => {
   if (tableBtnRef.value) {
     const rect = tableBtnRef.value.getBoundingClientRect()
-    tableSelectorPosition.value = {
-      top: rect.bottom + 4,
-      left: rect.left
+    const popupWidth = 170 // 弹窗宽度（5个格子 * 30px + padding）
+    const popupHeight = 200 // 弹窗高度（5个格子 * 30px + padding + 文字）
+    
+    let top = rect.bottom + 4
+    let left = rect.left
+    
+    // 确保不超出右边界
+    if (left + popupWidth > window.innerWidth - 10) {
+      left = window.innerWidth - popupWidth - 10
     }
+    // 确保不超出左边界
+    if (left < 10) {
+      left = 10
+    }
+    // 确保不超出下边界
+    if (top + popupHeight > window.innerHeight - 10) {
+      // 显示在按钮上方
+      top = rect.top - popupHeight - 4
+    }
+    // 确保不超出上边界
+    if (top < 10) {
+      top = 10
+    }
+    
+    tableSelectorPosition.value = { top, left }
   }
   showTableDialog.value = true
 }
@@ -424,6 +445,9 @@ const initQuill = () => {
   
   // 修复列表删除问题：当第一行是列表时，Backspace 无法删除
   setupListDeleteFix()
+  
+  // 设置移动端表格事件监听
+  setupMobileTableEvents()
 
   if (answer.value) {
     quillInstance.value.root.innerHTML = answer.value
@@ -989,6 +1013,126 @@ const insertTable = () => {
   showTableDialog.value = false
   hoveredRow.value = -1
   hoveredCol.value = -1
+}
+
+// 设置移动端表格事件监听 - 长按触发右键菜单
+const setupMobileTableEvents = () => {
+  if (!editorRef.value) return
+  
+  // 检测是否为移动端
+  const isMobile = Capacitor.isNativePlatform() || 'ontouchstart' in window
+  if (!isMobile) return
+  
+  const editor = editorRef.value
+  
+  // 长按检测
+  let longPressTimer: number | null = null
+  let touchStartCell: HTMLTableCellElement | null = null
+  let touchStartX = 0
+  let touchStartY = 0
+  let isLongPressTriggered = false // 标记长按是否已触发
+  
+  const handleTouchStart = (e: TouchEvent) => {
+    const target = e.target as HTMLElement
+    const cell = target.closest('td, th') as HTMLTableCellElement | null
+    
+    if (cell && cell.closest('table')) {
+      // 重置状态
+      isLongPressTriggered = false
+      touchStartCell = cell
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+      
+      longPressTimer = window.setTimeout(() => {
+        if (touchStartCell) {
+          isLongPressTriggered = true
+          
+          // 阻止默认行为和后续事件
+          e.preventDefault()
+          
+          // 获取单元格位置用于菜单定位
+          const cellRect = touchStartCell.getBoundingClientRect()
+          
+          // 模拟右键菜单事件，使用单元格中心位置
+          const contextMenuEvent = new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX: cellRect.left + cellRect.width / 2,
+            clientY: cellRect.bottom + 5,
+            button: 2
+          })
+          
+          touchStartCell.dispatchEvent(contextMenuEvent)
+          
+          // 确保菜单位置在屏幕内
+          nextTick(() => {
+            const tooltip = document.querySelector('.ql-better-table-tooltip') as HTMLElement
+            if (tooltip) {
+              const tooltipRect = tooltip.getBoundingClientRect()
+              let left = tooltipRect.left
+              let top = tooltipRect.top
+              
+              // 确保不超出右边界
+              if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10
+              }
+              // 确保不超出左边界
+              if (left < 10) {
+                left = 10
+              }
+              // 确保不超出下边界
+              if (top + tooltipRect.height > window.innerHeight - 10) {
+                top = window.innerHeight - tooltipRect.height - 10
+              }
+              // 确保不超出上边界
+              if (top < 10) {
+                top = 10
+              }
+              
+              tooltip.style.left = `${left}px`
+              tooltip.style.top = `${top}px`
+            }
+          })
+        }
+      }, 400) // 400ms 长按，稍微缩短响应时间
+    }
+  }
+  
+  const handleTouchMove = (e: TouchEvent) => {
+    // 如果手指移动超过 10px，取消长按
+    if (e.touches.length > 0) {
+      const moveX = Math.abs(e.touches[0].clientX - touchStartX)
+      const moveY = Math.abs(e.touches[0].clientY - touchStartY)
+      if (moveX > 10 || moveY > 10) {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer)
+          longPressTimer = null
+        }
+        touchStartCell = null
+        isLongPressTriggered = false
+      }
+    }
+  }
+  
+  const handleTouchEnd = (e: TouchEvent) => {
+    // 如果长按已触发，阻止默认行为但不关闭菜单
+    if (isLongPressTriggered) {
+      e.preventDefault()
+    }
+    
+    // 清理定时器
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+    touchStartCell = null
+  }
+  
+  // 添加事件监听
+  editor.addEventListener('touchstart', handleTouchStart, { passive: false })
+  editor.addEventListener('touchmove', handleTouchMove, { passive: true })
+  editor.addEventListener('touchend', handleTouchEnd, { passive: false })
+  editor.addEventListener('touchcancel', handleTouchEnd, { passive: true })
 }
 
 const addKeywordSlot = () => {
@@ -1693,28 +1837,19 @@ const onSubmit = async () => {
     
     ul {
       margin: 0 0 8px 0;
-      list-style: disc;
+      list-style: none;
       padding-left: 1.5em;
     }
     
     ol {
       margin: 0 0 8px 0;
-      list-style: decimal;
+      list-style: none;
       padding-left: 1.5em;
     }
     
     li {
       margin-bottom: 4px;
-      list-style: inherit;
-    }
-    
-    // Quill 列表项样式
-    li[data-list="bullet"] {
-      list-style-type: disc;
-    }
-    
-    li[data-list="ordered"] {
-      list-style-type: decimal;
+      list-style: none;
     }
     
     li > .ql-ui:before {
@@ -2020,9 +2155,17 @@ const onSubmit = async () => {
     transform: scale(0.98);
   }
   
-  &.disabled {
+&.disabled {
     background: linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%);
     box-shadow: none;
+    cursor: not-allowed;
+  }
+}
+
+// 移动端表格单元格高亮提示
+:deep(.ql-better-table-wrapper) {
+  td, th {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
   }
 }
 </style>

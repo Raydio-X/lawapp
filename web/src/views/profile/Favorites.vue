@@ -793,28 +793,40 @@ const onConfirmCopy = async () => {
   -webkit-line-clamp: 2;
   overflow: hidden;
   
-  :deep(ol) {
+  // Quill 列表样式 - 根据 data-list 属性区分有序和无序列表
+  :deep(ol), :deep(ul) {
     padding-left: 16px;
     margin: 0;
-    list-style: decimal;
-  }
-  
-  :deep(ul) {
-    padding-left: 16px;
-    margin: 0;
-    list-style: disc;
+    list-style: none;
+    counter-reset: list-counter;
   }
   
   :deep(li) {
-    list-style: inherit;
+    list-style: none;
+    position: relative;
   }
   
   :deep(li[data-list="ordered"]) {
-    list-style-type: decimal;
+    counter-increment: list-counter;
+    &::before {
+      content: counter(list-counter) '. ';
+      position: absolute;
+      left: -16px;
+      color: inherit;
+    }
   }
   
   :deep(li[data-list="bullet"]) {
-    list-style-type: disc;
+    &::before {
+      content: '• ';
+      position: absolute;
+      left: -16px;
+      color: inherit;
+    }
+  }
+  
+  :deep(li > .ql-ui:before) {
+    content: '' !important;
   }
   
   :deep(table) {

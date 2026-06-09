@@ -319,10 +319,26 @@ const gridDisplayText = computed(() => {
 const onShowTableSelector = () => {
   if (tableBtnRef.value) {
     const rect = tableBtnRef.value.getBoundingClientRect()
-    tableSelectorPosition.value = {
-      top: rect.bottom + 4,
-      left: rect.left
+    const popupWidth = 170
+    const popupHeight = 200
+    
+    let top = rect.bottom + 4
+    let left = rect.left
+    
+    if (left + popupWidth > window.innerWidth - 10) {
+      left = window.innerWidth - popupWidth - 10
     }
+    if (left < 10) {
+      left = 10
+    }
+    if (top + popupHeight > window.innerHeight - 10) {
+      top = rect.top - popupHeight - 4
+    }
+    if (top < 10) {
+      top = 10
+    }
+    
+    tableSelectorPosition.value = { top, left }
   }
   showTableDialog.value = true
 }
@@ -419,6 +435,9 @@ const initQuill = () => {
   
   // 修复列表删除问题：当第一行是列表时，Backspace 无法删除
   setupListDeleteFix()
+  
+  // 设置移动端表格事件监听
+  setupMobileTableEvents()
 
   if (answer.value) {
     quillInstance.value.root.innerHTML = answer.value
@@ -956,6 +975,110 @@ const insertTable = () => {
   showTableDialog.value = false
   hoveredRow.value = -1
   hoveredCol.value = -1
+}
+
+// 设置移动端表格事件监听 - 长按触发右键菜单
+const setupMobileTableEvents = () => {
+  if (!editorRef.value) return
+  
+  const isMobile = Capacitor.isNativePlatform() || 'ontouchstart' in window
+  if (!isMobile) return
+  
+  const editor = editorRef.value
+  
+  let longPressTimer: number | null = null
+  let touchStartCell: HTMLTableCellElement | null = null
+  let touchStartX = 0
+  let touchStartY = 0
+  let isLongPressTriggered = false
+  
+  const handleTouchStart = (e: TouchEvent) => {
+    const target = e.target as HTMLElement
+    const cell = target.closest('td, th') as HTMLTableCellElement | null
+    
+    if (cell && cell.closest('table')) {
+      isLongPressTriggered = false
+      touchStartCell = cell
+      touchStartX = e.touches[0].clientX
+      touchStartY = e.touches[0].clientY
+      
+      longPressTimer = window.setTimeout(() => {
+        if (touchStartCell) {
+          isLongPressTriggered = true
+          e.preventDefault()
+          
+          const cellRect = touchStartCell.getBoundingClientRect()
+          
+          const contextMenuEvent = new MouseEvent('contextmenu', {
+            bubbles: true,
+            cancelable: true,
+            clientX: cellRect.left + cellRect.width / 2,
+            clientY: cellRect.bottom + 5,
+            button: 2
+          })
+          
+          touchStartCell.dispatchEvent(contextMenuEvent)
+          
+          nextTick(() => {
+            const tooltip = document.querySelector('.ql-better-table-tooltip') as HTMLElement
+            if (tooltip) {
+              const tooltipRect = tooltip.getBoundingClientRect()
+              let left = tooltipRect.left
+              let top = tooltipRect.top
+              
+              if (left + tooltipRect.width > window.innerWidth - 10) {
+                left = window.innerWidth - tooltipRect.width - 10
+              }
+              if (left < 10) {
+                left = 10
+              }
+              if (top + tooltipRect.height > window.innerHeight - 10) {
+                top = window.innerHeight - tooltipRect.height - 10
+              }
+              if (top < 10) {
+                top = 10
+              }
+              
+              tooltip.style.left = `${left}px`
+              tooltip.style.top = `${top}px`
+            }
+          })
+        }
+      }, 400)
+    }
+  }
+  
+  const handleTouchMove = (e: TouchEvent) => {
+    if (e.touches.length > 0) {
+      const moveX = Math.abs(e.touches[0].clientX - touchStartX)
+      const moveY = Math.abs(e.touches[0].clientY - touchStartY)
+      if (moveX > 10 || moveY > 10) {
+        if (longPressTimer) {
+          clearTimeout(longPressTimer)
+          longPressTimer = null
+        }
+        touchStartCell = null
+        isLongPressTriggered = false
+      }
+    }
+  }
+  
+  const handleTouchEnd = (e: TouchEvent) => {
+    if (isLongPressTriggered) {
+      e.preventDefault()
+    }
+    
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      longPressTimer = null
+    }
+    touchStartCell = null
+  }
+  
+  editor.addEventListener('touchstart', handleTouchStart, { passive: false })
+  editor.addEventListener('touchmove', handleTouchMove, { passive: true })
+  editor.addEventListener('touchend', handleTouchEnd, { passive: false })
+  editor.addEventListener('touchcancel', handleTouchEnd, { passive: true })
 }
 
 const addKeywordSlot = () => {
@@ -1596,24 +1719,16 @@ const onSubmit = async () => {
     
     ol {
       padding-left: 20px;
-      list-style: decimal;
+      list-style: none;
     }
     
     ul {
       padding-left: 20px;
-      list-style: disc;
+      list-style: none;
     }
     
     li {
-      list-style: inherit;
-    }
-    
-    li[data-list="ordered"] {
-      list-style-type: decimal;
-    }
-    
-    li[data-list="bullet"] {
-      list-style-type: disc;
+      list-style: none;
     }
     
     table {
@@ -1914,5 +2029,12 @@ const onSubmit = async () => {
 .empty-text {
   font-size: 14px;
   color: #94A3B8;
+}
+
+// 移动端表格单元格高亮提示
+:deep(.ql-better-table-wrapper) {
+  td, th {
+    -webkit-tap-highlight-color: rgba(59, 130, 246, 0.1);
+  }
 }
 </style>

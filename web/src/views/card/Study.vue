@@ -1214,33 +1214,44 @@ const saveStudyProgress = () => {
   white-space: pre-wrap;
   word-break: break-word;
   
-  // Quill 列表样式 - 使用 data-list 属性区分有序和无序列表
-  :deep(ol) {
+  // Quill 列表样式 - 根据 data-list 属性区分有序和无序列表
+  :deep(ol), :deep(ul) {
     padding-left: 1.5em;
     margin: 8px 0;
-    list-style: decimal;
+    list-style: none;
+    counter-reset: list-counter;
   }
   
-  :deep(ul) {
-    padding-left: 1.5em;
-    margin: 8px 0;
-    list-style: disc;
-  }
-  
-  // Quill 使用 li[data-list] 来标记列表类型
   :deep(li) {
     margin-bottom: 4px;
-    list-style: inherit;
+    list-style: none;
+    position: relative;
   }
   
-  // 有序列表项
+  // 有序列表项 - 使用计数器显示数字
   :deep(li[data-list="ordered"]) {
-    list-style-type: decimal;
+    counter-increment: list-counter;
+    &::before {
+      content: counter(list-counter) '. ';
+      position: absolute;
+      left: -1.5em;
+      color: inherit;
+    }
   }
   
-  // 无序列表项
+  // 无序列表项 - 显示圆点
   :deep(li[data-list="bullet"]) {
-    list-style-type: disc;
+    &::before {
+      content: '• ';
+      position: absolute;
+      left: -1.5em;
+      color: inherit;
+    }
+  }
+  
+  // 隐藏 Quill 编辑器生成的 .ql-ui:before 标记
+  :deep(li > .ql-ui:before) {
+    content: '' !important;
   }
   
   :deep(table) {
