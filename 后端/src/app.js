@@ -178,6 +178,28 @@ const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
     console.log(`API Base URL: http://localhost:${PORT}/api`);
+    
+    // 启动VIP过期定时检查（每小时执行一次）
+    const UserModel = require('./models/User');
+    setInterval(async () => {
+        try {
+            const count = await UserModel.cleanupExpiredVIP();
+            if (count > 0) {
+                console.log(`[VIP定时任务] 已清理 ${count} 个过期VIP用户`);
+            }
+        } catch (error) {
+            console.error('[VIP定时任务] 执行失败:', error);
+        }
+    }, 60 * 60 * 1000); // 每小时执行一次
+    
+    // 启动时立即执行一次
+    UserModel.cleanupExpiredVIP().then(count => {
+        if (count > 0) {
+            console.log(`[VIP初始化] 已清理 ${count} 个过期VIP用户`);
+        }
+    }).catch(error => {
+        console.error('[VIP初始化] 执行失败:', error);
+    });
 });
 
 process.on('uncaughtException', (err) => {

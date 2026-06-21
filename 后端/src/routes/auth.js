@@ -412,20 +412,25 @@ router.get('/me', require('../middlewares/auth').auth, async (req, res) => {
             });
         }
 
+        // 检查VIP状态，确保返回最新状态
+        const isVip = await UserModel.checkVIPStatus(user.id);
+        // 重新获取用户信息以获得更新后的状态
+        const updatedUser = isVip ? await UserModel.findById(user.id) : user;
+
         res.json({
             success: true,
             data: {
-                id: user.id,
-                userId: user.user_id,
-                nickname: user.nickname,
-                avatar: user.avatar,
-                bio: user.bio,
-                phone: user.phone,
-                gender: user.gender,
-                role: user.role || 'user',
-                isVip: user.is_vip || false,
-                vipExpireAt: user.vip_expires_at,
-                createdAt: user.created_at
+                id: updatedUser.id,
+                userId: updatedUser.user_id,
+                nickname: updatedUser.nickname,
+                avatar: updatedUser.avatar,
+                bio: updatedUser.bio,
+                phone: updatedUser.phone,
+                gender: updatedUser.gender,
+                role: updatedUser.role || 'user',
+                isVip: isVip,
+                vipExpireAt: updatedUser.vip_expires_at,
+                createdAt: updatedUser.created_at
             }
         });
     } catch (error) {

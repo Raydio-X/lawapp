@@ -26,6 +26,11 @@ const auth = async (req, res, next) => {
             });
         }
         
+        // 自动检查VIP状态，如果过期则更新
+        if (user.is_vip) {
+            await UserModel.checkVIPStatus(user.id);
+        }
+        
         req.user = {
             id: user.id,
             openid: user.openid,

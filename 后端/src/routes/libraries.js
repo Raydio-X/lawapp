@@ -6,6 +6,7 @@ const CardModel = require('../models/Card');
 const FavoriteModel = require('../models/Favorite');
 const LikeModel = require('../models/Like');
 const MessageModel = require('../models/message');
+const UserModel = require('../models/User');
 const { auth, optionalAuth, adminAuth } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -551,12 +552,8 @@ router.post('/:id/copy', auth, async (req, res) => {
         }
 
         // 检查VIP权限
-        const [userRows] = await db.execute(
-            'SELECT is_vip FROM users WHERE id = ?',
-            [req.user.id]
-        );
-        
-        if (userRows.length === 0 || !userRows[0].is_vip) {
+        const vipStatus = await UserModel.checkVIPStatus(req.user.id);
+        if (!vipStatus) {
             return res.status(403).json({
                 success: false,
                 code: 403,

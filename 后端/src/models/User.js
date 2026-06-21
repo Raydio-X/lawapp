@@ -212,6 +212,50 @@ class UserModel {
 
         return true;
     }
+
+    // 批量清理过期VIP用户（定时任务调用）
+    static async cleanupExpiredVIP() {
+        try {
+            const [expiredUsers] = await db.execute(
+                'SELECT id FROM users WHERE is_vip = 1 AND vip_expires_at IS NOT NULL AND vip_expires_at < NOW()'
+            );
+
+            if (expiredUsers.length === 0) return 0;
+
+            const [result] = await db.execute(
+                'UPDATE users SET is_vip = 0 WHERE is_vip = 1 AND vip_expires_at IS NOT NULL AND vip_expires_at < NOW()'
+            );
+
+            // 为每个过期用户发送通知
+            for (const user of expiredUsers) {
+                try {
+                    const [existingMessages] = await db.execute(
+                        `SELECT id FROM messages 
+                         WHERE user_id = ? 
+                         AND type = 'vip_expire' 
+                         AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)`,
+                        [user.id]
+                    );
+                    
+                    if (existingMessages.length === 0) {
+                        await MessageModel.create({
+                            user_id: user.id,
+                            title: 'VIP会员已过期',
+                            content: '您的VIP会员已过期，部分功能将受到限制。如需继续使用VIP专属功能，请前往激活中心续费。',
+                            type: 'vip_expire'
+                        });
+                    }
+                } catch (error) {
+                    console.error(`发送VIP过期通知失败(用户${user.id}):`, error);
+                }
+            }
+
+            return result.affectedRows;
+        } catch (error) {
+            console.error('清理过期VIP失败:', error);
+            return 0;
+        }
+    }
 }
 
 module.exports = UserModel;
