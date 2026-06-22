@@ -127,6 +127,9 @@ class KnowledgePackModel {
     static async create(data) {
         const { title, description, file_path, file_name, file_size, file_type, cover_image, category, tags, is_public, is_featured, created_by, folder_id } = data;
         
+        // 确保folder_id为整数或null
+        const safeFolderId = (folder_id && folder_id !== 'null') ? parseInt(folder_id) : null;
+        
         const [result] = await db.execute(
             `INSERT INTO knowledge_packs (title, description, file_path, file_name, file_size, file_type, cover_image, category, tags, is_public, is_featured, created_by, folder_id)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -139,11 +142,11 @@ class KnowledgePackModel {
                 file_type || 'application/pdf', 
                 cover_image || null, 
                 category || null, 
-                JSON.stringify(tags || []), 
+                JSON.stringify(tags || []),
                 is_public ?? 1, 
                 is_featured ?? 0, 
                 created_by,
-                folder_id || null
+                safeFolderId
             ]
         );
 
@@ -161,6 +164,10 @@ class KnowledgePackModel {
                 fields.push(`${field} = ?`);
                 if (field === 'tags') {
                     values.push(JSON.stringify(data[field] || []));
+                } else if (field === 'folder_id') {
+                    // 确保folder_id为整数或null
+                    const fid = data[field];
+                    values.push((fid && fid !== 'null' && fid !== '') ? parseInt(fid) : null);
                 } else if (field === 'description' || field === 'cover_image' || field === 'category') {
                     values.push(data[field] || null);
                 } else {

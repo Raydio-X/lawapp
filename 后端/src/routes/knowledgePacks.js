@@ -213,6 +213,11 @@ router.post('/upload', adminAuth, upload.single('file'), async (req, res) => {
             return res.status(400).json({ success: false, code: 400, message: '知识包标题不能为空' });
         }
 
+        // 处理folder_id：确保字符串'null'、空字符串、undefined转为null
+        const parsedFolderId = (folder_id && folder_id !== 'null' && folder_id !== '') 
+            ? parseInt(folder_id) 
+            : null;
+
         let parsedTags = [];
         if (tags) {
             try {
@@ -244,7 +249,7 @@ router.post('/upload', adminAuth, upload.single('file'), async (req, res) => {
             is_public: 1,
             is_featured: 1,
             created_by: req.user.id,
-            folder_id: folder_id || null
+            folder_id: parsedFolderId
         });
 
         res.json({

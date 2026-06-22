@@ -392,11 +392,13 @@ router.post('/:libraryId/chapters', auth, async (req, res) => {
             });
         }
 
-        const { name, sort_order } = req.body;
+        const { name, sort_order, parent_id, level } = req.body;
         const chapter = await ChapterModel.create({
             library_id: req.params.libraryId,
             name,
-            sort_order
+            sort_order,
+            parent_id: parent_id || null,
+            level: level || 1
         });
 
         res.status(201).json({

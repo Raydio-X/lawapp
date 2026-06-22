@@ -194,6 +194,7 @@
               <span class="batch-template-row"><span class="col-a">C列</span><span class="col-b">关键词（选填，英文逗号分隔）</span></span>
               <span class="batch-template-row"><span class="col-a">D列</span><span class="col-b">一级标题（必填）</span></span>
               <span class="batch-template-row"><span class="col-a">E列</span><span class="col-b">二级标题（选填）</span></span>
+              <span class="batch-template-row"><span class="col-a">F列</span><span class="col-b">三级标题（选填）</span></span>
             </div>
             <div class="batch-download-template" @click="onDownloadTemplate">
               <t-icon name="download" size="14px" color="#3B82F6" />
@@ -243,7 +244,7 @@
                 </span>
                 <span class="batch-preview-chapter" v-if="item.chapterLevel1">
                   <t-icon name="folder" size="12px" color="#3B82F6" />
-                  {{ item.chapterLevel1 }}<span v-if="item.chapterLevel2"> / {{ item.chapterLevel2 }}</span>
+                  {{ item.chapterLevel1 }}<span v-if="item.chapterLevel2"> / {{ item.chapterLevel2 }}</span><span v-if="item.chapterLevel3"> / {{ item.chapterLevel3 }}</span>
                 </span>
               </div>
             </div>

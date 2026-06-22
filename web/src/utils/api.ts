@@ -121,7 +121,10 @@ class ApiClient {
     
     if (formData) {
       Object.entries(formData).forEach(([key, value]) => {
-        form.append(key, value)
+        // 跳过null和undefined值，避免FormData将null转为字符串'null'
+        if (value !== null && value !== undefined) {
+          form.append(key, value)
+        }
       })
     }
     

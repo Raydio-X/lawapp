@@ -494,7 +494,12 @@ const onSubmit = async () => {
             }
           })
           
-          await chapterAPI.batchCreate(targetLibraryId!, chapters)
+          // 编辑时使用batchUpdate，新建时使用batchCreate
+          if (isEdit.value) {
+            await chapterAPI.batchUpdate(targetLibraryId!, chapters)
+          } else {
+            await chapterAPI.batchCreate(targetLibraryId!, chapters)
+          }
         }
       }
 

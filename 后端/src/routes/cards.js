@@ -145,15 +145,15 @@ router.get('/template', (req, res) => {
         const workbook = XLSXStyle.utils.book_new();
         
         const templateData = [
-            ['问题（必填）', '答案（必填）', '关键词（选填，英文逗号分隔）', '一级标题（必填）', '二级标题（选填）'],
-            ['什么是人工智能？', '人工智能是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。', '人工智能,AI,机器学习', '人工智能基础', ''],
-            ['机器学习的基本类型有哪些？', '机器学习主要分为监督学习、无监督学习和强化学习三种类型。', '机器学习,监督学习,无监督学习', '人工智能基础', '机器学习'],
-            ['什么是深度学习？', '深度学习是机器学习的一个子集，使用多层神经网络来学习数据的表示。', '深度学习,神经网络', '人工智能基础', '深度学习']
+            ['问题（必填）', '答案（必填）', '关键词（选填，英文逗号分隔）', '一级标题（必填）', '二级标题（选填）', '三级标题（选填）'],
+            ['什么是人工智能？', '人工智能是计算机科学的一个分支，致力于创建能够执行通常需要人类智能的任务的系统。', '人工智能,AI,机器学习', '人工智能基础', '', ''],
+            ['机器学习的基本类型有哪些？', '机器学习主要分为监督学习、无监督学习和强化学习三种类型。', '机器学习,监督学习,无监督学习', '人工智能基础', '机器学习', ''],
+            ['什么是深度学习？', '深度学习是机器学习的一个子集，使用多层神经网络来学习数据的表示。', '深度学习,神经网络', '人工智能基础', '深度学习', '神经网络基础']
         ];
         
         const worksheet = XLSXStyle.utils.aoa_to_sheet(templateData);
         
-        const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1'];
+        const headerCells = ['A1', 'B1', 'C1', 'D1', 'E1', 'F1'];
         headerCells.forEach(cell => {
             if (worksheet[cell]) {
                 worksheet[cell].s = {
@@ -176,6 +176,7 @@ router.get('/template', (req, res) => {
             { wch: 50 },
             { wch: 28 },
             { wch: 18 },
+            { wch: 15 },
             { wch: 15 }
         ];
         
@@ -294,6 +295,7 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
             const keywords = row[2] ? String(row[2]).trim() : '';
             const chapterLevel1 = row[3] ? String(row[3]).trim() : '';
             const chapterLevel2 = row[4] ? String(row[4]).trim() : '';
+            const chapterLevel3 = row[5] ? String(row[5]).trim() : '';
 
             if (!question && !chapterLevel1) continue;
 
@@ -343,7 +345,8 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                 answer, 
                 keywords: keywordsArray,
                 chapterLevel1, 
-                chapterLevel2 
+                chapterLevel2,
+                chapterLevel3
             });
         }
 
@@ -369,7 +372,8 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                         answer: c.answer,
                         keywords: c.keywords,
                         chapterLevel1: c.chapterLevel1,
-                        chapterLevel2: c.chapterLevel2
+                        chapterLevel2: c.chapterLevel2,
+                        chapterLevel3: c.chapterLevel3
                     })),
                     total: cards.length,
                     errors: errors
@@ -423,6 +427,25 @@ router.post('/batch-import', auth, upload.single('file'), async (req, res) => {
                             });
                             chapterMap[level2Key] = { id: newChapter.id, level: 2, parentId: level1ChapterId };
                             chapterId = newChapter.id;
+                        }
+                        
+                        if (card.chapterLevel3) {
+                            const level3Key = `${card.chapterLevel1}/${card.chapterLevel2}/${card.chapterLevel3}`;
+                            const level2ChapterId = chapterMap[level2Key].id;
+                            
+                            if (chapterMap[level3Key]) {
+                                chapterId = chapterMap[level3Key].id;
+                            } else {
+                                const newChapter = await ChapterModel.create({
+                                    library_id,
+                                    name: card.chapterLevel3,
+                                    sort_order: Object.keys(chapterMap).filter(k => chapterMap[k].parentId === level2ChapterId).length,
+                                    level: 3,
+                                    parent_id: level2ChapterId
+                                });
+                                chapterMap[level3Key] = { id: newChapter.id, level: 3, parentId: level2ChapterId };
+                                chapterId = newChapter.id;
+                            }
                         }
                     } else {
                         chapterId = level1ChapterId;

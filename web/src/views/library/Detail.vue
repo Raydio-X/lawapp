@@ -98,7 +98,7 @@
             <div class="tree-children" v-if="chapter.expanded && chapter.children && chapter.children.length > 0">
               <div 
                 class="tree-node level-2"
-                :class="{ active: selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex }"
+                :class="{ active: selectedChapterIndex === chapterIndex && selectedChildIndex === childIndex && selectedGrandChildIndex === -1 }"
                 v-for="(childChapter, childIndex) in chapter.children" 
                 :key="childChapter.id"
               >
@@ -746,16 +746,21 @@ const onChapterTap = (index: number) => {
 const onChildChapterTap = (chapterIndex: number, childIndex: number) => {
   const childChapter = chapters.value[chapterIndex].children[childIndex]
   
+  // 如果有三级目录，点击时只展开/折叠，不滚动
   if (childChapter.children && childChapter.children.length > 0) {
     childChapter.expanded = !childChapter.expanded
+    selectedChapterIndex.value = chapterIndex
+    selectedChildIndex.value = childIndex
+    selectedGrandChildIndex.value = -1
+    // 不设置 selectedChapter，不滚动
+  } else {
+    // 没有三级目录时，选中并滚动
+    selectedChapterIndex.value = chapterIndex
+    selectedChildIndex.value = childIndex
+    selectedGrandChildIndex.value = -1
+    selectedChapter.value = childChapter
+    scrollToCardsSection()
   }
-  
-  selectedChapterIndex.value = chapterIndex
-  selectedChildIndex.value = childIndex
-  selectedGrandChildIndex.value = -1
-  selectedChapter.value = childChapter
-  
-  scrollToCardsSection()
 }
 
 const onGrandChildChapterTap = (chapterIndex: number, childIndex: number, grandChildIndex: number) => {
@@ -940,19 +945,54 @@ const onMoveLibraryChange = async (libraryIdValue: number) => {
       if (res.success && res.data) {
         const chapters = res.data.chapters || res.data || []
         const result: FlatChapter[] = []
-        const flatten = (chapterList: any[], level: number = 1) => {
-          chapterList.forEach(ch => {
-            result.push({
-              id: ch.id,
-              name: ch.name,
-              level: level
+        
+        // 如果数据已经是树形结构（有children）
+        if (chapters.length > 0 && chapters[0].children) {
+          const flatten = (chapterList: any[], level: number = 1) => {
+            chapterList.forEach(ch => {
+              result.push({
+                id: ch.id,
+                name: ch.name,
+                level: level
+              })
+              if (ch.children && ch.children.length > 0) {
+                flatten(ch.children, level + 1)
+              }
             })
-            if (ch.children && ch.children.length > 0) {
-              flatten(ch.children, level + 1)
+          }
+          flatten(chapters)
+        } else {
+          // 扁平列表，根据parent_id构建树再展开
+          const map: Record<number, any> = {}
+          const roots: any[] = []
+          
+          chapters.forEach((ch: any) => {
+            map[ch.id] = { ...ch, children: [] }
+          })
+          
+          chapters.forEach((ch: any) => {
+            if (ch.parent_id && map[ch.parent_id]) {
+              map[ch.parent_id].children.push(map[ch.id])
+            } else {
+              roots.push(map[ch.id])
             }
           })
+          
+          const flatten = (chapterList: any[], level: number = 1) => {
+            chapterList.forEach(ch => {
+              result.push({
+                id: ch.id,
+                name: ch.name,
+                level: ch.level || level
+              })
+              if (ch.children && ch.children.length > 0) {
+                flatten(ch.children, level + 1)
+              }
+            })
+          }
+          flatten(roots)
         }
-        flatten(chapters)
+        
         moveChapterOptions.value = result
       }
     } catch (error) {
@@ -1344,9 +1384,9 @@ const onToggleFavorite = async () => {
 }
 
 .tree-title.sub-2 {
-  font-size: 13px;
-  font-weight: 400;
-  color: #64748B;
+  font-size: 14px;
+  font-weight: 500;
+  color: #475569;
 }
 
 .tree-node.active .tree-title {
@@ -1395,7 +1435,7 @@ const onToggleFavorite = async () => {
 }
 
 .tree-count.sub-2 {
-  font-size: 10px;
+  font-size: 11px;
   color: #94A3B8;
 }
 
@@ -1408,7 +1448,7 @@ const onToggleFavorite = async () => {
 }
 
 .tree-children.level-3 {
-  padding-left: 16px;
+  padding-left: 10px;
 }
 
 .tree-node.level-2 .tree-item {
@@ -1416,7 +1456,7 @@ const onToggleFavorite = async () => {
 }
 
 .tree-node.level-3 .tree-item {
-  padding: 6px 5px;
+  padding: 8px 6px;
 }
 
 .cards-section {

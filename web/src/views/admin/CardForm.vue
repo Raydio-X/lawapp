@@ -220,7 +220,7 @@
         @confirm="onLibraryConfirm"
       />
 
-      <Picker
+      <MultiColumnPicker
         v-model:visible="showChapterPicker"
         title="选择章节"
         :options="chapterOptions"
@@ -243,6 +243,7 @@ import { MessagePlugin, DialogPlugin } from 'tdesign-vue-next'
 import { Capacitor } from '@capacitor/core'
 import { cardAPI, libraryAPI, chapterAPI, adminAPI } from '@/utils/api'
 import Picker from '@/components/Picker.vue'
+import MultiColumnPicker from '@/components/MultiColumnPicker.vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import QuillBetterTable from 'quill-better-table'
@@ -256,12 +257,15 @@ interface Library {
 interface Chapter {
   id: number
   name: string
+  level?: number
+  parent_id?: number | null
   children?: Chapter[]
 }
 
 interface PickerOption {
   label: string
   value: string | number
+  children?: PickerOption[]
 }
 
 const router = useRouter()
@@ -368,10 +372,72 @@ const libraryOptions = computed<PickerOption[]>(() => {
 })
 
 const chapterOptions = computed<PickerOption[]>(() => {
-  return chapters.value.map(ch => ({
-    label: ch.name,
-    value: ch.id
-  }))
+  // 中文数字数组
+  const chineseNum = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', 
+                      '十一', '十二', '十三', '十四', '十五', '十六', '十七', '十八', '十九', '二十',
+                      '二十一', '二十二', '二十三', '二十四', '二十五', '二十六', '二十七', '二十八', '二十九', '三十',
+                      '三十一', '三十二', '三十三', '三十四', '三十五', '三十六', '三十七', '三十八', '三十九', '四十',
+                      '四十一', '四十二', '四十三', '四十四', '四十五', '四十六', '四十七', '四十八', '四十九', '五十',
+                      '五十一', '五十二', '五十三', '五十四', '五十五', '五十六', '五十七', '五十八', '五十九', '六十']
+  
+  // 构建级联选择器的树形结构
+  const buildCascadeOptions = (chapterList: Chapter[]): PickerOption[] => {
+    // 如果数据有children，直接处理
+    const hasChildren = chapterList.some(ch => ch.children && ch.children.length > 0)
+    
+    const processTree = (items: Chapter[], level: number, chapterIdx: number, sectionIdx: number): PickerOption[] => {
+      return items.map((item, idx) => {
+        let label = ''
+        if (level === 1) {
+          label = `第${chineseNum[idx] || (idx + 1)}章 ${item.name}`
+        } else if (level === 2) {
+          label = `${chapterIdx + 1}-${idx + 1} ${item.name}`
+        } else if (level === 3) {
+          label = `${chapterIdx + 1}-${sectionIdx + 1}-${idx + 1} ${item.name}`
+        }
+        
+        const option: PickerOption = {
+          label,
+          value: item.id
+        }
+        
+        if (item.children && item.children.length > 0) {
+          option.children = processTree(
+            item.children, 
+            level + 1, 
+            level === 1 ? idx : chapterIdx, 
+            level === 2 ? idx : sectionIdx
+          )
+        }
+        
+        return option
+      })
+    }
+    
+    if (hasChildren) {
+      return processTree(chapterList, 1, 0, 0)
+    }
+    
+    // 否则从扁平列表构建树
+    const map: Record<number, Chapter> = {}
+    const roots: Chapter[] = []
+    
+    chapterList.forEach(ch => {
+      map[ch.id] = { ...ch, children: [] }
+    })
+    
+    chapterList.forEach(ch => {
+      if (ch.parent_id && map[ch.parent_id]) {
+        map[ch.parent_id].children!.push(map[ch.id])
+      } else {
+        roots.push(map[ch.id])
+      }
+    })
+    
+    return processTree(roots, 1, 0, 0)
+  }
+  
+  return buildCascadeOptions(chapters.value)
 })
 
 const canSubmit = computed(() => {
