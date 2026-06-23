@@ -213,7 +213,7 @@ curl -X POST https://lawapp.top/api/version/create \
     "versionCode": 2,
     "versionName": "1.1.0",
     "platform": "android",
-    "downloadUrl": "https://www.lawapp.top/download/lawapp-1.1.0.apk",
+    "downloadUrl": "https://www.lawapp.top/download/lawapp-1.0.0.apk",
     "forceUpdate": false,
     "updateLog": "1. 新增版本更新功能\n2. 修复QQ头像显示问题",
     "forceUpdateVersions": []

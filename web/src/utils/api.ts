@@ -140,8 +140,8 @@ const api = new ApiClient()
 
 export const authAPI = {
   login: (code: string, userInfo?: any) => api.post('/auth/login', { code, userInfo }),
-  qqLogin: (accessToken: string, openId: string, platform?: 'web' | 'mobile', unionId?: string) => 
-    api.post('/auth/qq-login', { accessToken, openId, platform, unionId }),
+  qqLogin: (accessToken: string, openId: string, platform?: 'web' | 'mobile', unionId?: string, appId?: string) => 
+    api.post('/auth/qq-login', { accessToken, openId, platform, unionId, appId }),
   testLogin: (account: string, password: string) => api.post('/auth/test-login', { account, password }),
   getCurrentUser: () => api.get('/auth/me'),
   refreshToken: () => api.post('/auth/refresh')

@@ -7,13 +7,22 @@ const router = express.Router();
 
 router.post('/qq-login', async (req, res) => {
     try {
-        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId, platform, unionId: clientUnionId } = req.body;
+        const { code, redirectUri, accessToken: clientAccessToken, openId: clientOpenId, platform, unionId: clientUnionId, appId: clientAppId } = req.body;
 
         // 根据平台选择不同的APP配置
         const isMobile = platform === 'mobile';
         let qqAppId, qqAppKey;
         
-        if (isMobile) {
+        // 优先使用前端传递的 appId（确保与 access_token 匹配）
+        if (clientAppId) {
+            qqAppId = clientAppId;
+            // 根据平台选择对应的 appKey
+            if (isMobile) {
+                qqAppKey = process.env.QQ_MOBILE_APP_KEY || process.env.QQ_APP_KEY;
+            } else {
+                qqAppKey = process.env.QQ_WEB_APP_KEY || process.env.QQ_APP_KEY;
+            }
+        } else if (isMobile) {
             qqAppId = process.env.QQ_MOBILE_APP_ID || process.env.QQ_APP_ID;
             qqAppKey = process.env.QQ_MOBILE_APP_KEY || process.env.QQ_APP_KEY;
         } else {

@@ -6,6 +6,7 @@ export interface QQLoginResult {
   accessToken?: string
   expiresIn?: number
   unionId?: string
+  appId?: string
   error?: string
 }
 
@@ -81,7 +82,11 @@ export class NativeQQLogin {
     
     try {
       const result = await QQLogin.login()
-      return result
+      // 添加 appId 到返回结果
+      return {
+        ...result,
+        appId: this.appId
+      }
     } catch (error: any) {
       console.error('QQ login error:', error)
       return {

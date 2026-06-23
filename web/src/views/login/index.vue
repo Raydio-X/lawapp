@@ -306,8 +306,8 @@ const onQQLogin = async () => {
       const result = await nativeQQLogin.login()
       
       if (result.success && result.openId && result.accessToken) {
-        // 调用后端接口完成登录，传递unionId（如果有）
-        await handleQQLoginSuccess(result.accessToken, result.openId, result.unionId)
+        // 调用后端接口完成登录，传递unionId和appId
+        await handleQQLoginSuccess(result.accessToken, result.openId, result.unionId, result.appId)
       } else {
         MessagePlugin.error(result.error || 'QQ登录失败')
         qqLoginLoading.value = false
@@ -341,11 +341,13 @@ const onQQLogin = async () => {
 }
 
 // 处理QQ登录成功后的逻辑
-const handleQQLoginSuccess = async (accessToken: string, openId: string, unionId?: string) => {
+const handleQQLoginSuccess = async (accessToken: string, openId: string, unionId?: string, appId?: string) => {
   try {
     // 根据平台传递不同的platform参数
     const platform = Capacitor.isNativePlatform() ? 'mobile' : 'web'
-    const res = await authAPI.qqLogin(accessToken, openId, platform, unionId)
+    // 如果没有传递appId，使用当前平台配置的appId
+    const effectiveAppId = appId || QQ_APP_ID
+    const res = await authAPI.qqLogin(accessToken, openId, platform, unionId, effectiveAppId)
     
     if (res.success && res.data) {
       userStore.setToken(res.data.token)

@@ -82,7 +82,7 @@ router.post('/', adminAuth, async (req, res) => {
 
         // 检查是否已存在同名文件夹（不允许嵌套，所有文件夹都在根级别）
         const [existing] = await db.execute(
-            'SELECT id FROM knowledge_pack_folders WHERE name = ? AND parent_id IS NULL',
+            'SELECT id FROM knowledge_pack_folders WHERE name = ?',
             [name.trim()]
         );
         if (existing.length > 0) {
@@ -184,9 +184,6 @@ router.delete('/:id', adminAuth, async (req, res) => {
 
         // 将该文件夹下的知识包移至根目录
         await db.execute('UPDATE knowledge_packs SET folder_id = NULL WHERE folder_id = ?', [id]);
-
-        // 将子文件夹移至根目录
-        await db.execute('UPDATE knowledge_pack_folders SET parent_id = NULL WHERE parent_id = ?', [id]);
 
         // 删除文件夹
         await db.execute('DELETE FROM knowledge_pack_folders WHERE id = ?', [id]);
