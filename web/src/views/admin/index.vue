@@ -2290,6 +2290,22 @@ onActivated(() => {
   .tab-bar .tab-item {
     min-width: 60px;
   }
+  
+  .add-btn span {
+    display: none;
+  }
+  
+  .add-btn {
+    padding: 0 10px;
+  }
+  
+  .batch-import-btn span {
+    display: none;
+  }
+  
+  .batch-import-btn {
+    padding: 0 10px;
+  }
 }
 
 .batch-import-btn {

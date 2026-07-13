@@ -620,6 +620,25 @@ async function migrateDatabase() {
             console.error('添加 folder_id 字段失败:', error.message);
         }
 
+        console.log('\n=== 更新 messages 表 type 字段 ===');
+        
+        try {
+            // 检查当前 ENUM 值是否包含 'vip_expire'
+            const [columns] = await connection.query('SHOW COLUMNS FROM messages LIKE "type"');
+            if (columns.length > 0) {
+                const currentType = columns[0].Type;
+                if (!currentType.includes('vip_expire')) {
+                    console.log('添加 vip_expire 到 type ENUM...');
+                    await connection.query("ALTER TABLE messages MODIFY COLUMN type ENUM('system', 'violation', 'announcement', 'vip_expire') DEFAULT 'system'");
+                    console.log('✓ type 字段已更新，添加了 vip_expire');
+                } else {
+                    console.log('✓ type 字段已包含 vip_expire');
+                }
+            }
+        } catch (error) {
+            console.error('更新 messages 表 type 字段失败:', error.message);
+        }
+
         console.log('\n=== 验证数据库结构 ===');
         
         try {

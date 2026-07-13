@@ -19,9 +19,9 @@
           class="form-input" 
           placeholder="例如：2024法硕刑法总则" 
           v-model="libraryName"
-          maxlength="20"
+          maxlength="30"
         />
-        <span class="form-count">{{ libraryName.length }}/20</span>
+        <span class="form-count">{{ libraryName.length }}/30</span>
       </div>
     </div>
 

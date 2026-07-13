@@ -319,7 +319,7 @@ async function initDatabase() {
                 user_id INT NOT NULL,
                 title VARCHAR(200) NOT NULL DEFAULT '',
                 content TEXT NOT NULL,
-                type ENUM('system', 'violation', 'announcement') DEFAULT 'system',
+                type ENUM('system', 'violation', 'announcement', 'vip_expire') DEFAULT 'system',
                 is_read TINYINT(1) DEFAULT 0,
                 sender_id INT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -129,12 +129,19 @@ class StudyModel {
 
         const toReviewCount = await MasteryModel.getReviewCount(userId);
 
+        // 只计算用户有权限访问的知识库中的未学习卡片：
+        // 1. 用户自己创建的知识库
+        // 2. 用户收藏的公开知识库
         const [unlearnedCards] = await db.execute(
             `SELECT COUNT(*) as count FROM cards c
-             WHERE c.is_public = 1 AND c.id NOT IN (
+             WHERE c.id NOT IN (
                  SELECT DISTINCT card_id FROM study_records WHERE user_id = ? AND is_formal_study = 1
+             )
+             AND (
+                 c.library_id IN (SELECT id FROM libraries WHERE created_by = ?)
+                 OR c.library_id IN (SELECT library_id FROM favorites WHERE user_id = ?)
              )`,
-            [userId]
+            [userId, userId, userId]
         );
 
         return {
